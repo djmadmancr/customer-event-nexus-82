@@ -7,10 +7,11 @@ import { cn } from '@/lib/utils';
 
 interface SidebarProps {
   isOpen: boolean;
+  mobileOpen: boolean;
   toggleSidebar: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, mobileOpen, toggleSidebar }) => {
   const location = useLocation();
   
   const navItems = [
@@ -39,7 +40,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
   return (
     <>
       {/* Mobile overlay */}
-      {isOpen && (
+      {mobileOpen && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
           onClick={toggleSidebar}
@@ -49,9 +50,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
       {/* Sidebar */}
       <aside 
         className={cn(
-          "bg-white border-r fixed top-0 left-0 z-50 h-full w-64 transform transition-transform duration-300 ease-in-out",
-          isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
-          "pt-16 md:pt-16 md:z-0"
+          "bg-white border-r fixed top-0 left-0 z-50 h-full transition-all duration-300 ease-in-out",
+          isOpen ? "w-64" : "w-16",
+          mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+          "pt-16 md:pt-16 md:z-20"
         )}
       >
         <div className="p-4 flex flex-col h-full">
@@ -68,7 +70,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "flex items-center space-x-3 px-4 py-3 rounded-md transition-colors",
+                  "flex items-center px-4 py-3 rounded-md transition-colors relative",
                   location.pathname === item.path
                     ? "bg-crm-accent text-crm-primary font-medium"
                     : "text-gray-600 hover:bg-gray-100"
@@ -76,14 +78,25 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
                 onClick={() => {
                   if (window.innerWidth < 768) toggleSidebar();
                 }}
+                title={!isOpen ? item.name : undefined}
               >
-                {item.icon}
-                <span>{item.name}</span>
+                <div className="flex items-center">
+                  {item.icon}
+                  <span className={cn(
+                    "ml-3 transition-opacity duration-300",
+                    isOpen ? "opacity-100" : "opacity-0 hidden md:block md:absolute md:pointer-events-none"
+                  )}>
+                    {item.name}
+                  </span>
+                </div>
               </Link>
             ))}
           </nav>
           
-          <div className="mt-auto pt-6">
+          <div className={cn(
+            "mt-auto pt-6",
+            !isOpen && "hidden"
+          )}>
             <div className="bg-crm-accent rounded-md p-4">
               <h3 className="font-medium text-crm-primary mb-2">Tip del día</h3>
               <p className="text-sm text-gray-600">

@@ -1,26 +1,40 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { User, Bell, Menu } from 'lucide-react';
+import { User, Bell, Menu, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
   toggleSidebar: () => void;
+  sidebarOpen: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
+const Header: React.FC<HeaderProps> = ({ toggleSidebar, sidebarOpen }) => {
   const navigate = useNavigate();
   
   return (
-    <header className="bg-white shadow-sm border-b h-16 flex items-center px-4">
+    <header className="bg-white shadow-sm border-b h-16 flex items-center px-4 fixed top-0 left-0 w-full z-30">
       <div className="flex items-center justify-between w-full">
         <div className="flex items-center">
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={toggleSidebar} 
-            className="md:hidden"
+            className="md:flex hidden"
+            title={sidebarOpen ? "Colapsar menú" : "Expandir menú"}
+          >
+            {sidebarOpen ? 
+              <ChevronLeft className="h-5 w-5" /> : 
+              <ChevronRight className="h-5 w-5" />
+            }
+          </Button>
+          
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={toggleSidebar} 
+            className="md:hidden block"
           >
             <Menu className="h-5 w-5" />
           </Button>

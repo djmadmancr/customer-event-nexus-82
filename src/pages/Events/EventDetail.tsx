@@ -8,13 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Pencil, Plus, ArrowLeft, User, Calendar, CreditCard } from 'lucide-react';
+import { Pencil, Plus, ArrowLeft, User, Calendar, CreditCard, MapPin, DollarSign } from 'lucide-react';
 import { useCrm } from '@/contexts/CrmContext';
 import dataService from '@/services/DataService';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import PaymentList from '../Payments/PaymentList';
 import PaymentForm from '../Payments/PaymentForm';
+import EventDetailsList from '@/components/Events/EventDetailsList';
 
 const EventDetail = () => {
   const { id } = useParams();
@@ -49,14 +50,14 @@ const EventDetail = () => {
   // Get status badge
   const getStatusBadge = (status: string) => {
     switch(status) {
-      case 'pending':
-        return <Badge className="bg-crm-pending text-gray-800">Pendiente</Badge>;
+      case 'prospect':
+        return <Badge className="bg-crm-pending text-gray-800">Prospecto</Badge>;
       case 'confirmed':
         return <Badge className="bg-crm-confirmed text-gray-800">Confirmado</Badge>;
+      case 'delivered':
+        return <Badge className="bg-amber-200 text-amber-800">Servicio Brindado</Badge>;
       case 'paid':
         return <Badge className="bg-crm-paid text-gray-800">Pagado</Badge>;
-      case 'completed':
-        return <Badge className="bg-crm-completed text-gray-800">Completado</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -95,8 +96,9 @@ const EventDetail = () => {
       
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-2 w-[300px]">
+        <TabsList className="grid grid-cols-3 w-[400px]">
           <TabsTrigger value="info">Información</TabsTrigger>
+          <TabsTrigger value="details">Detalles</TabsTrigger>
           <TabsTrigger value="payments">Pagos</TabsTrigger>
         </TabsList>
         
@@ -119,6 +121,22 @@ const EventDetail = () => {
                     <p className="mt-1">
                       {format(selectedEvent.date, "PPP", { locale: es })}
                     </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <MapPin className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Lugar</h3>
+                    <p className="mt-1">{selectedEvent.venue}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-3">
+                  <DollarSign className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Costo</h3>
+                    <p className="mt-1">${selectedEvent.cost?.toLocaleString('es-MX') || '0'}</p>
                   </div>
                 </div>
                 
@@ -173,6 +191,14 @@ const EventDetail = () => {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="details" className="mt-4">
+          <Card>
+            <CardContent className="p-6">
+              <EventDetailsList eventId={selectedEvent.id} />
+            </CardContent>
+          </Card>
         </TabsContent>
         
         <TabsContent value="payments" className="mt-4">

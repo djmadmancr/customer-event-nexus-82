@@ -10,11 +10,18 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const location = useLocation();
   
   const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
+    // On mobile
+    if (window.innerWidth < 768) {
+      setMobileSidebarOpen(!mobileSidebarOpen);
+    } else {
+      // On desktop
+      setSidebarOpen(!sidebarOpen);
+    }
   };
   
   // Get title based on current route
@@ -38,13 +45,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   
   return (
     <div className="min-h-screen bg-crm-background">
-      <Header toggleSidebar={toggleSidebar} />
-      <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
+      <Header toggleSidebar={toggleSidebar} sidebarOpen={sidebarOpen} />
+      <Sidebar 
+        isOpen={sidebarOpen} 
+        mobileOpen={mobileSidebarOpen}
+        toggleSidebar={toggleSidebar} 
+      />
       
       <main 
         className={cn(
           "pt-16 transition-all duration-300 ease-in-out",
-          "md:ml-64"
+          sidebarOpen ? "md:ml-64" : "md:ml-16"
         )}
       >
         <div className="p-4 md:p-6">

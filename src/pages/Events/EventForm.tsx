@@ -47,7 +47,12 @@ const eventSchema = z.object({
   date: z.date({
     required_error: "Por favor selecciona una fecha para el evento",
   }),
-  status: z.enum(['pending', 'confirmed', 'paid', 'completed'], {
+  venue: z.string()
+    .min(2, { message: 'La sede debe tener al menos 2 caracteres' })
+    .max(200, { message: 'La sede no debe exceder 200 caracteres' }),
+  cost: z.coerce.number()
+    .nonnegative({ message: 'El costo debe ser un número positivo' }),
+  status: z.enum(['prospect', 'confirmed', 'delivered', 'paid'], {
     required_error: "Por favor selecciona un estado",
   }),
 });
@@ -72,7 +77,9 @@ const EventForm = () => {
       customerId: preselectedCustomerId || '',
       title: '',
       date: new Date(),
-      status: 'pending' as EventStatus,
+      venue: '',
+      cost: 0,
+      status: 'prospect' as EventStatus,
     },
   });
   
@@ -85,6 +92,8 @@ const EventForm = () => {
           customerId: event.customerId,
           title: event.title,
           date: new Date(event.date),
+          venue: event.venue,
+          cost: event.cost,
           status: event.status,
         });
       } else {
@@ -92,7 +101,7 @@ const EventForm = () => {
         navigate('/events');
       }
     }
-  }, [id, isEditMode, navigate]);
+  }, [id, isEditMode, navigate, form]);
   
   // Form submission handler
   const onSubmit = (data: EventFormValues) => {
@@ -160,10 +169,10 @@ const EventForm = () => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="pending">Pendiente</SelectItem>
+                        <SelectItem value="prospect">Prospecto</SelectItem>
                         <SelectItem value="confirmed">Confirmado</SelectItem>
+                        <SelectItem value="delivered">Servicio Brindado</SelectItem>
                         <SelectItem value="paid">Pagado</SelectItem>
-                        <SelectItem value="completed">Completado</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -220,6 +229,44 @@ const EventForm = () => {
                         />
                       </PopoverContent>
                     </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="venue"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Lugar</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Lugar del evento" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="cost"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Costo</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2.5">$</span>
+                        <Input 
+                          type="number" 
+                          min="0"
+                          step="0.01"
+                          placeholder="0.00"
+                          className="pl-7" 
+                          {...field} 
+                        />
+                      </div>
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

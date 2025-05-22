@@ -1,5 +1,4 @@
-
-import { Customer, Event, EventStatus, Payment, PaymentMethod } from '../types/models';
+import { Customer, Event, EventStatus, EventDetail, Payment, PaymentMethod } from '../types/models';
 import { toast } from 'sonner';
 
 // Helper function to generate unique IDs
@@ -11,6 +10,7 @@ const generateId = (): string => {
 class DataService {
   private customers: Customer[] = [];
   private events: Event[] = [];
+  private eventDetails: EventDetail[] = [];
   private payments: Payment[] = [];
 
   constructor() {
@@ -39,6 +39,8 @@ class DataService {
       customerId: customer1.id,
       title: 'Reunión inicial',
       date: new Date(2025, 5, 25, 10, 0),
+      venue: 'Oficina central',
+      cost: 500,
       status: 'confirmed'
     });
 
@@ -46,14 +48,33 @@ class DataService {
       customerId: customer1.id,
       title: 'Presentación de propuesta',
       date: new Date(2025, 5, 30, 15, 0),
-      status: 'pending'
+      venue: 'Sala de conferencias',
+      cost: 1200,
+      status: 'prospect'
     });
 
     const event3 = this.addEvent({
       customerId: customer2.id,
       title: 'Firma de contrato',
       date: new Date(2025, 6, 5, 11, 0),
-      status: 'completed'
+      venue: 'Oficina del cliente',
+      cost: 2500,
+      status: 'paid'
+    });
+
+    // Sample event details
+    this.addEventDetail({
+      eventId: event1.id,
+      description: 'Proyector',
+      quantity: 1,
+      notes: 'Incluye pantalla'
+    });
+
+    this.addEventDetail({
+      eventId: event1.id,
+      description: 'Micrófono inalámbrico',
+      quantity: 2,
+      notes: 'Con baterías de repuesto'
     });
 
     // Sample payments
@@ -180,14 +201,76 @@ class DataService {
     const initialLength = this.events.length;
     this.events = this.events.filter(event => event.id !== id);
     
-    // Also delete associated payments
+    // Also delete associated payments and details
     this.payments = this.payments.filter(payment => payment.eventId !== id);
+    this.eventDetails = this.eventDetails.filter(detail => detail.eventId !== id);
     
     const success = this.events.length < initialLength;
     if (success) {
       toast.success('Evento eliminado exitosamente');
     } else {
       toast.error('Evento no encontrado');
+    }
+    
+    return success;
+  }
+
+  // EVENT DETAILS METHODS
+  
+  getAllEventDetails(): EventDetail[] {
+    return [...this.eventDetails];
+  }
+
+  getEventDetailsByEventId(eventId: string): EventDetail[] {
+    return this.eventDetails.filter(detail => detail.eventId === eventId);
+  }
+
+  getEventDetailById(id: string): EventDetail | undefined {
+    return this.eventDetails.find(detail => detail.id === id);
+  }
+
+  addEventDetail(detailData: Omit<EventDetail, 'id' | 'createdAt' | 'updatedAt'>): EventDetail {
+    const now = new Date();
+    const newDetail: EventDetail = {
+      id: generateId(),
+      ...detailData,
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    this.eventDetails.push(newDetail);
+    toast.success('Detalle agregado exitosamente');
+    return newDetail;
+  }
+
+  updateEventDetail(id: string, detailData: Partial<Omit<EventDetail, 'id' | 'createdAt' | 'updatedAt'>>): EventDetail | undefined {
+    const detailIndex = this.eventDetails.findIndex(detail => detail.id === id);
+    
+    if (detailIndex === -1) {
+      toast.error('Detalle no encontrado');
+      return undefined;
+    }
+    
+    const updatedDetail: EventDetail = {
+      ...this.eventDetails[detailIndex],
+      ...detailData,
+      updatedAt: new Date()
+    };
+    
+    this.eventDetails[detailIndex] = updatedDetail;
+    toast.success('Detalle actualizado exitosamente');
+    return updatedDetail;
+  }
+
+  deleteEventDetail(id: string): boolean {
+    const initialLength = this.eventDetails.length;
+    this.eventDetails = this.eventDetails.filter(detail => detail.id !== id);
+    
+    const success = this.eventDetails.length < initialLength;
+    if (success) {
+      toast.success('Detalle eliminado exitosamente');
+    } else {
+      toast.error('Detalle no encontrado');
     }
     
     return success;
@@ -252,6 +335,25 @@ class DataService {
     }
     
     return success;
+  }
+
+  // FINANCIAL SUMMARY METHODS
+  getEventsTotalByStatus(status: EventStatus): number {
+    return this.events
+      .filter(event => event.status === status)
+      .reduce((total, event) => total + (event.cost || 0), 0);
+  }
+
+  getEventsTotalByStatusAndDateRange(status: EventStatus, startDate?: Date, endDate?: Date): number {
+    return this.events
+      .filter(event => {
+        if (event.status !== status) return false;
+        if (!startDate && !endDate) return true;
+        if (startDate && event.date < startDate) return false;
+        if (endDate && event.date > endDate) return false;
+        return true;
+      })
+      .reduce((total, event) => total + (event.cost || 0), 0);
   }
 }
 

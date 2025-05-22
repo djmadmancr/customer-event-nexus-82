@@ -23,6 +23,7 @@ import { Search, Plus, MoreVertical, Pencil, Trash2, Eye } from 'lucide-react';
 import dataService from '@/services/DataService';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import FinancialSummary from '@/components/Events/FinancialSummary';
 
 interface EventListProps {
   filterByCustomerId?: string;
@@ -54,14 +55,14 @@ const EventList: React.FC<EventListProps> = ({
   // Get status badge color and text
   const getStatusBadge = (status: string) => {
     switch(status) {
-      case 'pending':
-        return <Badge className="bg-crm-pending text-gray-800">Pendiente</Badge>;
+      case 'prospect':
+        return <Badge className="bg-crm-pending text-gray-800">Prospecto</Badge>;
       case 'confirmed':
         return <Badge className="bg-crm-confirmed text-gray-800">Confirmado</Badge>;
+      case 'delivered':
+        return <Badge className="bg-amber-200 text-amber-800">Servicio Brindado</Badge>;
       case 'paid':
         return <Badge className="bg-crm-paid text-gray-800">Pagado</Badge>;
-      case 'completed':
-        return <Badge className="bg-crm-completed text-gray-800">Completado</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -94,6 +95,8 @@ const EventList: React.FC<EventListProps> = ({
   
   return (
     <div className="space-y-4">
+      {!filterByCustomerId && <FinancialSummary />}
+      
       {/* Header with search, filter and add button */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between">
         <div className="flex flex-col sm:flex-row gap-2 w-full">
@@ -113,10 +116,10 @@ const EventList: React.FC<EventListProps> = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos los estados</SelectItem>
-              <SelectItem value="pending">Pendiente</SelectItem>
+              <SelectItem value="prospect">Prospecto</SelectItem>
               <SelectItem value="confirmed">Confirmado</SelectItem>
+              <SelectItem value="delivered">Servicio Brindado</SelectItem>
               <SelectItem value="paid">Pagado</SelectItem>
-              <SelectItem value="completed">Completado</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -144,6 +147,7 @@ const EventList: React.FC<EventListProps> = ({
                     <TableHead className="hidden md:table-cell">Cliente</TableHead>
                   )}
                   <TableHead>Fecha</TableHead>
+                  <TableHead>Costo</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead className="w-[80px]"></TableHead>
                 </TableRow>
@@ -165,6 +169,7 @@ const EventList: React.FC<EventListProps> = ({
                     <TableCell>
                       {format(event.date, "d 'de' MMMM, yyyy", { locale: es })}
                     </TableCell>
+                    <TableCell>${event.cost?.toLocaleString('es-MX') || '0'}</TableCell>
                     <TableCell>{getStatusBadge(event.status)}</TableCell>
                     <TableCell>
                       <DropdownMenu>

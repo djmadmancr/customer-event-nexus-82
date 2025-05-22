@@ -11,7 +11,7 @@ export interface Customer {
 }
 
 // Event Status enum
-export type EventStatus = 'pending' | 'confirmed' | 'paid' | 'completed';
+export type EventStatus = 'prospect' | 'confirmed' | 'delivered' | 'paid';
 
 // Event Model
 export interface Event {
@@ -19,7 +19,20 @@ export interface Event {
   customerId: string;
   title: string;
   date: Date;
+  venue: string;
+  cost: number;
   status: EventStatus;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Equipment/Details for events
+export interface EventDetail {
+  id: string;
+  eventId: string;
+  description: string;
+  quantity: number;
+  notes?: string;
   createdAt: Date;
   updatedAt: Date;
 }
