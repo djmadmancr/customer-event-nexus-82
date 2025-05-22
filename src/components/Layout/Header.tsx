@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Bell, Menu, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -85,7 +84,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, sidebarOpen }) => {
                   <DropdownMenuLabel>
                     {userData?.name || currentUser.email}
                     {userRole === 'admin' && (
-                      <Badge variant="subtle" className="ml-2">Admin</Badge>
+                      <Badge variant="secondary" className="ml-2">Admin</Badge>
                     )}
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />

@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
@@ -106,9 +105,23 @@ const EventForm = () => {
   // Form submission handler
   const onSubmit = (data: EventFormValues) => {
     if (isEditMode) {
-      dataService.updateEvent(id, data);
+      dataService.updateEvent(id, {
+        customerId: data.customerId,
+        title: data.title,
+        date: data.date,
+        venue: data.venue,
+        cost: data.cost,
+        status: data.status,
+      });
     } else {
-      dataService.addEvent(data);
+      dataService.addEvent({
+        customerId: data.customerId,
+        title: data.title,
+        date: data.date,
+        venue: data.venue,
+        cost: data.cost,
+        status: data.status,
+      });
     }
     
     refreshEvents();

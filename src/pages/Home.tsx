@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,10 +16,10 @@ const Home = () => {
     .slice(0, 3);
   
   // Count events by status
-  const pendingEvents = events.filter(event => event.status === 'pending').length;
+  const pendingEvents = events.filter(event => event.status === 'prospect').length;
   const confirmedEvents = events.filter(event => event.status === 'confirmed').length;
   const paidEvents = events.filter(event => event.status === 'paid').length;
-  const completedEvents = events.filter(event => event.status === 'completed').length;
+  const completedEvents = events.filter(event => event.status === 'delivered').length;
   
   const modules = [
     {
@@ -140,12 +139,12 @@ const Home = () => {
                         </p>
                         <span 
                           className={`text-xs px-2 py-1 rounded-full ${
-                            event.status === 'pending' ? 'bg-crm-pending' : 
+                            event.status === 'prospect' ? 'bg-crm-pending' : 
                             event.status === 'confirmed' ? 'bg-crm-confirmed' :
                             event.status === 'paid' ? 'bg-crm-paid' : 'bg-crm-completed'
                           }`}
                         >
-                          {event.status === 'pending' ? 'Pendiente' :
+                          {event.status === 'prospect' ? 'Pendiente' :
                             event.status === 'confirmed' ? 'Confirmado' :
                             event.status === 'paid' ? 'Pagado' : 'Completado'}
                         </span>

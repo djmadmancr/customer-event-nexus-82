@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -72,9 +71,19 @@ const CustomerForm = () => {
   // Form submission handler
   const onSubmit = (data: CustomerFormValues) => {
     if (isEditMode) {
-      dataService.updateCustomer(id, data);
+      dataService.updateCustomer(id, {
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        notes: data.notes || '',
+      });
     } else {
-      dataService.addCustomer(data);
+      dataService.addCustomer({
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        notes: data.notes || '',
+      });
     }
     
     refreshCustomers();

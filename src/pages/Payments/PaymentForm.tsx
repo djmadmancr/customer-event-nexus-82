@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -71,7 +70,10 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ eventId, onComplete }) => {
   const onSubmit = (data: PaymentFormValues) => {
     dataService.addPayment({
       eventId,
-      ...data,
+      amount: data.amount,
+      method: data.method,
+      paymentDate: data.paymentDate,
+      notes: data.notes || '',
     });
     
     if (onComplete) {

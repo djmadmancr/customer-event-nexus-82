@@ -1,10 +1,9 @@
-
 import React, { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Event, Customer, Payment } from '@/types/models';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { FilePdf } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { useCrm } from '@/contexts/CrmContext';
 import { usePDF } from 'react-to-pdf';
 
@@ -58,7 +57,7 @@ const EventPdfExporter: React.FC<EventPdfExporterProps> = ({
         onClick={() => toPDF()}
         className="flex items-center gap-2"
       >
-        <FilePdf className="h-4 w-4" />
+        <FileText className="h-4 w-4" />
         Exportar como PDF
       </Button>
       
