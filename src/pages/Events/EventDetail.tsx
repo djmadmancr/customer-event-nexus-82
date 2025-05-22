@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
@@ -16,6 +15,7 @@ import { es } from 'date-fns/locale';
 import PaymentList from '../Payments/PaymentList';
 import PaymentForm from '../Payments/PaymentForm';
 import EventDetailsList from '@/components/Events/EventDetailsList';
+import EventPdfExporter from '@/components/Events/EventPdfExporter';
 
 const EventDetail = () => {
   const { id } = useParams();
@@ -23,12 +23,20 @@ const EventDetail = () => {
   const { customers, selectedEvent, setSelectedEvent } = useCrm();
   const [activeTab, setActiveTab] = useState('info');
   const [isAddingPayment, setIsAddingPayment] = useState(false);
+  const [eventDetails, setEventDetails] = useState([]);
+  const [payments, setPayments] = useState([]);
   
   useEffect(() => {
     if (id) {
       const event = dataService.getEventById(id);
       if (event) {
         setSelectedEvent(event);
+        // Load event details
+        const details = dataService.getEventDetailsByEventId(id);
+        setEventDetails(details);
+        // Load payments
+        const eventPayments = dataService.getPaymentsByEventId(id);
+        setPayments(eventPayments);
       } else {
         // Event not found, redirect to list
         navigate('/events');
@@ -78,6 +86,14 @@ const EventDetail = () => {
       
       {/* Actions */}
       <div className="flex justify-end gap-4">
+        {customer && (
+          <EventPdfExporter 
+            event={selectedEvent} 
+            customer={customer}
+            payments={payments}
+            eventDetails={eventDetails}
+          />
+        )}
         <Button 
           variant="outline"
           onClick={() => navigate(`/events/${selectedEvent.id}/edit`)}

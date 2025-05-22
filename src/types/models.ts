@@ -51,3 +51,16 @@ export interface Payment {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// User roles
+export type UserRole = 'admin' | 'user';
+
+// User Model
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  active: boolean;
+  createdAt: Date;
+}

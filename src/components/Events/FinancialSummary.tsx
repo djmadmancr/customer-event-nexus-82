@@ -1,38 +1,27 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { 
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
-} from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import dataService from '@/services/DataService';
 
-type DateFilter = 'current-month' | 'last-3-months' | 'last-year' | 'all';
-
 const FinancialSummary: React.FC = () => {
-  const [dateFilter, setDateFilter] = useState<DateFilter>('current-month');
+  const [startDate, setStartDate] = useState<Date | undefined>(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  const [endDate, setEndDate] = useState<Date | undefined>(new Date());
   const [paidTotal, setPaidTotal] = useState(0);
   const [pendingTotal, setPendingTotal] = useState(0);
 
   useEffect(() => {
     const calculateTotals = () => {
-      let startDate: Date | undefined;
-      let endDate: Date | undefined;
-
-      const now = new Date();
-      endDate = now;
-
-      if (dateFilter === 'current-month') {
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-      } else if (dateFilter === 'last-3-months') {
-        startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-      } else if (dateFilter === 'last-year') {
-        startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
-      } else {
-        // 'all' - no date restrictions
-        startDate = undefined;
-        endDate = undefined;
-      }
-
       const paid = dataService.getEventsTotalByStatusAndDateRange('paid', startDate, endDate);
       setPaidTotal(paid);
 
@@ -44,7 +33,7 @@ const FinancialSummary: React.FC = () => {
     };
 
     calculateTotals();
-  }, [dateFilter]);
+  }, [startDate, endDate]);
 
   return (
     <Card className="mb-6">
@@ -68,18 +57,70 @@ const FinancialSummary: React.FC = () => {
             </div>
           </div>
           
-          <div className="w-full sm:w-auto">
-            <Select value={dateFilter} onValueChange={(value) => setDateFilter(value as DateFilter)}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Filtrar por periodo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="current-month">Mes presente</SelectItem>
-                <SelectItem value="last-3-months">Últimos 3 meses</SelectItem>
-                <SelectItem value="last-year">Último año</SelectItem>
-                <SelectItem value="all">Todos los registrados</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex flex-wrap gap-2 items-center">
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Fecha inicio</p>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-[160px] justify-start text-left font-normal",
+                      !startDate && "text-muted-foreground"
+                    )}
+                  >
+                    {startDate ? (
+                      format(startDate, "dd/MM/yyyy", { locale: es })
+                    ) : (
+                      <span>Seleccionar</span>
+                    )}
+                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={startDate}
+                    onSelect={setStartDate}
+                    locale={es}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Fecha fin</p>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-[160px] justify-start text-left font-normal",
+                      !endDate && "text-muted-foreground"
+                    )}
+                  >
+                    {endDate ? (
+                      format(endDate, "dd/MM/yyyy", { locale: es })
+                    ) : (
+                      <span>Seleccionar</span>
+                    )}
+                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={endDate}
+                    onSelect={setEndDate}
+                    locale={es}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
         </div>
       </CardContent>
