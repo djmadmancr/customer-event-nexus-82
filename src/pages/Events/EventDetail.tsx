@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
@@ -17,6 +18,7 @@ import PaymentForm from '../Payments/PaymentForm';
 import EventDetailsList from '@/components/Events/EventDetailsList';
 import EventPdfExporter from '@/components/Events/EventPdfExporter';
 import EventComments from '@/components/Events/EventComments';
+import { Event as CrmEvent } from '@/types/models';
 
 const EventDetail = () => {
   const { id } = useParams();
@@ -72,7 +74,7 @@ const EventDetail = () => {
     }
   };
   
-  const handleEventUpdate = (updatedEvent: Event) => {
+  const handleEventUpdate = (updatedEvent: CrmEvent) => {
     setSelectedEvent(updatedEvent);
   };
   

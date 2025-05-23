@@ -131,7 +131,7 @@ const AppSettingsForm: React.FC = () => {
         />
         
         <div className="pt-4">
-          {field.value && (
+          {form.watch("logoUrl") && (
             <div className="mb-4">
               <p className="text-sm font-medium mb-2">Vista previa:</p>
               <img 
