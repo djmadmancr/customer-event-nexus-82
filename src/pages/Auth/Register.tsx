@@ -23,6 +23,8 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const registerSchema = z.object({
   name: z.string().min(2, { message: 'El nombre debe tener al menos 2 caracteres.' }),
@@ -40,6 +42,7 @@ const Register: React.FC = () => {
   const { signUp } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [registerError, setRegisterError] = useState<string | null>(null);
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -54,11 +57,13 @@ const Register: React.FC = () => {
   const onSubmit = async (data: RegisterFormValues) => {
     try {
       setIsSubmitting(true);
+      setRegisterError(null);
       await signUp(data.email, data.password, data.name);
       navigate('/login');
     } catch (error) {
       console.error(error);
-      // Error is handled by auth context
+      setRegisterError('Error al registrar. Verifica los datos e intenta nuevamente.');
+      // Error is also handled by auth context
     } finally {
       setIsSubmitting(false);
     }
@@ -77,6 +82,13 @@ const Register: React.FC = () => {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              {registerError && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{registerError}</AlertDescription>
+                </Alert>
+              )}
+              
               <FormField
                 control={form.control}
                 name="name"

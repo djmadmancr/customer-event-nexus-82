@@ -101,6 +101,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
     } catch (error: any) {
       let errorMessage = "Error al iniciar sesión. Intente nuevamente.";
+      console.error("Error during login:", error);
       
       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
         errorMessage = "Credenciales incorrectas. Verifica tu email y contraseña.";

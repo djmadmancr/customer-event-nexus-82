@@ -3,19 +3,31 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// Firebase configuration with fallback values if environment variables are not set
-// For development purposes, we're using fallback values directly in the code
+// Firebase configuration
+// Using a valid API key for development purposes
 const firebaseConfig = {
-  apiKey: "AIzaSyAIzaSyAIzfCLiGGGGG1234567890EXAMPLE",
-  authDomain: "crm-example.firebaseapp.com",
-  projectId: "crm-example",
-  storageBucket: "crm-example.appspot.com",
-  messagingSenderId: "123456789012",
-  appId: "1:123456789012:web:1234567890abcdef"
+  apiKey: "AIzaSyBYNNQUgTcPV-N9v-YzF_7FeLEu_M1dXyg",
+  authDomain: "crm-system-c5976.firebaseapp.com",
+  projectId: "crm-system-c5976",
+  storageBucket: "crm-system-c5976.appspot.com",
+  messagingSenderId: "546481998731",
+  appId: "1:546481998731:web:24567b8b15c0cc1f3e3e45"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Initialize Firebase - with singleton pattern to prevent duplicate initialization
+let app;
+try {
+  app = initializeApp(firebaseConfig);
+} catch (error) {
+  // Catch the duplicate app initialization error
+  const errorMessage = error.message;
+  if (errorMessage.includes('Firebase App named "[DEFAULT]" already exists')) {
+    app = initializeApp(undefined, "[DEFAULT]");
+  } else {
+    throw error;
+  }
+}
+
 const auth = getAuth(app);
 const firestore = getFirestore(app);
 

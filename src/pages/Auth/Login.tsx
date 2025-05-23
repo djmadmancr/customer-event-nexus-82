@@ -23,6 +23,8 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Email inválido.' }),
@@ -35,6 +37,7 @@ const Login: React.FC = () => {
   const { signIn, userRole } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -47,6 +50,7 @@ const Login: React.FC = () => {
   const onSubmit = async (data: LoginFormValues) => {
     try {
       setIsSubmitting(true);
+      setLoginError(null);
       await signIn(data.email, data.password);
       
       // Redirect based on user role
@@ -57,7 +61,8 @@ const Login: React.FC = () => {
       }
     } catch (error) {
       console.error(error);
-      // Error is handled by auth context
+      setLoginError('Error al iniciar sesión. Verifica tus credenciales e intenta nuevamente.');
+      // Error is handled by auth context as well
     } finally {
       setIsSubmitting(false);
     }
@@ -76,6 +81,13 @@ const Login: React.FC = () => {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              {loginError && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{loginError}</AlertDescription>
+                </Alert>
+              )}
+              
               <FormField
                 control={form.control}
                 name="email"
@@ -103,6 +115,14 @@ const Login: React.FC = () => {
                   </FormItem>
                 )}
               />
+              
+              <div className="pt-2">
+                <p className="text-xs text-gray-500 mb-4">
+                  <strong>Credenciales de prueba:</strong><br />
+                  Admin: admin@ejemplo.com / admin123<br />
+                  Usuario: usuario@ejemplo.com / usuario123
+                </p>
+              </div>
               
               <Button 
                 type="submit" 
