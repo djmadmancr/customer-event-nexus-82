@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
   signInWithEmailAndPassword, 
@@ -133,26 +132,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
-      // Create user document in Firestore
+      // Create user document in Firestore with correct timestamp
       await setDoc(doc(firestore, 'users', user.uid), {
         email,
         name,
         role: isFirstUser ? 'admin' : 'user', // First user is admin
         active: true,
-        createdAt: new Date(),
+        createdAt: new Date()
       });
       
       toast({
         title: "Registro exitoso",
         description: "Tu cuenta ha sido creada correctamente.",
       });
+      
+      return Promise.resolve();
     } catch (error: any) {
+      console.error("Error during registration:", error);
+      
       let errorMessage = "Error al registrar. Intente nuevamente.";
       
       if (error.code === 'auth/email-already-in-use') {
         errorMessage = "El correo electrónico ya está en uso.";
       } else if (error.code === 'auth/weak-password') {
         errorMessage = "La contraseña es demasiado débil.";
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = "El correo electrónico no es válido.";
       }
       
       toast({
@@ -160,7 +165,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         description: errorMessage,
         variant: "destructive",
       });
-      throw error;
+      
+      return Promise.reject(error);
     } finally {
       setLoading(false);
     }

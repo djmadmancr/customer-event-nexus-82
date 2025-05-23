@@ -1,3 +1,4 @@
+
 import React, { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Event, Customer, Payment } from '@/types/models';
@@ -133,6 +134,16 @@ const EventPdfExporter: React.FC<EventPdfExporterProps> = ({
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+          
+          {/* Comments Section */}
+          {event.comments && (
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold mb-3">Comentarios</h2>
+              <div className="p-4 bg-gray-50 border rounded-md whitespace-pre-line">
+                {event.comments}
+              </div>
             </div>
           )}
           

@@ -16,6 +16,7 @@ import PaymentList from '../Payments/PaymentList';
 import PaymentForm from '../Payments/PaymentForm';
 import EventDetailsList from '@/components/Events/EventDetailsList';
 import EventPdfExporter from '@/components/Events/EventPdfExporter';
+import EventComments from '@/components/Events/EventComments';
 
 const EventDetail = () => {
   const { id } = useParams();
@@ -71,6 +72,10 @@ const EventDetail = () => {
     }
   };
   
+  const handleEventUpdate = (updatedEvent: Event) => {
+    setSelectedEvent(updatedEvent);
+  };
+  
   return (
     <div className="space-y-6">
       {/* Header with back button */}
@@ -112,10 +117,11 @@ const EventDetail = () => {
       
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-3 w-[400px]">
+        <TabsList className="grid grid-cols-4 w-[500px]">
           <TabsTrigger value="info">Información</TabsTrigger>
           <TabsTrigger value="details">Detalles</TabsTrigger>
           <TabsTrigger value="payments">Pagos</TabsTrigger>
+          <TabsTrigger value="comments">Comentarios</TabsTrigger>
         </TabsList>
         
         <TabsContent value="info" className="mt-4">
@@ -236,6 +242,10 @@ const EventDetail = () => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="comments" className="mt-4">
+          <EventComments event={selectedEvent} onCommentUpdated={handleEventUpdate} />
         </TabsContent>
       </Tabs>
       

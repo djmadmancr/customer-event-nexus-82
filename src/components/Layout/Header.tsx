@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Bell, Menu, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,9 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
+import { doc, getDoc } from 'firebase/firestore';
+import { firestore } from '@/config/firebase';
+import { AppSettings } from '@/types/models';
 
 interface HeaderProps {
   toggleSidebar: () => void;
@@ -21,6 +25,27 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ toggleSidebar, sidebarOpen }) => {
   const navigate = useNavigate();
   const { currentUser, userData, userRole, signOut } = useAuth();
+  const [appSettings, setAppSettings] = useState<AppSettings | null>(null);
+  
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const settingsRef = doc(firestore, 'settings', 'appSettings');
+        const settingsSnap = await getDoc(settingsRef);
+        
+        if (settingsSnap.exists()) {
+          setAppSettings({
+            id: settingsSnap.id,
+            ...settingsSnap.data()
+          } as AppSettings);
+        }
+      } catch (error) {
+        console.error('Error loading app settings:', error);
+      }
+    };
+    
+    fetchSettings();
+  }, []);
   
   const handleSignOut = async () => {
     try {
@@ -58,11 +83,23 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, sidebarOpen }) => {
           </Button>
           
           <Link to="/" className="flex items-center ml-2 md:ml-0">
-            <div className="bg-crm-primary rounded-md p-1">
-              <h1 className="text-white text-xl font-bold px-2">CRM</h1>
-            </div>
+            {appSettings?.logoUrl ? (
+              <img 
+                src={appSettings.logoUrl} 
+                alt="Logo" 
+                className="h-8 max-w-32 mr-2"
+                onError={(e) => {
+                  // If image fails to load, show text fallback
+                  (e.currentTarget as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            ) : (
+              <div className="bg-crm-primary rounded-md p-1">
+                <h1 className="text-white text-xl font-bold px-2">CRM</h1>
+              </div>
+            )}
             <h1 className="text-crm-text ml-2 text-xl font-semibold hidden md:block">
-              Sistema de Gestión
+              {appSettings?.appName || 'Sistema de Gestión'}
             </h1>
           </Link>
         </div>

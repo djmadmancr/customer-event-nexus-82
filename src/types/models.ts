@@ -22,6 +22,7 @@ export interface Event {
   venue: string;
   cost: number;
   status: EventStatus;
+  comments?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -63,4 +64,13 @@ export interface User {
   role: UserRole;
   active: boolean;
   createdAt: Date;
+}
+
+// App Settings Model
+export interface AppSettings {
+  id: string;
+  appName: string;
+  logoUrl?: string;
+  updatedAt: Date;
+  updatedBy: string;
 }

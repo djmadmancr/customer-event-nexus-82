@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -9,6 +8,7 @@ import dataService from '@/services/DataService';
 import { doc, collection, getDocs, query, where, getDoc } from 'firebase/firestore';
 import { firestore } from '@/config/firebase';
 import { User, Event, Payment, EventStatus } from '@/types/models';
+import AppSettingsForm from '@/components/Admin/AppSettingsForm';
 
 const AdminDashboard: React.FC = () => {
   const { getAllUsers } = useAuth();
@@ -101,6 +101,7 @@ const AdminDashboard: React.FC = () => {
           <TabsTrigger value="overview">Resumen</TabsTrigger>
           <TabsTrigger value="users">Usuarios</TabsTrigger>
           <TabsTrigger value="finances">Finanzas</TabsTrigger>
+          <TabsTrigger value="settings">Configuración</TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview" className="mt-6">
@@ -236,6 +237,17 @@ const AdminDashboard: React.FC = () => {
             </CardHeader>
             <CardContent>
               <p>Contenido detallado de finanzas (Implementar)</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="settings" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Configuración de la Aplicación</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AppSettingsForm />
             </CardContent>
           </Card>
         </TabsContent>
