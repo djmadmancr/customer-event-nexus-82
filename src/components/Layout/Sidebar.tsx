@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Users, Calendar, CreditCard, Home, X } from 'lucide-react';
+import { Users, Calendar, CreditCard, Home, Settings, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -34,6 +34,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, mobileOpen, toggleSidebar }) 
       name: 'Pagos',
       path: '/payments',
       icon: <CreditCard className="h-5 w-5" />,
+    },
+    {
+      name: 'Configuración',
+      path: '/settings',
+      icon: <Settings className="h-5 w-5" />,
     },
   ];
   

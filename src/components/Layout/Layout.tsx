@@ -40,6 +40,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     
     if (path === '/payments') return 'Gestión de Pagos';
     
+    if (path === '/settings') return 'Configuración';
+    
     return 'CRM Sistema';
   };
   

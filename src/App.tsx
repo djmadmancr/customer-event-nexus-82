@@ -5,13 +5,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { CrmProvider } from "./contexts/CrmContext";
-import { AuthProvider } from "./contexts/AuthContext";
+import { AppConfigProvider } from "./contexts/AppConfigContext";
 import Layout from "./components/Layout/Layout";
-import ProtectedRoute from "./components/Auth/ProtectedRoute";
 
 // Pages
-import Login from "./pages/Auth/Login";
-import Register from "./pages/Auth/Register";
 import Home from "./pages/Home";
 import CustomerList from "./pages/Customers/CustomerList";
 import CustomerForm from "./pages/Customers/CustomerForm";
@@ -20,117 +17,87 @@ import EventList from "./pages/Events/EventList";
 import EventForm from "./pages/Events/EventForm";
 import EventDetail from "./pages/Events/EventDetail";
 import PaymentPage from "./pages/Payments/PaymentPage";
-import AdminDashboard from "./pages/Admin/Dashboard";
-import UserManagement from "./pages/Admin/UserManagement";
+import AppSettings from "./pages/Settings/AppSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
+    <AppConfigProvider>
       <CrmProvider>
         <TooltipProvider>
           <Toaster />
           <Sonner />
           <BrowserRouter>
             <Routes>
-              {/* Auth routes */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
+              {/* Redirigir login a la página principal */}
+              <Route path="/login" element={<Navigate to="/" replace />} />
+              <Route path="/register" element={<Navigate to="/" replace />} />
               
-              {/* Protected routes */}
+              {/* Rutas principales - ya sin protección */}
               <Route path="/" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Home />
-                  </Layout>
-                </ProtectedRoute>
+                <Layout>
+                  <Home />
+                </Layout>
               } />
               
               {/* Customer routes */}
               <Route path="/customers" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <CustomerList />
-                  </Layout>
-                </ProtectedRoute>
+                <Layout>
+                  <CustomerList />
+                </Layout>
               } />
               <Route path="/customers/new" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <CustomerForm />
-                  </Layout>
-                </ProtectedRoute>
+                <Layout>
+                  <CustomerForm />
+                </Layout>
               } />
               <Route path="/customers/:id" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <CustomerDetail />
-                  </Layout>
-                </ProtectedRoute>
+                <Layout>
+                  <CustomerDetail />
+                </Layout>
               } />
               <Route path="/customers/:id/edit" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <CustomerForm />
-                  </Layout>
-                </ProtectedRoute>
+                <Layout>
+                  <CustomerForm />
+                </Layout>
               } />
               
               {/* Event routes */}
               <Route path="/events" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <EventList />
-                  </Layout>
-                </ProtectedRoute>
+                <Layout>
+                  <EventList />
+                </Layout>
               } />
               <Route path="/events/new" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <EventForm />
-                  </Layout>
-                </ProtectedRoute>
+                <Layout>
+                  <EventForm />
+                </Layout>
               } />
               <Route path="/events/:id" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <EventDetail />
-                  </Layout>
-                </ProtectedRoute>
+                <Layout>
+                  <EventDetail />
+                </Layout>
               } />
               <Route path="/events/:id/edit" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <EventForm />
-                  </Layout>
-                </ProtectedRoute>
+                <Layout>
+                  <EventForm />
+                </Layout>
               } />
               
               {/* Payment routes */}
               <Route path="/payments" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <PaymentPage />
-                  </Layout>
-                </ProtectedRoute>
+                <Layout>
+                  <PaymentPage />
+                </Layout>
               } />
               
-              {/* Admin routes */}
-              <Route path="/admin/dashboard" element={
-                <ProtectedRoute requiredRole="admin">
-                  <Layout>
-                    <AdminDashboard />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/users" element={
-                <ProtectedRoute requiredRole="admin">
-                  <Layout>
-                    <UserManagement />
-                  </Layout>
-                </ProtectedRoute>
+              {/* Settings route */}
+              <Route path="/settings" element={
+                <Layout>
+                  <AppSettings />
+                </Layout>
               } />
               
               {/* Catch-all route */}
@@ -139,7 +106,7 @@ const App = () => (
           </BrowserRouter>
         </TooltipProvider>
       </CrmProvider>
-    </AuthProvider>
+    </AppConfigProvider>
   </QueryClientProvider>
 );
 
