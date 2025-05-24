@@ -29,6 +29,22 @@ const EventDetail = () => {
   const [eventDetails, setEventDetails] = useState([]);
   const [payments, setPayments] = useState([]);
   
+  // Function to refresh all data
+  const refreshEventData = () => {
+    if (id) {
+      const event = dataService.getEventById(id);
+      if (event) {
+        setSelectedEvent(event);
+        // Load event details
+        const details = dataService.getEventDetailsByEventId(id);
+        setEventDetails(details);
+        // Load payments
+        const eventPayments = dataService.getPaymentsByEventId(id);
+        setPayments(eventPayments);
+      }
+    }
+  };
+  
   useEffect(() => {
     if (id) {
       const event = dataService.getEventById(id);
@@ -58,6 +74,10 @@ const EventDetail = () => {
   
   const customer = customers.find(c => c.id === selectedEvent.customerId);
   
+  // Calculate payment totals
+  const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
+  const pendingAmount = selectedEvent.cost - totalPaid;
+  
   // Get status badge
   const getStatusBadge = (status: string) => {
     switch(status) {
@@ -76,6 +96,12 @@ const EventDetail = () => {
   
   const handleEventUpdate = (updatedEvent: CrmEvent) => {
     setSelectedEvent(updatedEvent);
+  };
+
+  const handlePaymentComplete = () => {
+    setIsAddingPayment(false);
+    // Refresh all event data to get updated status and payments
+    refreshEventData();
   };
   
   return (
@@ -113,7 +139,7 @@ const EventDetail = () => {
           onClick={() => setIsAddingPayment(true)}
         >
           <Plus className="h-4 w-4 mr-2" />
-          Registrar Pago
+          Agregar Pago
         </Button>
       </div>
       
@@ -179,6 +205,27 @@ const EventDetail = () => {
                   </p>
                 </div>
               </div>
+
+              {/* Payment Summary */}
+              {payments.length > 0 && (
+                <div className="mt-6 p-4 bg-gray-50 rounded-lg border">
+                  <h3 className="text-sm font-medium text-gray-500 mb-3">Resumen de Pagos</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-500">Total del Evento</p>
+                      <p className="text-lg font-bold">${selectedEvent.cost?.toLocaleString('es-MX')}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Pagado</p>
+                      <p className="text-lg font-bold text-green-600">${totalPaid.toLocaleString('es-MX')}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Pendiente</p>
+                      <p className="text-lg font-bold text-amber-600">${pendingAmount.toLocaleString('es-MX')}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
           
@@ -239,7 +286,7 @@ const EventDetail = () => {
                   className="bg-crm-primary hover:bg-crm-primary/90"
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Registrar Pago
+                  Agregar Pago
                 </Button>
               </div>
             </CardContent>
@@ -255,9 +302,9 @@ const EventDetail = () => {
       <Dialog open={isAddingPayment} onOpenChange={setIsAddingPayment}>
         <DialogContent className="sm:max-w-[550px]">
           <DialogHeader>
-            <DialogTitle>Registrar Nuevo Pago</DialogTitle>
+            <DialogTitle>Agregar Nuevo Pago</DialogTitle>
           </DialogHeader>
-          <PaymentForm eventId={selectedEvent.id} onComplete={() => setIsAddingPayment(false)} />
+          <PaymentForm eventId={selectedEvent.id} onComplete={handlePaymentComplete} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddingPayment(false)}>
               Cancelar

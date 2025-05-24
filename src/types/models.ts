@@ -10,8 +10,11 @@ export interface Customer {
   updatedAt: Date;
 }
 
-// Event Status enum
+// Event Status enum - 'paid' will be calculated automatically based on payments
 export type EventStatus = 'prospect' | 'confirmed' | 'delivered' | 'paid';
+
+// Selectable Event Status (user can only choose these manually)
+export type SelectableEventStatus = 'prospect' | 'confirmed' | 'delivered';
 
 // Event Model
 export interface Event {

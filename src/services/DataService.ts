@@ -1,4 +1,4 @@
-import { Customer, Event, EventStatus, EventDetail, Payment, PaymentMethod } from '../types/models';
+import { Customer, Event, EventStatus, SelectableEventStatus, EventDetail, Payment, PaymentMethod } from '../types/models';
 import { toast } from 'sonner';
 
 // Helper function to generate unique IDs
@@ -17,6 +17,28 @@ class DataService {
     // Initialize with some sample data
     this.initSampleData();
   }
+
+  // Helper method to update event status based on payments
+  private updateEventStatusBasedOnPayments(eventId: string): void {
+    const event = this.events.find(e => e.id === eventId);
+    if (!event) return;
+
+    const eventPayments = this.payments.filter(p => p.eventId === eventId);
+    const totalPaid = eventPayments.reduce((sum, payment) => sum + payment.amount, 0);
+    
+    // If total payments cover the event cost, mark as paid
+    if (totalPaid >= event.cost && event.status !== 'paid') {
+      event.status = 'paid';
+      event.updatedAt = new Date();
+    }
+    // If total payments don't cover the cost and it was marked as paid, revert to delivered
+    else if (totalPaid < event.cost && event.status === 'paid') {
+      event.status = 'delivered';
+      event.updatedAt = new Date();
+    }
+  }
+
+  // ... keep existing code (initSampleData, getAllCustomers, getCustomerById, addCustomer, updateCustomer, deleteCustomer)
 
   private initSampleData() {
     // Sample customers
@@ -59,7 +81,7 @@ class DataService {
       date: new Date(2025, 6, 5, 11, 0),
       venue: 'Oficina del cliente',
       cost: 2500,
-      status: 'paid'
+      status: 'delivered'
     });
 
     // Sample event details
@@ -80,10 +102,10 @@ class DataService {
     // Sample payments
     this.addPayment({
       eventId: event3.id,
-      amount: 1500,
+      amount: 2500,
       paymentDate: new Date(2025, 6, 5),
       method: 'transfer',
-      notes: 'Pago inicial'
+      notes: 'Pago completo'
     });
   }
 
@@ -193,6 +215,10 @@ class DataService {
     };
     
     this.events[eventIndex] = updatedEvent;
+    
+    // Update status based on payments after event update
+    this.updateEventStatusBasedOnPayments(id);
+    
     toast.success('Evento actualizado exitosamente');
     return updatedEvent;
   }
@@ -214,6 +240,8 @@ class DataService {
     
     return success;
   }
+
+  // ... keep existing code (EVENT DETAILS METHODS, getEventDetailsByEventId, getEventDetailById, addEventDetail, updateEventDetail, deleteEventDetail)
 
   // EVENT DETAILS METHODS
   
@@ -300,6 +328,10 @@ class DataService {
     };
     
     this.payments.push(newPayment);
+    
+    // Update event status based on new payment
+    this.updateEventStatusBasedOnPayments(paymentData.eventId);
+    
     toast.success('Pago registrado exitosamente');
     return newPayment;
   }
@@ -319,13 +351,25 @@ class DataService {
     };
     
     this.payments[paymentIndex] = updatedPayment;
+    
+    // Update event status based on payment changes
+    this.updateEventStatusBasedOnPayments(updatedPayment.eventId);
+    
     toast.success('Pago actualizado exitosamente');
     return updatedPayment;
   }
 
   deletePayment(id: string): boolean {
+    const payment = this.payments.find(p => p.id === id);
+    const eventId = payment?.eventId;
+    
     const initialLength = this.payments.length;
     this.payments = this.payments.filter(payment => payment.id !== id);
+    
+    // Update event status after payment deletion
+    if (eventId) {
+      this.updateEventStatusBasedOnPayments(eventId);
+    }
     
     const success = this.payments.length < initialLength;
     if (success) {
@@ -336,6 +380,8 @@ class DataService {
     
     return success;
   }
+
+  // ... keep existing code (FINANCIAL SUMMARY METHODS)
 
   // FINANCIAL SUMMARY METHODS
   getEventsTotalByStatus(status: EventStatus): number {
