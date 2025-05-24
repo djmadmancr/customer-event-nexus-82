@@ -45,10 +45,12 @@ export const CrmProvider: React.FC<CrmProviderProps> = ({ children }) => {
   const [payments, setPayments] = useState<Payment[]>(dataService.getAllPayments());
   
   const refreshCustomers = () => {
+    console.log('Refreshing customers');
     setCustomers(dataService.getAllCustomers());
   };
   
   const refreshEvents = () => {
+    console.log('Refreshing events');
     setEvents(dataService.getAllEvents());
     
     // If we have a selected customer, filter events for that customer
@@ -60,6 +62,7 @@ export const CrmProvider: React.FC<CrmProviderProps> = ({ children }) => {
   };
   
   const refreshPayments = () => {
+    console.log('Refreshing payments');
     if (selectedEvent) {
       setPayments(dataService.getPaymentsByEventId(selectedEvent.id));
     } else {
@@ -69,6 +72,7 @@ export const CrmProvider: React.FC<CrmProviderProps> = ({ children }) => {
   
   // Update events when selected customer changes
   React.useEffect(() => {
+    console.log('Selected customer changed:', selectedCustomer?.id);
     if (selectedCustomer) {
       setEvents(dataService.getEventsByCustomerId(selectedCustomer.id));
     } else {
@@ -81,6 +85,7 @@ export const CrmProvider: React.FC<CrmProviderProps> = ({ children }) => {
   
   // Update payments when selected event changes
   React.useEffect(() => {
+    console.log('Selected event changed:', selectedEvent?.id);
     if (selectedEvent) {
       setPayments(dataService.getPaymentsByEventId(selectedEvent.id));
     } else {

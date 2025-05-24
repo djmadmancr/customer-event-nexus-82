@@ -69,10 +69,13 @@ const EventList: React.FC<EventListProps> = ({
   };
   
   const handleViewEvent = (eventId: string) => {
+    console.log('Navigating to event:', eventId);
     const event = events.find(e => e.id === eventId);
     if (event) {
       setSelectedEvent(event);
       navigate(`/events/${eventId}`);
+    } else {
+      console.error('Event not found:', eventId);
     }
   };
   

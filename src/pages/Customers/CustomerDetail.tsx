@@ -119,7 +119,6 @@ const CustomerDetail = () => {
               <EventList 
                 filterByCustomerId={selectedCustomer.id} 
                 showAddButton={false}
-                allowNavigation={true}
               />
             </CardContent>
           </Card>

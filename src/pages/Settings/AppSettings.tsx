@@ -16,6 +16,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Upload, Trash2 } from 'lucide-react';
 import { useUserProfile } from '@/contexts/UserProfileContext';
+import { useAppConfig } from '@/contexts/AppConfigContext';
 import { useToast } from '@/hooks/use-toast';
 
 const settingsSchema = z.object({
@@ -29,8 +30,9 @@ type SettingsFormValues = z.infer<typeof settingsSchema>;
 
 const AppSettings: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isUpdatingLogo, setIsUpdatingLogo] = useState(false);
   const { userProfile, updateUserProfile } = useUserProfile();
+  const { logoUrl, updateAppLogo } = useAppConfig();
   const { toast } = useToast();
 
   const form = useForm<SettingsFormValues>({
@@ -52,7 +54,6 @@ const AppSettings: React.FC = () => {
         email: userProfile.email,
         phone: userProfile.phone,
       });
-      setPreviewUrl(userProfile.logoUrl || null);
     }
   }, [userProfile, form]);
 
@@ -64,17 +65,16 @@ const AppSettings: React.FC = () => {
         artistName: data.artistName,
         email: data.email,
         phone: data.phone,
-        logoUrl: previewUrl || undefined,
       });
       
       toast({
-        title: "Configuración actualizada",
+        title: "Datos actualizados",
         description: "Tu perfil ha sido actualizado correctamente.",
       });
     } catch (error) {
       toast({
         title: "Error",
-        description: "No se pudo actualizar la configuración.",
+        description: "No se pudo actualizar los datos.",
         variant: "destructive",
       });
     } finally {
@@ -82,41 +82,71 @@ const AppSettings: React.FC = () => {
     }
   };
 
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Validate file size (max 2MB)
-      if (file.size > 2 * 1024 * 1024) {
+      setIsUpdatingLogo(true);
+      
+      try {
+        // Validate file size (max 2MB)
+        if (file.size > 2 * 1024 * 1024) {
+          toast({
+            title: "Error",
+            description: "El archivo es demasiado grande. Máximo 2MB.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+          toast({
+            title: "Error",
+            description: "Solo se permiten archivos de imagen.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const result = reader.result as string;
+          await updateAppLogo(result);
+          toast({
+            title: "Logo actualizado",
+            description: "El logo ha sido guardado correctamente.",
+          });
+        };
+        reader.readAsDataURL(file);
+      } catch (error) {
         toast({
           title: "Error",
-          description: "El archivo es demasiado grande. Máximo 2MB.",
+          description: "No se pudo guardar el logo.",
           variant: "destructive",
         });
-        return;
+      } finally {
+        setIsUpdatingLogo(false);
       }
-
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        toast({
-          title: "Error",
-          description: "Solo se permiten archivos de imagen.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setPreviewUrl(result);
-      };
-      reader.readAsDataURL(file);
     }
   };
 
-  const removeLogo = () => {
-    setPreviewUrl(null);
-    updateUserProfile({ logoUrl: undefined });
+  const removeLogo = async () => {
+    setIsUpdatingLogo(true);
+    try {
+      await updateAppLogo(null);
+      toast({
+        title: "Logo eliminado",
+        description: "El logo ha sido eliminado correctamente.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el logo.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingLogo(false);
+    }
   };
 
   return (
@@ -207,12 +237,12 @@ const AppSettings: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {previewUrl && (
+            {logoUrl && (
               <div className="mb-4">
                 <p className="text-sm font-medium mb-2">Vista previa:</p>
                 <div className="flex items-center justify-between">
                   <img 
-                    src={previewUrl} 
+                    src={logoUrl} 
                     alt="Logo Preview" 
                     className="max-h-20 max-w-xs border p-2 rounded"
                     onError={(e) => {
@@ -224,6 +254,7 @@ const AppSettings: React.FC = () => {
                     variant="destructive"
                     size="sm"
                     onClick={removeLogo}
+                    disabled={isUpdatingLogo}
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
                     Eliminar logo
@@ -237,9 +268,19 @@ const AppSettings: React.FC = () => {
                 type="button"
                 variant="outline"
                 onClick={() => document.getElementById('logo-upload')?.click()}
+                disabled={isUpdatingLogo}
               >
-                <Upload className="h-4 w-4 mr-2" />
-                {previewUrl ? 'Cambiar Logo' : 'Subir Logo'}
+                {isUpdatingLogo ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 mr-2" />
+                    {logoUrl ? 'Cambiar Logo' : 'Subir Logo'}
+                  </>
+                )}
               </Button>
               <input
                 id="logo-upload"
@@ -247,6 +288,7 @@ const AppSettings: React.FC = () => {
                 accept="image/*"
                 className="hidden"
                 onChange={handleImageChange}
+                disabled={isUpdatingLogo}
               />
               <p className="text-sm text-gray-500">
                 Formatos aceptados: JPG, PNG. Tamaño máximo: 2MB. Recomendado: 200x50px
