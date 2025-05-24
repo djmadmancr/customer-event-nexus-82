@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -32,6 +33,7 @@ import {
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PaymentMethod } from '@/types/models';
+import { useAppConfig } from '@/contexts/AppConfigContext';
 
 // Form schema
 const paymentSchema = z.object({
@@ -55,6 +57,8 @@ interface PaymentFormProps {
 }
 
 const PaymentForm: React.FC<PaymentFormProps> = ({ eventId, onComplete }) => {
+  const { defaultCurrency } = useAppConfig();
+  
   // Initialize form
   const form = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentSchema),
@@ -74,6 +78,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ eventId, onComplete }) => {
       method: data.method,
       paymentDate: data.paymentDate,
       notes: data.notes || '',
+      currency: defaultCurrency || 'CRC',
     });
     
     if (onComplete) {
@@ -90,7 +95,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ eventId, onComplete }) => {
             name="amount"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Monto</FormLabel>
+                <FormLabel>Monto ({dataService.getCurrencySymbol(defaultCurrency || 'CRC')})</FormLabel>
                 <FormControl>
                   <Input 
                     type="number" 

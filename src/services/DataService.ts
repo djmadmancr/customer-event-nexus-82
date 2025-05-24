@@ -47,7 +47,7 @@ class DataService {
     }
     // If total payments don't cover the cost and it was marked as paid, revert to delivered
     else if (totalPaid < eventTotal && event.status === 'paid') {
-      // Only revert if it was manually set to delivered
+      // Only revert if it was automatically set to paid
       if (event.status === 'paid') {
         event.status = 'delivered';
         event.updatedAt = new Date();
@@ -56,6 +56,10 @@ class DataService {
   }
 
   private initSampleData() {
+    // Get default tax from localStorage
+    const defaultTaxPercentage = localStorage.getItem('defaultTaxPercentage');
+    const taxPercentage = defaultTaxPercentage ? parseFloat(defaultTaxPercentage) : 13;
+    
     // Sample customers
     const customer1 = this.addCustomer({
       name: 'Juan Pérez',
@@ -78,6 +82,7 @@ class DataService {
       date: new Date(2025, 5, 25, 10, 0),
       venue: 'Salón de eventos',
       cost: 250000,
+      taxPercentage: taxPercentage,
       status: 'confirmed'
     });
 
@@ -87,7 +92,7 @@ class DataService {
       date: new Date(2025, 5, 30, 15, 0),
       venue: 'Iglesia San José',
       cost: 500000,
-      taxPercentage: 13,
+      taxPercentage: taxPercentage,
       status: 'prospect'
     });
 
@@ -97,6 +102,7 @@ class DataService {
       date: new Date(2025, 6, 5, 11, 0),
       venue: 'Hotel Costa Rica',
       cost: 350000,
+      taxPercentage: taxPercentage,
       status: 'delivered'
     });
 
@@ -205,6 +211,13 @@ class DataService {
 
   addEvent(eventData: Omit<Event, 'id' | 'createdAt' | 'updatedAt' | 'taxAmount' | 'totalWithTax'>): Event {
     const now = new Date();
+    
+    // Get default tax from localStorage if not provided
+    if (!eventData.taxPercentage) {
+      const defaultTaxPercentage = localStorage.getItem('defaultTaxPercentage');
+      eventData.taxPercentage = defaultTaxPercentage ? parseFloat(defaultTaxPercentage) : 13;
+    }
+    
     let newEvent: Event = {
       id: generateId(),
       ...eventData,
@@ -419,7 +432,7 @@ class DataService {
       case 'USD': return '$';
       case 'CRC': return '₡';
       case 'EUR': return '€';
-      default: return '$';
+      default: return '₡';
     }
   }
 

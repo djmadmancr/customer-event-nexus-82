@@ -13,11 +13,19 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Upload, Trash2 } from 'lucide-react';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { useAppConfig } from '@/contexts/AppConfigContext';
 import { useToast } from '@/hooks/use-toast';
+import { Currency } from '@/types/models';
 
 const settingsSchema = z.object({
   name: z.string().min(2, { message: 'El nombre debe tener al menos 2 caracteres.' }),
@@ -26,13 +34,20 @@ const settingsSchema = z.object({
   phone: z.string().min(8, { message: 'El teléfono debe tener al menos 8 caracteres.' }),
 });
 
+const appConfigSchema = z.object({
+  defaultCurrency: z.enum(['USD', 'CRC', 'EUR']),
+  defaultTaxPercentage: z.coerce.number().min(0).max(100),
+});
+
 type SettingsFormValues = z.infer<typeof settingsSchema>;
+type AppConfigFormValues = z.infer<typeof appConfigSchema>;
 
 const AppSettings: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUpdatingLogo, setIsUpdatingLogo] = useState(false);
+  const [isUpdatingAppConfig, setIsUpdatingAppConfig] = useState(false);
   const { userProfile, updateUserProfile } = useUserProfile();
-  const { logoUrl, updateAppLogo } = useAppConfig();
+  const { logoUrl, defaultCurrency, defaultTaxPercentage, updateAppLogo, updateDefaultCurrency, updateDefaultTaxPercentage } = useAppConfig();
   const { toast } = useToast();
 
   const form = useForm<SettingsFormValues>({
@@ -42,6 +57,14 @@ const AppSettings: React.FC = () => {
       artistName: userProfile?.artistName || '',
       email: userProfile?.email || '',
       phone: userProfile?.phone || '',
+    },
+  });
+
+  const appConfigForm = useForm<AppConfigFormValues>({
+    resolver: zodResolver(appConfigSchema),
+    defaultValues: {
+      defaultCurrency: defaultCurrency,
+      defaultTaxPercentage: defaultTaxPercentage,
     },
   });
 
@@ -56,6 +79,14 @@ const AppSettings: React.FC = () => {
       });
     }
   }, [userProfile, form]);
+
+  // Update app config form when values change
+  React.useEffect(() => {
+    appConfigForm.reset({
+      defaultCurrency: defaultCurrency,
+      defaultTaxPercentage: defaultTaxPercentage,
+    });
+  }, [defaultCurrency, defaultTaxPercentage, appConfigForm]);
 
   const onSubmit = async (data: SettingsFormValues) => {
     setIsSubmitting(true);
@@ -79,6 +110,27 @@ const AppSettings: React.FC = () => {
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const onAppConfigSubmit = async (data: AppConfigFormValues) => {
+    setIsUpdatingAppConfig(true);
+    try {
+      updateDefaultCurrency(data.defaultCurrency);
+      updateDefaultTaxPercentage(data.defaultTaxPercentage);
+      
+      toast({
+        title: "Configuración actualizada",
+        description: "La configuración de la aplicación ha sido actualizada correctamente.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar la configuración.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingAppConfig(false);
     }
   };
 
@@ -295,6 +347,80 @@ const AppSettings: React.FC = () => {
               </p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle>Configuración de la Aplicación</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Form {...appConfigForm}>
+            <form onSubmit={appConfigForm.handleSubmit(onAppConfigSubmit)} className="space-y-6">
+              <FormField
+                control={appConfigForm.control}
+                name="defaultCurrency"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Divisa Principal</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona la divisa" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="CRC">Colones Costarricenses (₡)</SelectItem>
+                        <SelectItem value="USD">Dólares Americanos ($)</SelectItem>
+                        <SelectItem value="EUR">Euros (€)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                    <p className="text-sm text-gray-500">
+                      Esta divisa se utilizará en toda la plataforma
+                    </p>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={appConfigForm.control}
+                name="defaultTaxPercentage"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Porcentaje de Impuesto por Defecto (%)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        min="0" 
+                        max="100" 
+                        step="0.1"
+                        placeholder="13" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                    <p className="text-sm text-gray-500">
+                      Este impuesto se aplicará automáticamente a todos los eventos nuevos
+                    </p>
+                  </FormItem>
+                )}
+              />
+              
+              <Button 
+                type="submit" 
+                className="w-full bg-crm-primary hover:bg-crm-primary/90"
+                disabled={isUpdatingAppConfig}
+              >
+                {isUpdatingAppConfig ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Guardando...
+                  </>
+                ) : 'Guardar Configuración'}
+              </Button>
+            </form>
+          </Form>
         </CardContent>
       </Card>
     </div>

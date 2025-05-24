@@ -5,8 +5,8 @@ import { Event, Customer, Payment } from '@/types/models';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { FileText } from 'lucide-react';
-import { useCrm } from '@/contexts/CrmContext';
 import { useUserProfile } from '@/contexts/UserProfileContext';
+import { useAppConfig } from '@/contexts/AppConfigContext';
 import { usePDF } from 'react-to-pdf';
 import dataService from '@/services/DataService';
 
@@ -24,6 +24,7 @@ const EventPdfExporter: React.FC<EventPdfExporterProps> = ({
   eventDetails = [],
 }) => {
   const { userProfile } = useUserProfile();
+  const { logoUrl, defaultCurrency } = useAppConfig();
   const { toPDF, targetRef } = usePDF({
     filename: `Propuesta_${event.title}_${format(new Date(), 'yyyyMMdd')}.pdf`,
     page: {
@@ -59,10 +60,9 @@ const EventPdfExporter: React.FC<EventPdfExporterProps> = ({
   const eventTotal = event.totalWithTax || event.cost;
   const pendingAmount = eventTotal - totalPaid;
 
-  // Format currency based on payment currency or default
-  const formatCurrency = (amount: number, currency?: string) => {
-    const curr = currency || 'CRC';
-    return dataService.formatCurrency(amount, curr as any);
+  // Format currency based on default currency
+  const formatCurrency = (amount: number) => {
+    return dataService.formatCurrency(amount, defaultCurrency);
   };
 
   return (
@@ -81,10 +81,10 @@ const EventPdfExporter: React.FC<EventPdfExporterProps> = ({
           {/* Header with Logo and Business Info */}
           <div className="flex justify-between items-start mb-8 border-b-2 border-gray-300 pb-6">
             <div className="flex items-center">
-              {userProfile?.logoUrl && (
+              {logoUrl && (
                 <div className="mr-4">
                   <img 
-                    src={userProfile.logoUrl} 
+                    src={logoUrl} 
                     alt="Logo de la empresa" 
                     className="h-20 max-w-48 object-contain"
                     style={{ maxHeight: '80px', maxWidth: '192px' }}
@@ -93,7 +93,7 @@ const EventPdfExporter: React.FC<EventPdfExporterProps> = ({
               )}
               <div>
                 <h1 className="text-3xl font-bold text-gray-800">
-                  {userProfile?.artistName || userProfile?.name || 'NEXUS DJ'}
+                  {userProfile?.artistName || userProfile?.name || 'NEXUS'}
                 </h1>
                 <p className="text-lg text-gray-600">Propuesta de Servicio</p>
                 {userProfile && (
@@ -242,7 +242,7 @@ const EventPdfExporter: React.FC<EventPdfExporterProps> = ({
                       <td className="p-3 border border-gray-300">{format(payment.paymentDate, 'dd/MM/yyyy')}</td>
                       <td className="p-3 border border-gray-300">{getPaymentMethodText(payment.method)}</td>
                       <td className="p-3 border border-gray-300 text-right font-bold">
-                        {formatCurrency(payment.amount, payment.currency)}
+                        {formatCurrency(payment.amount)}
                       </td>
                     </tr>
                   ))}
@@ -264,7 +264,7 @@ const EventPdfExporter: React.FC<EventPdfExporterProps> = ({
           {/* Footer */}
           <div className="pt-6 border-t border-gray-300 text-center">
             <p className="text-sm text-gray-500 mb-2">
-              Gracias por confiar en {userProfile?.artistName || userProfile?.name || 'NEXUS DJ'} para su evento especial.
+              Gracias por confiar en {userProfile?.artistName || userProfile?.name || 'NEXUS'} para su evento especial.
             </p>
             <p className="text-xs text-gray-400">
               Documento generado automáticamente el {format(new Date(), 'PPP', { locale: es })}

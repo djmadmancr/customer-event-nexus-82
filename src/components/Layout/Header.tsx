@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, Menu, ChevronLeft, ChevronRight, Settings } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAppConfig } from '@/contexts/AppConfigContext';
 
@@ -36,7 +36,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, sidebarOpen }) => {
             onClick={toggleSidebar} 
             className="md:hidden block"
           >
-            <Menu className="h-5 w-5" />
+            <ChevronLeft className="h-5 w-5" />
           </Button>
           
           <Link to="/" className="flex items-center ml-2 md:ml-0">
@@ -52,20 +52,16 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, sidebarOpen }) => {
               />
             ) : (
               <div className="bg-crm-primary rounded-md p-1">
-                <h1 className="text-white text-xl font-bold px-2">DJ</h1>
+                <h1 className="text-white text-xl font-bold px-2">N</h1>
               </div>
             )}
             <h1 className="text-crm-text ml-2 text-xl font-semibold hidden md:block">
-              NEXUS DJ
+              NEXUS
             </h1>
           </Link>
         </div>
         
         <div className="flex items-center space-x-2">
-          <Button variant="ghost" size="icon">
-            <Bell className="h-5 w-5" />
-          </Button>
-          
           <Link to="/settings">
             <Button variant="ghost" size="icon">
               <Settings className="h-5 w-5" />

@@ -87,11 +87,3 @@ export interface UserProfile {
   defaultCurrency?: Currency;
   updatedAt: Date;
 }
-
-// App Settings Model (simplified)
-export interface AppSettings {
-  id: string;
-  logoUrl?: string;
-  updatedAt: Date;
-  updatedBy: string;
-}
