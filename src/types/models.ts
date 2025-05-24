@@ -69,10 +69,20 @@ export interface User {
   createdAt: Date;
 }
 
-// App Settings Model
+// User Profile Model - for personal data
+export interface UserProfile {
+  id: string;
+  name: string;
+  artistName?: string;
+  email: string;
+  phone: string;
+  logoUrl?: string;
+  updatedAt: Date;
+}
+
+// App Settings Model (simplified)
 export interface AppSettings {
   id: string;
-  appName: string;
   logoUrl?: string;
   updatedAt: Date;
   updatedBy: string;

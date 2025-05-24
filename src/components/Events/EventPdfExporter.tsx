@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { FileText } from 'lucide-react';
 import { useCrm } from '@/contexts/CrmContext';
-import { useAppConfig } from '@/contexts/AppConfigContext';
+import { useUserProfile } from '@/contexts/UserProfileContext';
 import { usePDF } from 'react-to-pdf';
 
 interface EventPdfExporterProps {
@@ -22,7 +22,7 @@ const EventPdfExporter: React.FC<EventPdfExporterProps> = ({
   payments = [],
   eventDetails = [],
 }) => {
-  const { appName, logoUrl } = useAppConfig();
+  const { userProfile } = useUserProfile();
   const { toPDF, targetRef } = usePDF({
     filename: `Propuesta_${event.title}_${format(new Date(), 'yyyyMMdd')}.pdf`,
     page: {
@@ -70,12 +70,12 @@ const EventPdfExporter: React.FC<EventPdfExporterProps> = ({
       
       <div className="fixed top-[-9999px] left-[-9999px]">
         <div ref={targetRef} className="p-8 bg-white max-w-4xl mx-auto" style={{ width: '794px', minHeight: '1123px' }}>
-          {/* Header with Logo */}
+          {/* Header with Logo and Business Info */}
           <div className="flex justify-between items-start mb-8 border-b-2 border-gray-300 pb-6">
             <div className="flex items-center">
-              {logoUrl && (
+              {userProfile?.logoUrl && (
                 <img 
-                  src={logoUrl} 
+                  src={userProfile.logoUrl} 
                   alt="Logo de la empresa" 
                   className="h-16 max-w-48 mr-4"
                   onError={(e) => {
@@ -84,8 +84,16 @@ const EventPdfExporter: React.FC<EventPdfExporterProps> = ({
                 />
               )}
               <div>
-                <h1 className="text-3xl font-bold text-gray-800">{appName}</h1>
+                <h1 className="text-3xl font-bold text-gray-800">
+                  {userProfile?.artistName || userProfile?.name || 'Empresa de Entretenimiento'}
+                </h1>
                 <p className="text-lg text-gray-600">Propuesta de Servicio</p>
+                {userProfile && (
+                  <div className="mt-2 text-sm text-gray-600">
+                    <p>Email: {userProfile.email}</p>
+                    <p>Teléfono: {userProfile.phone}</p>
+                  </div>
+                )}
               </div>
             </div>
             <div className="text-right">
@@ -246,7 +254,7 @@ const EventPdfExporter: React.FC<EventPdfExporterProps> = ({
           {/* Footer */}
           <div className="pt-6 border-t border-gray-300 text-center">
             <p className="text-sm text-gray-500 mb-2">
-              Gracias por confiar en {appName} para su evento especial.
+              Gracias por confiar en {userProfile?.artistName || userProfile?.name || 'nosotros'} para su evento especial.
             </p>
             <p className="text-xs text-gray-400">
               Documento generado automáticamente el {format(new Date(), 'PPP', { locale: es })}

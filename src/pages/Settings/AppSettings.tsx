@@ -14,12 +14,15 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Upload } from 'lucide-react';
-import { useAppConfig } from '@/contexts/AppConfigContext';
+import { Loader2, Upload, Trash2 } from 'lucide-react';
+import { useUserProfile } from '@/contexts/UserProfileContext';
+import { useToast } from '@/hooks/use-toast';
 
 const settingsSchema = z.object({
-  appName: z.string().min(2, { message: 'El nombre debe tener al menos 2 caracteres.' }),
-  logoUrl: z.string().url({ message: 'Debe ser una URL válida.' }).optional().or(z.literal('')),
+  name: z.string().min(2, { message: 'El nombre debe tener al menos 2 caracteres.' }),
+  artistName: z.string().optional(),
+  email: z.string().email({ message: 'Debe ser un email válido.' }),
+  phone: z.string().min(8, { message: 'El teléfono debe tener al menos 8 caracteres.' }),
 });
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
@@ -27,29 +30,53 @@ type SettingsFormValues = z.infer<typeof settingsSchema>;
 const AppSettings: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const { appName, logoUrl, updateAppConfig } = useAppConfig();
+  const { userProfile, updateUserProfile } = useUserProfile();
+  const { toast } = useToast();
 
   const form = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
     defaultValues: {
-      appName: appName,
-      logoUrl: logoUrl || '',
+      name: userProfile?.name || '',
+      artistName: userProfile?.artistName || '',
+      email: userProfile?.email || '',
+      phone: userProfile?.phone || '',
     },
   });
 
-  // Update form when appName or logoUrl changes
+  // Update form when userProfile changes
   React.useEffect(() => {
-    form.reset({
-      appName: appName,
-      logoUrl: logoUrl || '',
-    });
-    setPreviewUrl(logoUrl);
-  }, [appName, logoUrl, form]);
+    if (userProfile) {
+      form.reset({
+        name: userProfile.name,
+        artistName: userProfile.artistName || '',
+        email: userProfile.email,
+        phone: userProfile.phone,
+      });
+      setPreviewUrl(userProfile.logoUrl || null);
+    }
+  }, [userProfile, form]);
 
   const onSubmit = async (data: SettingsFormValues) => {
     setIsSubmitting(true);
     try {
-      await updateAppConfig(data.appName, data.logoUrl || null);
+      updateUserProfile({
+        name: data.name,
+        artistName: data.artistName,
+        email: data.email,
+        phone: data.phone,
+        logoUrl: previewUrl || undefined,
+      });
+      
+      toast({
+        title: "Configuración actualizada",
+        description: "Tu perfil ha sido actualizado correctamente.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar la configuración.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -58,94 +85,104 @@ const AppSettings: React.FC = () => {
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      // Validate file size (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        toast({
+          title: "Error",
+          description: "El archivo es demasiado grande. Máximo 2MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Error",
+          description: "Solo se permiten archivos de imagen.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const reader = new FileReader();
       reader.onloadend = () => {
         const result = reader.result as string;
         setPreviewUrl(result);
-        form.setValue('logoUrl', result);
       };
       reader.readAsDataURL(file);
     }
   };
 
+  const removeLogo = () => {
+    setPreviewUrl(null);
+    updateUserProfile({ logoUrl: undefined });
+  };
+
   return (
-    <div className="container mx-auto">
+    <div className="container mx-auto space-y-6">
       <Card className="max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle>Configuración de la Aplicación</CardTitle>
+          <CardTitle>Datos Personales</CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
                 control={form.control}
-                name="appName"
+                name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nombre de la Aplicación</FormLabel>
+                    <FormLabel>Nombre Completo</FormLabel>
                     <FormControl>
-                      <Input placeholder="CRM Sistema de Gestión" {...field} />
+                      <Input placeholder="Tu nombre completo" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              
-              <div className="space-y-2">
-                <FormLabel>Logo de la Aplicación</FormLabel>
-                <div className="flex flex-col space-y-4">
-                  {previewUrl && (
-                    <div className="mb-4">
-                      <p className="text-sm font-medium mb-2">Vista previa:</p>
-                      <img 
-                        src={previewUrl} 
-                        alt="Logo Preview" 
-                        className="max-h-20 max-w-xs border p-2 rounded"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  )}
-                  
-                  <div className="flex flex-col space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => document.getElementById('logo-upload')?.click()}
-                      >
-                        <Upload className="h-4 w-4 mr-2" />
-                        Subir Logo
-                      </Button>
-                      {previewUrl && (
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => {
-                            setPreviewUrl(null);
-                            form.setValue('logoUrl', '');
-                          }}
-                        >
-                          Eliminar logo
-                        </Button>
-                      )}
-                    </div>
-                    <input
-                      id="logo-upload"
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleImageChange}
-                    />
-                    <p className="text-sm text-gray-500 mt-1">
-                      Formatos aceptados: JPG, PNG. Tamaño recomendado: 200x50px
-                    </p>
-                  </div>
-                </div>
-                <FormMessage>{form.formState.errors.logoUrl?.message}</FormMessage>
-              </div>
+
+              <FormField
+                control={form.control}
+                name="artistName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nombre Artístico (DJ/Banda)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nombre artístico o de la banda" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="tu@email.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Teléfono</FormLabel>
+                    <FormControl>
+                      <Input placeholder="+506 0000-0000" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               
               <Button 
                 type="submit" 
@@ -157,10 +194,65 @@ const AppSettings: React.FC = () => {
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Guardando...
                   </>
-                ) : 'Guardar Configuración'}
+                ) : 'Guardar Datos Personales'}
               </Button>
             </form>
           </Form>
+        </CardContent>
+      </Card>
+
+      <Card className="max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle>Logo de la Empresa</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {previewUrl && (
+              <div className="mb-4">
+                <p className="text-sm font-medium mb-2">Vista previa:</p>
+                <div className="flex items-center justify-between">
+                  <img 
+                    src={previewUrl} 
+                    alt="Logo Preview" 
+                    className="max-h-20 max-w-xs border p-2 rounded"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={removeLogo}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Eliminar logo
+                  </Button>
+                </div>
+              </div>
+            )}
+            
+            <div className="flex flex-col space-y-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => document.getElementById('logo-upload')?.click()}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                {previewUrl ? 'Cambiar Logo' : 'Subir Logo'}
+              </Button>
+              <input
+                id="logo-upload"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageChange}
+              />
+              <p className="text-sm text-gray-500">
+                Formatos aceptados: JPG, PNG. Tamaño máximo: 2MB. Recomendado: 200x50px
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

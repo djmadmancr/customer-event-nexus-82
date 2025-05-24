@@ -67,6 +67,11 @@ const EventDetail = () => {
       setSelectedEvent(null);
     };
   }, [id, navigate, setSelectedEvent]);
+
+  // Refresh data when tab changes to ensure latest info
+  useEffect(() => {
+    refreshEventData();
+  }, [activeTab]);
   
   if (!selectedEvent) {
     return null;
@@ -96,11 +101,18 @@ const EventDetail = () => {
   
   const handleEventUpdate = (updatedEvent: CrmEvent) => {
     setSelectedEvent(updatedEvent);
+    // Refresh all data when event is updated
+    refreshEventData();
   };
 
   const handlePaymentComplete = () => {
     setIsAddingPayment(false);
     // Refresh all event data to get updated status and payments
+    refreshEventData();
+  };
+
+  const handleDetailsUpdate = () => {
+    // Refresh event details when they are updated
     refreshEventData();
   };
   
@@ -194,7 +206,7 @@ const EventDetail = () => {
                   <CreditCard className="h-5 w-5 text-gray-400" />
                   <div>
                     <h3 className="text-sm font-medium text-gray-500">Estado</h3>
-                    <p className="mt-1">{getStatusBadge(selectedEvent.status)}</p>
+                    <div className="mt-1">{getStatusBadge(selectedEvent.status)}</div>
                   </div>
                 </div>
                 
@@ -267,7 +279,7 @@ const EventDetail = () => {
         <TabsContent value="details" className="mt-4">
           <Card>
             <CardContent className="p-6">
-              <EventDetailsList eventId={selectedEvent.id} />
+              <EventDetailsList eventId={selectedEvent.id} onUpdate={handleDetailsUpdate} />
             </CardContent>
           </Card>
         </TabsContent>

@@ -18,9 +18,10 @@ import EventDetailForm from './EventDetailForm';
 
 interface EventDetailsListProps {
   eventId: string;
+  onUpdate?: () => void;
 }
 
-const EventDetailsList: React.FC<EventDetailsListProps> = ({ eventId }) => {
+const EventDetailsList: React.FC<EventDetailsListProps> = ({ eventId, onUpdate }) => {
   const [details, setDetails] = useState<EventDetail[]>([]);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -38,6 +39,7 @@ const EventDetailsList: React.FC<EventDetailsListProps> = ({ eventId }) => {
   const handleDeleteDetail = (detailId: string) => {
     dataService.deleteEventDetail(detailId);
     loadDetails();
+    onUpdate?.();
   };
 
   const handleEditDetail = (detailId: string) => {
@@ -50,6 +52,7 @@ const EventDetailsList: React.FC<EventDetailsListProps> = ({ eventId }) => {
     setIsEditOpen(false);
     setSelectedDetailId(null);
     loadDetails();
+    onUpdate?.();
   };
 
   return (

@@ -116,7 +116,11 @@ const CustomerDetail = () => {
               <CardTitle className="text-lg">Eventos del cliente</CardTitle>
             </CardHeader>
             <CardContent>
-              <EventList filterByCustomerId={selectedCustomer.id} showAddButton={false} />
+              <EventList 
+                filterByCustomerId={selectedCustomer.id} 
+                showAddButton={false}
+                allowNavigation={true}
+              />
             </CardContent>
           </Card>
         </TabsContent>
