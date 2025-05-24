@@ -13,7 +13,7 @@ export interface Customer {
 // Event Status enum - 'paid' will be calculated automatically based on payments
 export type EventStatus = 'prospect' | 'confirmed' | 'delivered' | 'paid';
 
-// Selectable Event Status (user can only choose these manually)
+// Selectable Event Status (user can only choose these manually) - removed 'paid'
 export type SelectableEventStatus = 'prospect' | 'confirmed' | 'delivered';
 
 // Event Model
@@ -24,6 +24,9 @@ export interface Event {
   date: Date;
   venue: string;
   cost: number;
+  taxPercentage?: number; // New field for tax percentage
+  taxAmount?: number; // Calculated tax amount
+  totalWithTax?: number; // Total cost including tax
   status: EventStatus;
   comments?: string;
   createdAt: Date;
@@ -44,11 +47,15 @@ export interface EventDetail {
 // Payment Method enum
 export type PaymentMethod = 'cash' | 'credit' | 'transfer' | 'check';
 
+// Currency enum
+export type Currency = 'USD' | 'CRC' | 'EUR';
+
 // Payment Model
 export interface Payment {
   id: string;
   eventId: string;
   amount: number;
+  currency: Currency;
   paymentDate: Date;
   method: PaymentMethod;
   notes?: string;
@@ -77,6 +84,7 @@ export interface UserProfile {
   email: string;
   phone: string;
   logoUrl?: string;
+  defaultCurrency?: Currency;
   updatedAt: Date;
 }
 

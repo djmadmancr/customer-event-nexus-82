@@ -1,4 +1,5 @@
-import { Customer, Event, EventStatus, SelectableEventStatus, EventDetail, Payment, PaymentMethod } from '../types/models';
+
+import { Customer, Event, EventStatus, SelectableEventStatus, EventDetail, Payment, PaymentMethod, Currency } from '../types/models';
 import { toast } from 'sonner';
 
 // Helper function to generate unique IDs
@@ -18,6 +19,18 @@ class DataService {
     this.initSampleData();
   }
 
+  // Helper method to calculate event totals with tax
+  private calculateEventTotals(event: Event): Event {
+    const taxAmount = event.taxPercentage ? (event.cost * event.taxPercentage) / 100 : 0;
+    const totalWithTax = event.cost + taxAmount;
+    
+    return {
+      ...event,
+      taxAmount,
+      totalWithTax
+    };
+  }
+
   // Helper method to update event status based on payments
   private updateEventStatusBasedOnPayments(eventId: string): void {
     const event = this.events.find(e => e.id === eventId);
@@ -25,84 +38,88 @@ class DataService {
 
     const eventPayments = this.payments.filter(p => p.eventId === eventId);
     const totalPaid = eventPayments.reduce((sum, payment) => sum + payment.amount, 0);
+    const eventTotal = event.totalWithTax || event.cost;
     
     // If total payments cover the event cost, mark as paid
-    if (totalPaid >= event.cost && event.status !== 'paid') {
+    if (totalPaid >= eventTotal && event.status !== 'paid') {
       event.status = 'paid';
       event.updatedAt = new Date();
     }
     // If total payments don't cover the cost and it was marked as paid, revert to delivered
-    else if (totalPaid < event.cost && event.status === 'paid') {
-      event.status = 'delivered';
-      event.updatedAt = new Date();
+    else if (totalPaid < eventTotal && event.status === 'paid') {
+      // Only revert if it was manually set to delivered
+      if (event.status === 'paid') {
+        event.status = 'delivered';
+        event.updatedAt = new Date();
+      }
     }
   }
-
-  // ... keep existing code (initSampleData, getAllCustomers, getCustomerById, addCustomer, updateCustomer, deleteCustomer)
 
   private initSampleData() {
     // Sample customers
     const customer1 = this.addCustomer({
       name: 'Juan Pérez',
       email: 'juan.perez@example.com',
-      phone: '+34 612 345 678',
+      phone: '+506 8888-9999',
       notes: 'Cliente preferente'
     });
 
     const customer2 = this.addCustomer({
       name: 'María González',
       email: 'maria.gonzalez@example.com',
-      phone: '+34 623 456 789',
+      phone: '+506 7777-8888',
       notes: 'Contactar preferentemente por email'
     });
 
     // Sample events
     const event1 = this.addEvent({
       customerId: customer1.id,
-      title: 'Reunión inicial',
+      title: 'Fiesta de Cumpleaños',
       date: new Date(2025, 5, 25, 10, 0),
-      venue: 'Oficina central',
-      cost: 500,
+      venue: 'Salón de eventos',
+      cost: 250000,
       status: 'confirmed'
     });
 
     const event2 = this.addEvent({
       customerId: customer1.id,
-      title: 'Presentación de propuesta',
+      title: 'Boda',
       date: new Date(2025, 5, 30, 15, 0),
-      venue: 'Sala de conferencias',
-      cost: 1200,
+      venue: 'Iglesia San José',
+      cost: 500000,
+      taxPercentage: 13,
       status: 'prospect'
     });
 
     const event3 = this.addEvent({
       customerId: customer2.id,
-      title: 'Firma de contrato',
+      title: 'Quinceañera',
       date: new Date(2025, 6, 5, 11, 0),
-      venue: 'Oficina del cliente',
-      cost: 2500,
+      venue: 'Hotel Costa Rica',
+      cost: 350000,
       status: 'delivered'
     });
 
     // Sample event details
     this.addEventDetail({
       eventId: event1.id,
-      description: 'Proyector',
+      description: 'Equipo de sonido profesional',
       quantity: 1,
-      notes: 'Incluye pantalla'
+      notes: 'Incluye micrófono inalámbrico'
     });
 
     this.addEventDetail({
       eventId: event1.id,
-      description: 'Micrófono inalámbrico',
-      quantity: 2,
-      notes: 'Con baterías de repuesto'
+      description: 'Luces LED',
+      quantity: 4,
+      notes: 'Colores variados'
     });
 
     // Sample payments
     this.addPayment({
       eventId: event3.id,
-      amount: 2500,
+      amount: 350000,
+      currency: 'CRC',
       paymentDate: new Date(2025, 6, 5),
       method: 'transfer',
       notes: 'Pago completo'
@@ -186,21 +203,24 @@ class DataService {
     return this.events.find(event => event.id === id);
   }
 
-  addEvent(eventData: Omit<Event, 'id' | 'createdAt' | 'updatedAt'>): Event {
+  addEvent(eventData: Omit<Event, 'id' | 'createdAt' | 'updatedAt' | 'taxAmount' | 'totalWithTax'>): Event {
     const now = new Date();
-    const newEvent: Event = {
+    let newEvent: Event = {
       id: generateId(),
       ...eventData,
       createdAt: now,
       updatedAt: now
     };
     
+    // Calculate totals with tax
+    newEvent = this.calculateEventTotals(newEvent);
+    
     this.events.push(newEvent);
     toast.success('Evento creado exitosamente');
     return newEvent;
   }
 
-  updateEvent(id: string, eventData: Partial<Omit<Event, 'id' | 'createdAt' | 'updatedAt'>>): Event | undefined {
+  updateEvent(id: string, eventData: Partial<Omit<Event, 'id' | 'createdAt' | 'updatedAt' | 'taxAmount' | 'totalWithTax'>>): Event | undefined {
     const eventIndex = this.events.findIndex(event => event.id === id);
     
     if (eventIndex === -1) {
@@ -208,11 +228,14 @@ class DataService {
       return undefined;
     }
     
-    const updatedEvent: Event = {
+    let updatedEvent: Event = {
       ...this.events[eventIndex],
       ...eventData,
       updatedAt: new Date()
     };
+    
+    // Recalculate totals with tax
+    updatedEvent = this.calculateEventTotals(updatedEvent);
     
     this.events[eventIndex] = updatedEvent;
     
@@ -241,7 +264,15 @@ class DataService {
     return success;
   }
 
-  // ... keep existing code (EVENT DETAILS METHODS, getEventDetailsByEventId, getEventDetailById, addEventDetail, updateEventDetail, deleteEventDetail)
+  // Add tax to event
+  addTaxToEvent(eventId: string, taxPercentage: number): Event | undefined {
+    return this.updateEvent(eventId, { taxPercentage });
+  }
+
+  // Remove tax from event
+  removeTaxFromEvent(eventId: string): Event | undefined {
+    return this.updateEvent(eventId, { taxPercentage: 0 });
+  }
 
   // EVENT DETAILS METHODS
   
@@ -323,6 +354,7 @@ class DataService {
     const newPayment: Payment = {
       id: generateId(),
       ...paymentData,
+      currency: paymentData.currency || 'CRC', // Default to Costa Rican Colones
       createdAt: now,
       updatedAt: now
     };
@@ -381,13 +413,26 @@ class DataService {
     return success;
   }
 
-  // ... keep existing code (FINANCIAL SUMMARY METHODS)
+  // CURRENCY HELPER METHODS
+  getCurrencySymbol(currency: Currency): string {
+    switch (currency) {
+      case 'USD': return '$';
+      case 'CRC': return '₡';
+      case 'EUR': return '€';
+      default: return '$';
+    }
+  }
+
+  formatCurrency(amount: number, currency: Currency = 'CRC'): string {
+    const symbol = this.getCurrencySymbol(currency);
+    return `${symbol}${amount.toLocaleString('es-CR')}`;
+  }
 
   // FINANCIAL SUMMARY METHODS
   getEventsTotalByStatus(status: EventStatus): number {
     return this.events
       .filter(event => event.status === status)
-      .reduce((total, event) => total + (event.cost || 0), 0);
+      .reduce((total, event) => total + (event.totalWithTax || event.cost || 0), 0);
   }
 
   getEventsTotalByStatusAndDateRange(status: EventStatus, startDate?: Date, endDate?: Date): number {
@@ -399,7 +444,7 @@ class DataService {
         if (endDate && event.date > endDate) return false;
         return true;
       })
-      .reduce((total, event) => total + (event.cost || 0), 0);
+      .reduce((total, event) => total + (event.totalWithTax || event.cost || 0), 0);
   }
 }
 

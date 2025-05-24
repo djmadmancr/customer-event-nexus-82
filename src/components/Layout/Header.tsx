@@ -11,7 +11,7 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ toggleSidebar, sidebarOpen }) => {
-  const { appName, logoUrl } = useAppConfig();
+  const { logoUrl } = useAppConfig();
   
   return (
     <header className="bg-white shadow-sm border-b h-16 flex items-center px-4 fixed top-0 left-0 w-full z-30">
@@ -52,11 +52,11 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, sidebarOpen }) => {
               />
             ) : (
               <div className="bg-crm-primary rounded-md p-1">
-                <h1 className="text-white text-xl font-bold px-2">CRM</h1>
+                <h1 className="text-white text-xl font-bold px-2">DJ</h1>
               </div>
             )}
             <h1 className="text-crm-text ml-2 text-xl font-semibold hidden md:block">
-              {appName || 'Sistema de Gestión'}
+              NEXUS DJ
             </h1>
           </Link>
         </div>

@@ -8,6 +8,7 @@ import { FileText } from 'lucide-react';
 import { useCrm } from '@/contexts/CrmContext';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { usePDF } from 'react-to-pdf';
+import dataService from '@/services/DataService';
 
 interface EventPdfExporterProps {
   event: Event;
@@ -53,9 +54,16 @@ const EventPdfExporter: React.FC<EventPdfExporterProps> = ({
     }
   };
 
-  // Calculate total payments
+  // Calculate total payments and event totals
   const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
-  const pendingAmount = event.cost - totalPaid;
+  const eventTotal = event.totalWithTax || event.cost;
+  const pendingAmount = eventTotal - totalPaid;
+
+  // Format currency based on payment currency or default
+  const formatCurrency = (amount: number, currency?: string) => {
+    const curr = currency || 'CRC';
+    return dataService.formatCurrency(amount, curr as any);
+  };
 
   return (
     <>
@@ -74,24 +82,24 @@ const EventPdfExporter: React.FC<EventPdfExporterProps> = ({
           <div className="flex justify-between items-start mb-8 border-b-2 border-gray-300 pb-6">
             <div className="flex items-center">
               {userProfile?.logoUrl && (
-                <img 
-                  src={userProfile.logoUrl} 
-                  alt="Logo de la empresa" 
-                  className="h-16 max-w-48 mr-4"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).style.display = 'none';
-                  }}
-                />
+                <div className="mr-4">
+                  <img 
+                    src={userProfile.logoUrl} 
+                    alt="Logo de la empresa" 
+                    className="h-20 max-w-48 object-contain"
+                    style={{ maxHeight: '80px', maxWidth: '192px' }}
+                  />
+                </div>
               )}
               <div>
                 <h1 className="text-3xl font-bold text-gray-800">
-                  {userProfile?.artistName || userProfile?.name || 'Empresa de Entretenimiento'}
+                  {userProfile?.artistName || userProfile?.name || 'NEXUS DJ'}
                 </h1>
                 <p className="text-lg text-gray-600">Propuesta de Servicio</p>
                 {userProfile && (
                   <div className="mt-2 text-sm text-gray-600">
-                    <p>Email: {userProfile.email}</p>
-                    <p>Teléfono: {userProfile.phone}</p>
+                    {userProfile.email && <p>Email: {userProfile.email}</p>}
+                    {userProfile.phone && <p>Teléfono: {userProfile.phone}</p>}
                   </div>
                 )}
               </div>
@@ -169,16 +177,6 @@ const EventPdfExporter: React.FC<EventPdfExporterProps> = ({
             </div>
           )}
           
-          {/* Comments Section */}
-          {event.comments && (
-            <div className="mb-8">
-              <h2 className="text-2xl font-semibold mb-4 text-gray-800 border-b border-gray-200 pb-2">Comentarios Adicionales</h2>
-              <div className="p-4 bg-gray-50 border border-gray-300 rounded-md">
-                <p className="whitespace-pre-line text-gray-800">{event.comments}</p>
-              </div>
-            </div>
-          )}
-          
           {/* Financial Summary */}
           <div className="mb-8">
             <h2 className="text-2xl font-semibold mb-4 text-gray-800 border-b border-gray-200 pb-2">Resumen Financiero</h2>
@@ -186,9 +184,23 @@ const EventPdfExporter: React.FC<EventPdfExporterProps> = ({
               <table className="w-full">
                 <tbody>
                   <tr className="border-b border-gray-300">
+                    <td className="py-3 text-lg font-medium">Costo Base del Evento:</td>
+                    <td className="py-3 text-right text-xl font-bold text-gray-800">
+                      {formatCurrency(event.cost)}
+                    </td>
+                  </tr>
+                  {event.taxPercentage && event.taxAmount && (
+                    <tr className="border-b border-gray-300">
+                      <td className="py-3 text-lg font-medium">Impuestos ({event.taxPercentage}%):</td>
+                      <td className="py-3 text-right text-xl font-bold text-gray-800">
+                        {formatCurrency(event.taxAmount)}
+                      </td>
+                    </tr>
+                  )}
+                  <tr className="border-b border-gray-300">
                     <td className="py-3 text-lg font-medium">Costo Total del Evento:</td>
                     <td className="py-3 text-right text-2xl font-bold text-gray-800">
-                      ${event.cost?.toLocaleString('es-MX')}
+                      {formatCurrency(eventTotal)}
                     </td>
                   </tr>
                   {payments.length > 0 && (
@@ -196,13 +208,13 @@ const EventPdfExporter: React.FC<EventPdfExporterProps> = ({
                       <tr className="border-b border-gray-300">
                         <td className="py-3 text-lg font-medium">Pagos Realizados:</td>
                         <td className="py-3 text-right text-xl font-bold text-green-600">
-                          ${totalPaid.toLocaleString('es-MX')}
+                          {formatCurrency(totalPaid)}
                         </td>
                       </tr>
                       <tr className="border-b border-gray-300">
                         <td className="py-3 text-lg font-medium">Saldo Pendiente:</td>
                         <td className="py-3 text-right text-xl font-bold text-amber-600">
-                          ${pendingAmount.toLocaleString('es-MX')}
+                          {formatCurrency(pendingAmount)}
                         </td>
                       </tr>
                     </>
@@ -230,7 +242,7 @@ const EventPdfExporter: React.FC<EventPdfExporterProps> = ({
                       <td className="p-3 border border-gray-300">{format(payment.paymentDate, 'dd/MM/yyyy')}</td>
                       <td className="p-3 border border-gray-300">{getPaymentMethodText(payment.method)}</td>
                       <td className="p-3 border border-gray-300 text-right font-bold">
-                        ${payment.amount.toLocaleString('es-MX')}
+                        {formatCurrency(payment.amount, payment.currency)}
                       </td>
                     </tr>
                   ))}
@@ -239,22 +251,20 @@ const EventPdfExporter: React.FC<EventPdfExporterProps> = ({
             </div>
           )}
           
-          {/* Terms and Conditions */}
-          <div className="mb-8 pt-6 border-t-2 border-gray-300">
-            <h2 className="text-xl font-semibold mb-3 text-gray-800">Términos y Condiciones</h2>
-            <div className="text-sm text-gray-700 space-y-2">
-              <p>• Esta propuesta es válida por 30 días a partir de la fecha de emisión.</p>
-              <p>• Se requiere un anticipo del 50% para confirmar la reserva del evento.</p>
-              <p>• El pago total debe realizarse antes de la fecha del evento.</p>
-              <p>• Los cambios de fecha están sujetos a disponibilidad y pueden generar costos adicionales.</p>
-              <p>• La cancelación debe notificarse con al menos 48 horas de anticipación.</p>
+          {/* Terms and Conditions - Now using event comments */}
+          {event.comments && (
+            <div className="mb-8 pt-6 border-t-2 border-gray-300">
+              <h2 className="text-xl font-semibold mb-3 text-gray-800">Términos y Condiciones</h2>
+              <div className="text-sm text-gray-700 whitespace-pre-line">
+                {event.comments}
+              </div>
             </div>
-          </div>
+          )}
           
           {/* Footer */}
           <div className="pt-6 border-t border-gray-300 text-center">
             <p className="text-sm text-gray-500 mb-2">
-              Gracias por confiar en {userProfile?.artistName || userProfile?.name || 'nosotros'} para su evento especial.
+              Gracias por confiar en {userProfile?.artistName || userProfile?.name || 'NEXUS DJ'} para su evento especial.
             </p>
             <p className="text-xs text-gray-400">
               Documento generado automáticamente el {format(new Date(), 'PPP', { locale: es })}

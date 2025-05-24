@@ -7,8 +7,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Pencil, Plus, ArrowLeft, User, Calendar, CreditCard, MapPin, DollarSign } from 'lucide-react';
+import { Pencil, Plus, ArrowLeft, User, Calendar, CreditCard, MapPin, DollarSign, AlertCircle } from 'lucide-react';
 import { useCrm } from '@/contexts/CrmContext';
 import dataService from '@/services/DataService';
 import { format } from 'date-fns';
@@ -18,6 +19,7 @@ import PaymentForm from '../Payments/PaymentForm';
 import EventDetailsList from '@/components/Events/EventDetailsList';
 import EventPdfExporter from '@/components/Events/EventPdfExporter';
 import EventComments from '@/components/Events/EventComments';
+import EventTaxManager from '@/components/Events/EventTaxManager';
 import { Event as CrmEvent } from '@/types/models';
 
 const EventDetail = () => {
@@ -81,7 +83,9 @@ const EventDetail = () => {
   
   // Calculate payment totals
   const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
-  const pendingAmount = selectedEvent.cost - totalPaid;
+  const eventTotal = selectedEvent.totalWithTax || selectedEvent.cost;
+  const pendingAmount = eventTotal - totalPaid;
+  const isPendingPayment = pendingAmount > 0 && selectedEvent.status !== 'paid';
   
   // Get status badge
   const getStatusBadge = (status: string) => {
@@ -115,6 +119,11 @@ const EventDetail = () => {
     // Refresh event details when they are updated
     refreshEventData();
   };
+
+  const handleTaxUpdate = (updatedEvent: CrmEvent) => {
+    setSelectedEvent(updatedEvent);
+    refreshEventData();
+  };
   
   return (
     <div className="space-y-6">
@@ -124,13 +133,32 @@ const EventDetail = () => {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <h1 className="text-2xl font-bold">{selectedEvent.title}</h1>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
           {getStatusBadge(selectedEvent.status)}
+          {isPendingPayment && (
+            <Badge variant="destructive" className="flex items-center gap-1">
+              <AlertCircle className="h-3 w-3" />
+              Pendiente de Pago
+            </Badge>
+          )}
         </div>
       </div>
+
+      {/* Payment Alert */}
+      {isPendingPayment && (
+        <Alert className="border-yellow-500 bg-yellow-50">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Este evento tiene un saldo pendiente de <strong>{dataService.formatCurrency(pendingAmount)}</strong>. 
+            Agregue los pagos correspondientes para marcar el evento como pagado automáticamente.
+          </AlertDescription>
+        </Alert>
+      )}
       
       {/* Actions */}
-      <div className="flex justify-end gap-4">
+      <div className="flex justify-end gap-4 flex-wrap">
+        <EventTaxManager event={selectedEvent} onTaxUpdate={handleTaxUpdate} />
+        
         {customer && (
           <EventPdfExporter 
             event={selectedEvent} 
@@ -198,7 +226,15 @@ const EventDetail = () => {
                   <DollarSign className="h-5 w-5 text-gray-400" />
                   <div>
                     <h3 className="text-sm font-medium text-gray-500">Costo</h3>
-                    <p className="mt-1">${selectedEvent.cost?.toLocaleString('es-MX') || '0'}</p>
+                    <div className="mt-1">
+                      <p className="font-medium">{dataService.formatCurrency(selectedEvent.cost)}</p>
+                      {selectedEvent.taxPercentage && selectedEvent.taxAmount && (
+                        <div className="text-xs text-gray-500">
+                          <p>+ Impuesto ({selectedEvent.taxPercentage}%): {dataService.formatCurrency(selectedEvent.taxAmount)}</p>
+                          <p className="font-semibold">Total: {dataService.formatCurrency(eventTotal)}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
                 
@@ -219,25 +255,25 @@ const EventDetail = () => {
               </div>
 
               {/* Payment Summary */}
-              {payments.length > 0 && (
-                <div className="mt-6 p-4 bg-gray-50 rounded-lg border">
-                  <h3 className="text-sm font-medium text-gray-500 mb-3">Resumen de Pagos</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-xs text-gray-500">Total del Evento</p>
-                      <p className="text-lg font-bold">${selectedEvent.cost?.toLocaleString('es-MX')}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Pagado</p>
-                      <p className="text-lg font-bold text-green-600">${totalPaid.toLocaleString('es-MX')}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Pendiente</p>
-                      <p className="text-lg font-bold text-amber-600">${pendingAmount.toLocaleString('es-MX')}</p>
-                    </div>
+              <div className="mt-6 p-4 bg-gray-50 rounded-lg border">
+                <h3 className="text-sm font-medium text-gray-500 mb-3">Resumen de Pagos</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <p className="text-xs text-gray-500">Total del Evento</p>
+                    <p className="text-lg font-bold">{dataService.formatCurrency(eventTotal)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Pagado</p>
+                    <p className="text-lg font-bold text-green-600">{dataService.formatCurrency(totalPaid)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Pendiente</p>
+                    <p className={`text-lg font-bold ${pendingAmount > 0 ? 'text-amber-600' : 'text-green-600'}`}>
+                      {dataService.formatCurrency(pendingAmount)}
+                    </p>
                   </div>
                 </div>
-              )}
+              </div>
             </CardContent>
           </Card>
           
