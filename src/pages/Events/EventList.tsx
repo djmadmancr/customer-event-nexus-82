@@ -24,6 +24,7 @@ import dataService from '@/services/DataService';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import FinancialSummary from '@/components/Events/FinancialSummary';
+import { useAppConfig } from '@/contexts/AppConfigContext';
 
 interface EventListProps {
   filterByCustomerId?: string;
@@ -36,6 +37,7 @@ const EventList: React.FC<EventListProps> = ({
 }) => {
   const navigate = useNavigate();
   const { customers, events, refreshEvents, setSelectedEvent } = useCrm();
+  const { defaultCurrency } = useAppConfig();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [eventToDelete, setEventToDelete] = useState<string | null>(null);
@@ -70,8 +72,9 @@ const EventList: React.FC<EventListProps> = ({
   
   const handleViewEvent = (eventId: string) => {
     console.log('Navigating to event:', eventId);
-    const event = events.find(e => e.id === eventId);
+    const event = dataService.getEventById(eventId);
     if (event) {
+      console.log('Event found:', event);
       setSelectedEvent(event);
       navigate(`/events/${eventId}`);
     } else {
@@ -156,52 +159,57 @@ const EventList: React.FC<EventListProps> = ({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredEvents.map((event) => (
-                  <TableRow key={event.id}>
-                    <TableCell className="font-medium">{event.title}</TableCell>
-                    {!filterByCustomerId && (
-                      <TableCell className="hidden md:table-cell">
-                        <Link 
-                          to={`/customers/${event.customerId}`}
-                          className="text-blue-600 hover:underline"
-                        >
-                          {getCustomerName(event.customerId)}
-                        </Link>
-                      </TableCell>
-                    )}
-                    <TableCell>
-                      {format(event.date, "d 'de' MMMM, yyyy", { locale: es })}
-                    </TableCell>
-                    <TableCell>${event.cost?.toLocaleString('es-MX') || '0'}</TableCell>
-                    <TableCell>{getStatusBadge(event.status)}</TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleViewEvent(event.id)}>
-                            <Eye className="h-4 w-4 mr-2" />
-                            Ver detalle
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEditEvent(event.id)}>
-                            <Pencil className="h-4 w-4 mr-2" />
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            className="text-red-600"
-                            onClick={() => setEventToDelete(event.id)}
+                {filteredEvents.map((event) => {
+                  const eventTotal = event.totalWithTax || event.cost;
+                  return (
+                    <TableRow key={event.id}>
+                      <TableCell className="font-medium">{event.title}</TableCell>
+                      {!filterByCustomerId && (
+                        <TableCell className="hidden md:table-cell">
+                          <Link 
+                            to={`/customers/${event.customerId}`}
+                            className="text-blue-600 hover:underline"
                           >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Eliminar
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                            {getCustomerName(event.customerId)}
+                          </Link>
+                        </TableCell>
+                      )}
+                      <TableCell>
+                        {format(event.date, "d 'de' MMMM, yyyy", { locale: es })}
+                      </TableCell>
+                      <TableCell>
+                        {dataService.formatCurrency(eventTotal, defaultCurrency)}
+                      </TableCell>
+                      <TableCell>{getStatusBadge(event.status)}</TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleViewEvent(event.id)}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              Ver detalle
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEditEvent(event.id)}>
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              className="text-red-600"
+                              onClick={() => setEventToDelete(event.id)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Eliminar
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

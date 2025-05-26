@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -34,6 +33,7 @@ import { Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PaymentMethod } from '@/types/models';
 import { useAppConfig } from '@/contexts/AppConfigContext';
+import { useCrm } from '@/contexts/CrmContext';
 
 // Form schema
 const paymentSchema = z.object({
@@ -57,6 +57,7 @@ interface PaymentFormProps {
 }
 
 const PaymentForm: React.FC<PaymentFormProps> = ({ eventId, onComplete }) => {
+  const { refreshEvents } = useCrm();
   const { defaultCurrency } = useAppConfig();
   
   // Initialize form
@@ -72,17 +73,21 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ eventId, onComplete }) => {
   
   // Form submission handler
   const onSubmit = (data: PaymentFormValues) => {
-    dataService.addPayment({
-      eventId,
-      amount: data.amount,
-      method: data.method,
-      paymentDate: data.paymentDate,
-      notes: data.notes || '',
-      currency: defaultCurrency || 'CRC',
-    });
-    
-    if (onComplete) {
-      onComplete();
+    try {
+      dataService.addPayment({
+        eventId,
+        amount: data.amount,
+        currency: defaultCurrency, // Add the currency here
+        method: data.method,
+        paymentDate: data.paymentDate,
+        notes: data.notes || ''
+      });
+      
+      refreshEvents();
+      onComplete?.();
+      reset();
+    } catch (error) {
+      console.error('Error adding payment:', error);
     }
   };
   

@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Users, Calendar, CreditCard, Home, Settings, X } from 'lucide-react';
+import { Users, Calendar, CreditCard, Home, Settings, X, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -14,31 +13,42 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, mobileOpen, toggleSidebar }) => {
   const location = useLocation();
   
-  const navItems = [
-    {
-      name: 'Inicio',
-      path: '/',
+  const menuItems = [
+    { 
+      name: 'Inicio', 
+      path: '/', 
       icon: <Home className="h-5 w-5" />,
+      exact: true 
     },
-    {
-      name: 'Clientes',
-      path: '/customers',
+    { 
+      name: 'Dashboard', 
+      path: '/dashboard', 
+      icon: <TrendingUp className="h-5 w-5" />,
+      exact: true 
+    },
+    { 
+      name: 'Clientes', 
+      path: '/customers', 
       icon: <Users className="h-5 w-5" />,
+      exact: false 
     },
-    {
-      name: 'Eventos',
-      path: '/events',
+    { 
+      name: 'Eventos', 
+      path: '/events', 
       icon: <Calendar className="h-5 w-5" />,
+      exact: false 
     },
-    {
-      name: 'Pagos',
-      path: '/payments',
+    { 
+      name: 'Pagos', 
+      path: '/payments', 
       icon: <CreditCard className="h-5 w-5" />,
+      exact: false 
     },
-    {
-      name: 'Configuración',
-      path: '/settings',
+    { 
+      name: 'Configuración', 
+      path: '/settings', 
       icon: <Settings className="h-5 w-5" />,
+      exact: false 
     },
   ];
   
@@ -70,7 +80,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, mobileOpen, toggleSidebar }) 
           </div>
           
           <nav className="space-y-2">
-            {navItems.map((item) => (
+            {menuItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
