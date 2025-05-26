@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Users, Calendar, CreditCard, Home, Settings, X, TrendingUp } from 'lucide-react';
+import { Users, Calendar, CreditCard, Settings, X, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -15,14 +16,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, mobileOpen, toggleSidebar }) 
   
   const menuItems = [
     { 
-      name: 'Inicio', 
-      path: '/', 
-      icon: <Home className="h-5 w-5" />,
-      exact: true 
-    },
-    { 
       name: 'Dashboard', 
-      path: '/dashboard', 
+      path: '/', 
       icon: <TrendingUp className="h-5 w-5" />,
       exact: true 
     },

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'sonner';
@@ -46,7 +45,6 @@ function App() {
                   <Routes>
                     <Route path="/" element={<Layout />}>
                       <Route index element={<Dashboard />} />
-                      <Route path="dashboard" element={<Dashboard />} />
                       
                       {/* Customer routes */}
                       <Route path="customers" element={<CustomerList />} />
