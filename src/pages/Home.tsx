@@ -1,14 +1,18 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, Calendar, CreditCard, TrendingUp } from 'lucide-react';
 import { useCrm } from '@/contexts/CrmContext';
+import { useAppConfig } from '@/contexts/AppConfigContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import dataService from '@/services/DataService';
 
 const Home = () => {
   const { customers, events } = useCrm();
+  const { defaultCurrency } = useAppConfig();
   
   // Get most recent events
   const recentEvents = [...events]
@@ -20,6 +24,12 @@ const Home = () => {
   const confirmedEvents = events.filter(event => event.status === 'confirmed').length;
   const paidEvents = events.filter(event => event.status === 'paid').length;
   const completedEvents = events.filter(event => event.status === 'delivered').length;
+
+  // Calculate total revenue
+  const totalRevenue = events.reduce((sum, event) => {
+    const eventTotal = event.totalWithTax || event.cost;
+    return sum + eventTotal;
+  }, 0);
   
   const modules = [
     {
@@ -43,7 +53,7 @@ const Home = () => {
       description: 'Seguimiento de pagos y facturación',
       icon: <CreditCard className="h-8 w-8 text-crm-primary" />,
       path: '/payments',
-      count: 'Ver',
+      count: dataService.formatCurrency(totalRevenue, defaultCurrency).replace(/[^\d.,]/g, ''),
       color: 'bg-crm-accent',
     },
   ];
@@ -52,7 +62,7 @@ const Home = () => {
     <div className="space-y-6">
       {/* Welcome */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <h1 className="text-2xl font-bold mb-2">Bienvenido a tu CRM</h1>
+        <h1 className="text-2xl font-bold mb-2">Bienvenido a NEXUS</h1>
         <p className="text-gray-600">
           Gestiona tus clientes, eventos y pagos en un solo lugar
         </p>
@@ -126,12 +136,16 @@ const Home = () => {
                 {recentEvents.map((event) => {
                   // Get customer name
                   const customer = customers.find(c => c.id === event.customerId);
+                  const eventTotal = event.totalWithTax || event.cost;
                   
                   return (
                     <li key={event.id} className="flex justify-between items-center border-b pb-3 last:border-0">
                       <div>
                         <p className="font-medium">{event.title}</p>
                         <p className="text-sm text-gray-600">{customer?.name}</p>
+                        <p className="text-sm font-semibold text-green-600">
+                          {dataService.formatCurrency(eventTotal, defaultCurrency)}
+                        </p>
                       </div>
                       <div className="text-right">
                         <p className="text-sm text-gray-600">

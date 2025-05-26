@@ -13,8 +13,10 @@ import {
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import dataService from '@/services/DataService';
+import { useAppConfig } from '@/contexts/AppConfigContext';
 
 const FinancialSummary: React.FC = () => {
+  const { defaultCurrency } = useAppConfig();
   const [startDate, setStartDate] = useState<Date | undefined>(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [endDate, setEndDate] = useState<Date | undefined>(new Date());
   const [paidTotal, setPaidTotal] = useState(0);
@@ -45,13 +47,13 @@ const FinancialSummary: React.FC = () => {
               <div>
                 <p className="text-sm text-gray-500">Eventos Pagados</p>
                 <p className="text-2xl font-bold text-green-600">
-                  ${paidTotal.toLocaleString('es-MX')}
+                  {dataService.formatCurrency(paidTotal, defaultCurrency)}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Eventos Pendientes</p>
                 <p className="text-2xl font-bold text-amber-600">
-                  ${pendingTotal.toLocaleString('es-MX')}
+                  {dataService.formatCurrency(pendingTotal, defaultCurrency)}
                 </p>
               </div>
             </div>

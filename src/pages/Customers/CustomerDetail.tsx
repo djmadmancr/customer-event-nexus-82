@@ -38,11 +38,6 @@ const CustomerDetail = () => {
     return null;
   }
   
-  const handleEventClick = (eventId: string) => {
-    console.log('Navigating to event:', eventId);
-    navigate(`/events/${eventId}`);
-  };
-  
   return (
     <div className="space-y-6">
       {/* Header with back button */}
@@ -124,7 +119,6 @@ const CustomerDetail = () => {
               <EventList 
                 filterByCustomerId={selectedCustomer.id} 
                 showAddButton={false}
-                onEventClick={handleEventClick}
               />
             </CardContent>
           </Card>
