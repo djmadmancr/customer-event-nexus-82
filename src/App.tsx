@@ -15,7 +15,6 @@ import Layout from './components/Layout/Layout';
 import NotFound from './pages/NotFound';
 
 // Pages
-import Home from './pages/Home';
 import CustomerList from './pages/Customers/CustomerList';
 import CustomerForm from './pages/Customers/CustomerForm';
 import CustomerDetail from './pages/Customers/CustomerDetail';
@@ -45,23 +44,28 @@ function App() {
               <CrmProvider>
                 <div className="min-h-screen bg-gray-50">
                   <Routes>
-                    <Route path="/" element={<Layout><Home /></Layout>} />
-                    <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
-                    
-                    {/* Customer routes */}
-                    <Route path="/customers" element={<Layout><CustomerList /></Layout>} />
-                    <Route path="/customers/new" element={<Layout><CustomerForm /></Layout>} />
-                    <Route path="/customers/:id" element={<Layout><CustomerDetail /></Layout>} />
-                    <Route path="/customers/:id/edit" element={<Layout><CustomerForm /></Layout>} />
-                    
-                    {/* Event routes */}
-                    <Route path="/events" element={<Layout><EventList /></Layout>} />
-                    <Route path="/events/new" element={<Layout><EventForm /></Layout>} />
-                    <Route path="/events/:id" element={<Layout><EventDetail /></Layout>} />
-                    <Route path="/events/:id/edit" element={<Layout><EventForm /></Layout>} />
-                    
-                    {/* Payment routes */}
-                    <Route path="/payments" element={<Layout><PaymentPage /></Layout>} />
+                    <Route path="/" element={<Layout />}>
+                      <Route index element={<Dashboard />} />
+                      <Route path="dashboard" element={<Dashboard />} />
+                      
+                      {/* Customer routes */}
+                      <Route path="customers" element={<CustomerList />} />
+                      <Route path="customers/new" element={<CustomerForm />} />
+                      <Route path="customers/:id" element={<CustomerDetail />} />
+                      <Route path="customers/:id/edit" element={<CustomerForm />} />
+                      
+                      {/* Event routes */}
+                      <Route path="events" element={<EventList />} />
+                      <Route path="events/new" element={<EventForm />} />
+                      <Route path="events/:id" element={<EventDetail />} />
+                      <Route path="events/:id/edit" element={<EventForm />} />
+                      
+                      {/* Payment routes */}
+                      <Route path="payments" element={<PaymentPage />} />
+                      
+                      {/* Settings routes */}
+                      <Route path="settings" element={<AppSettings />} />
+                    </Route>
                     
                     {/* Admin routes */}
                     <Route 
@@ -77,9 +81,6 @@ function App() {
                         </ProtectedRoute>
                       } 
                     />
-                    
-                    {/* Settings routes */}
-                    <Route path="/settings" element={<Layout><AppSettings /></Layout>} />
                     
                     {/* Auth routes */}
                     <Route path="/login" element={<Login />} />

@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { PaymentMethod } from '@/types/models';
 import { useCrm } from '@/contexts/CrmContext';
 import dataService from '@/services/DataService';
+import { useAppConfig } from '@/contexts/AppConfigContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ArrowUpDown, Calendar, CreditCard } from 'lucide-react';
@@ -19,6 +20,7 @@ import { ArrowUpDown, Calendar, CreditCard } from 'lucide-react';
 const PaymentPage = () => {
   const navigate = useNavigate();
   const { customers, events } = useCrm();
+  const { defaultCurrency } = useAppConfig();
   const [payments, setPayments] = useState(dataService.getAllPayments());
   const [sortType, setSortType] = useState<'date' | 'amount'>('date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
@@ -32,14 +34,6 @@ const PaymentPage = () => {
       case 'check': return 'Cheque';
       default: return method;
     }
-  };
-  
-  // Format currency
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-ES', {
-      style: 'currency',
-      currency: 'EUR'
-    }).format(amount);
   };
   
   // Get customer and event information
@@ -99,7 +93,7 @@ const PaymentPage = () => {
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalAmount)}</div>
+            <div className="text-2xl font-bold">{dataService.formatCurrency(totalAmount, defaultCurrency)}</div>
             <p className="text-xs text-muted-foreground">
               {payments.length} pagos registrados
             </p>
@@ -115,7 +109,7 @@ const PaymentPage = () => {
             {payments.length > 0 ? (
               <>
                 <div className="text-2xl font-bold">
-                  {formatCurrency(payments[0].amount)}
+                  {dataService.formatCurrency(payments[0].amount, defaultCurrency)}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {format(payments[0].paymentDate, 'PPP', { locale: es })}
@@ -185,7 +179,7 @@ const PaymentPage = () => {
                           {getPaymentMethodText(payment.method)}
                         </TableCell>
                         <TableCell className="text-right font-medium">
-                          {formatCurrency(payment.amount)}
+                          {dataService.formatCurrency(payment.amount, defaultCurrency)}
                         </TableCell>
                       </TableRow>
                     );

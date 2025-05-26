@@ -4,10 +4,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar as CalendarIcon, TrendingUp, DollarSign, Users } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useCrm } from '@/contexts/CrmContext';
 import { useAppConfig } from '@/contexts/AppConfigContext';
 import dataService from '@/services/DataService';
-import { TrendingUp, Calendar, DollarSign, Users } from 'lucide-react';
 
 type DateFilter = 'last3months' | 'next3months' | 'currentYear' | 'lastYear';
 
@@ -23,6 +33,12 @@ const Dashboard: React.FC = () => {
     paidEvents: 0,
     pendingEvents: 0
   });
+
+  // Financial summary state
+  const [startDate, setStartDate] = useState<Date | undefined>(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  const [endDate, setEndDate] = useState<Date | undefined>(new Date());
+  const [paidTotal, setPaidTotal] = useState(0);
+  const [pendingTotal, setPendingTotal] = useState(0);
 
   const getDateRange = (filter: DateFilter) => {
     const now = new Date();
@@ -129,12 +145,33 @@ const Dashboard: React.FC = () => {
 
   }, [events, dateFilter]);
 
+  // Financial summary calculations
+  useEffect(() => {
+    const calculateTotals = () => {
+      const paid = dataService.getEventsTotalByStatusAndDateRange('paid', startDate, endDate);
+      setPaidTotal(paid);
+
+      // For pending, we need to sum prospect, confirmed and delivered events
+      const prospect = dataService.getEventsTotalByStatusAndDateRange('prospect', startDate, endDate);
+      const confirmed = dataService.getEventsTotalByStatusAndDateRange('confirmed', startDate, endDate);
+      const delivered = dataService.getEventsTotalByStatusAndDateRange('delivered', startDate, endDate);
+      setPendingTotal(prospect + confirmed + delivered);
+    };
+
+    calculateTotals();
+  }, [startDate, endDate]);
+
   const COLORS = ['#FFD700', '#4169E1', '#FFA500', '#32CD32'];
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <div>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Bienvenido a NEXUS - Sistema de Gestión CRM
+          </p>
+        </div>
         <Select value={dateFilter} onValueChange={(value: DateFilter) => setDateFilter(value)}>
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="Filtrar por período" />
@@ -148,12 +185,105 @@ const Dashboard: React.FC = () => {
         </Select>
       </div>
 
+      {/* Financial Summary Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Resumen Financiero</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="grid grid-cols-2 gap-6 mt-2">
+                <div>
+                  <p className="text-sm text-gray-500">Eventos Pagados</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {dataService.formatCurrency(paidTotal, defaultCurrency)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Eventos Pendientes</p>
+                  <p className="text-2xl font-bold text-amber-600">
+                    {dataService.formatCurrency(pendingTotal, defaultCurrency)}
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex flex-wrap gap-2 items-center">
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Fecha inicio</p>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-[160px] justify-start text-left font-normal",
+                        !startDate && "text-muted-foreground"
+                      )}
+                    >
+                      {startDate ? (
+                        format(startDate, "dd/MM/yyyy", { locale: es })
+                      ) : (
+                        <span>Seleccionar</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={startDate}
+                      onSelect={setStartDate}
+                      locale={es}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Fecha fin</p>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-[160px] justify-start text-left font-normal",
+                        !endDate && "text-muted-foreground"
+                      )}
+                    >
+                      {endDate ? (
+                        format(endDate, "dd/MM/yyyy", { locale: es })
+                      ) : (
+                        <span>Seleccionar</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={endDate}
+                      onSelect={setEndDate}
+                      locale={es}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Stats Cards */}
       <div className="grid gap-6 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Eventos</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalEvents}</div>

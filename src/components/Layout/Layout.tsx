@@ -28,8 +28,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   // Get title based on current route
   const getPageTitle = () => {
     const path = location.pathname;
-    if (path === '/') return 'Inicio';
-    if (path === '/dashboard') return 'Dashboard';
+    if (path === '/' || path === '/dashboard') return 'Dashboard';
     if (path === '/customers') return 'Gestión de Clientes';
     if (path.includes('/customers/') && path.includes('/edit')) return 'Editar Cliente';
     if (path.includes('/customers/') && path.includes('/new')) return 'Nuevo Cliente';
