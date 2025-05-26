@@ -4,9 +4,10 @@ import Header from './Header';
 import Sidebar from './Sidebar';
 import { useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { Outlet } from 'react-router-dom';
 
 interface LayoutProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
@@ -28,6 +29,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const getPageTitle = () => {
     const path = location.pathname;
     if (path === '/') return 'Inicio';
+    if (path === '/dashboard') return 'Dashboard';
     if (path === '/customers') return 'Gestión de Clientes';
     if (path.includes('/customers/') && path.includes('/edit')) return 'Editar Cliente';
     if (path.includes('/customers/') && path.includes('/new')) return 'Nuevo Cliente';
@@ -42,7 +44,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     
     if (path === '/settings') return 'Configuración';
     
-    return 'CRM Sistema';
+    return 'NEXUS';
   };
   
   return (
@@ -64,7 +66,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <div className="mb-6">
             <h1 className="text-2xl font-bold">{getPageTitle()}</h1>
           </div>
-          {children}
+          {children || <Outlet />}
         </div>
       </main>
     </div>

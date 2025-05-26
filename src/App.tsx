@@ -1,7 +1,8 @@
+
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'sonner';
-import { QueryClient } from 'react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Auth
 import { AuthProvider } from './contexts/AuthContext';
@@ -11,7 +12,6 @@ import ProtectedRoute from './components/Auth/ProtectedRoute';
 
 // Layout
 import Layout from './components/Layout/Layout';
-import Sidebar from './components/Layout/Sidebar';
 import NotFound from './pages/NotFound';
 
 // Pages
@@ -33,9 +33,11 @@ import { AppConfigProvider } from './contexts/AppConfigContext';
 import { UserProfileProvider } from './contexts/UserProfileContext';
 import Dashboard from './pages/Dashboard/Dashboard';
 
+const queryClient = new QueryClient();
+
 function App() {
   return (
-    <QueryClient>
+    <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
           <AppConfigProvider>
@@ -43,41 +45,41 @@ function App() {
               <CrmProvider>
                 <div className="min-h-screen bg-gray-50">
                   <Routes>
-                    <Route path="/" element={<Layout />}>
-                      <Route index element={<Home />} />
-                      <Route path="dashboard" element={<Dashboard />} />
-                      
-                      {/* Customer routes */}
-                      <Route path="customers" element={<CustomerList />} />
-                      <Route path="customers/new" element={<CustomerForm />} />
-                      <Route path="customers/:id" element={<CustomerDetail />} />
-                      <Route path="customers/:id/edit" element={<CustomerForm />} />
-                      
-                      {/* Event routes */}
-                      <Route path="events" element={<EventList />} />
-                      <Route path="events/new" element={<EventForm />} />
-                      <Route path="events/:id" element={<EventDetail />} />
-                      <Route path="events/:id/edit" element={<EventForm />} />
-                      
-                      {/* Payment routes */}
-                      <Route path="payments" element={<PaymentPage />} />
-                      
-                      {/* Admin routes */}
-                      <Route 
-                        path="admin/*" 
-                        element={
-                          <ProtectedRoute requiredRole="admin">
+                    <Route path="/" element={<Layout><Home /></Layout>} />
+                    <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
+                    
+                    {/* Customer routes */}
+                    <Route path="/customers" element={<Layout><CustomerList /></Layout>} />
+                    <Route path="/customers/new" element={<Layout><CustomerForm /></Layout>} />
+                    <Route path="/customers/:id" element={<Layout><CustomerDetail /></Layout>} />
+                    <Route path="/customers/:id/edit" element={<Layout><CustomerForm /></Layout>} />
+                    
+                    {/* Event routes */}
+                    <Route path="/events" element={<Layout><EventList /></Layout>} />
+                    <Route path="/events/new" element={<Layout><EventForm /></Layout>} />
+                    <Route path="/events/:id" element={<Layout><EventDetail /></Layout>} />
+                    <Route path="/events/:id/edit" element={<Layout><EventForm /></Layout>} />
+                    
+                    {/* Payment routes */}
+                    <Route path="/payments" element={<Layout><PaymentPage /></Layout>} />
+                    
+                    {/* Admin routes */}
+                    <Route 
+                      path="/admin/*" 
+                      element={
+                        <ProtectedRoute requiredRole="admin">
+                          <Layout>
                             <Routes>
                               <Route path="dashboard" element={<AdminDashboard />} />
                               <Route path="users" element={<UserManagement />} />
                             </Routes>
-                          </ProtectedRoute>
-                        } 
-                      />
-                      
-                      {/* Settings routes */}
-                      <Route path="settings" element={<AppSettings />} />
-                    </Route>
+                          </Layout>
+                        </ProtectedRoute>
+                      } 
+                    />
+                    
+                    {/* Settings routes */}
+                    <Route path="/settings" element={<Layout><AppSettings /></Layout>} />
                     
                     {/* Auth routes */}
                     <Route path="/login" element={<Login />} />
@@ -93,7 +95,7 @@ function App() {
           </AppConfigProvider>
         </AuthProvider>
       </BrowserRouter>
-    </QueryClient>
+    </QueryClientProvider>
   );
 }
 

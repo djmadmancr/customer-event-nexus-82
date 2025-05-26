@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -77,7 +78,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ eventId, onComplete }) => {
       dataService.addPayment({
         eventId,
         amount: data.amount,
-        currency: defaultCurrency, // Add the currency here
+        currency: defaultCurrency || 'CRC',
         method: data.method,
         paymentDate: data.paymentDate,
         notes: data.notes || ''
@@ -85,7 +86,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ eventId, onComplete }) => {
       
       refreshEvents();
       onComplete?.();
-      reset();
+      form.reset();
     } catch (error) {
       console.error('Error adding payment:', error);
     }
