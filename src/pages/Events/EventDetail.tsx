@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Pencil, Plus, ArrowLeft, User, Calendar, CreditCard, MapPin, DollarSign, AlertCircle } from 'lucide-react';
 import { useCrm } from '@/contexts/CrmContext';
+import { useAppConfig } from '@/contexts/AppConfigContext';
 import dataService from '@/services/DataService';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -26,6 +27,7 @@ const EventDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { customers, selectedEvent, setSelectedEvent } = useCrm();
+  const { defaultCurrency } = useAppConfig();
   const [activeTab, setActiveTab] = useState('info');
   const [isAddingPayment, setIsAddingPayment] = useState(false);
   const [eventDetails, setEventDetails] = useState([]);
@@ -149,7 +151,7 @@ const EventDetail = () => {
         <Alert className="border-yellow-500 bg-yellow-50">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Este evento tiene un saldo pendiente de <strong>{dataService.formatCurrency(pendingAmount)}</strong>. 
+            Este evento tiene un saldo pendiente de <strong>{dataService.formatCurrency(pendingAmount, defaultCurrency)}</strong>. 
             Agregue los pagos correspondientes para marcar el evento como pagado automáticamente.
           </AlertDescription>
         </Alert>
@@ -227,11 +229,11 @@ const EventDetail = () => {
                   <div>
                     <h3 className="text-sm font-medium text-gray-500">Costo</h3>
                     <div className="mt-1">
-                      <p className="font-medium">{dataService.formatCurrency(selectedEvent.cost)}</p>
+                      <p className="font-medium">{dataService.formatCurrency(selectedEvent.cost, defaultCurrency)}</p>
                       {selectedEvent.taxPercentage && selectedEvent.taxAmount && (
                         <div className="text-xs text-gray-500">
-                          <p>+ Impuesto ({selectedEvent.taxPercentage}%): {dataService.formatCurrency(selectedEvent.taxAmount)}</p>
-                          <p className="font-semibold">Total: {dataService.formatCurrency(eventTotal)}</p>
+                          <p>+ Impuesto ({selectedEvent.taxPercentage}%): {dataService.formatCurrency(selectedEvent.taxAmount, defaultCurrency)}</p>
+                          <p className="font-semibold">Total: {dataService.formatCurrency(eventTotal, defaultCurrency)}</p>
                         </div>
                       )}
                     </div>
@@ -260,16 +262,16 @@ const EventDetail = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <p className="text-xs text-gray-500">Total del Evento</p>
-                    <p className="text-lg font-bold">{dataService.formatCurrency(eventTotal)}</p>
+                    <p className="text-lg font-bold">{dataService.formatCurrency(eventTotal, defaultCurrency)}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500">Pagado</p>
-                    <p className="text-lg font-bold text-green-600">{dataService.formatCurrency(totalPaid)}</p>
+                    <p className="text-lg font-bold text-green-600">{dataService.formatCurrency(totalPaid, defaultCurrency)}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500">Pendiente</p>
                     <p className={`text-lg font-bold ${pendingAmount > 0 ? 'text-amber-600' : 'text-green-600'}`}>
-                      {dataService.formatCurrency(pendingAmount)}
+                      {dataService.formatCurrency(pendingAmount, defaultCurrency)}
                     </p>
                   </div>
                 </div>

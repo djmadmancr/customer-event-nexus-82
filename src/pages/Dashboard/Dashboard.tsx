@@ -3,13 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { TrendingUp, DollarSign, Users, Calendar as CalendarIcon } from 'lucide-react';
 import { useCrm } from '@/contexts/CrmContext';
 import { useAppConfig } from '@/contexts/AppConfigContext';
 import dataService from '@/services/DataService';
 
-type DateFilter = 'last3months' | 'next3months' | 'currentYear' | 'lastYear';
+type DateFilter = 'currentMonth' | 'last3months' | 'next3months' | 'currentYear' | 'lastYear';
 
 const Dashboard: React.FC = () => {
   const { events } = useCrm();
@@ -34,6 +34,11 @@ const Dashboard: React.FC = () => {
     const currentMonth = now.getMonth();
     
     switch (filter) {
+      case 'currentMonth':
+        return { 
+          start: new Date(currentYear, currentMonth, 1), 
+          end: new Date(currentYear, currentMonth + 1, 0) 
+        };
       case 'last3months':
         const start3MonthsAgo = new Date(currentYear, currentMonth - 3, 1);
         return { start: start3MonthsAgo, end: now };
@@ -159,12 +164,81 @@ const Dashboard: React.FC = () => {
             <SelectValue placeholder="Filtrar por período" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="currentMonth">Mes presente</SelectItem>
             <SelectItem value="last3months">Últimos 3 meses</SelectItem>
             <SelectItem value="next3months">Próximos 3 meses</SelectItem>
             <SelectItem value="currentYear">Año presente</SelectItem>
             <SelectItem value="lastYear">Año pasado</SelectItem>
           </SelectContent>
         </Select>
+      </div>
+
+      {/* Charts - moved to top */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Proyección Financiera</CardTitle>
+          </CardHeader>
+          <CardContent style={{ height: '400px' }}>
+            <ChartContainer
+              config={{
+                ingresos: { label: "Ingresos", color: "#4169E1" },
+              }}
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={monthlyRevenue}>
+                  <XAxis dataKey="month" />
+                  <YAxis tickFormatter={(value) => dataService.formatCurrency(value, defaultCurrency)} />
+                  <ChartTooltip 
+                    content={<ChartTooltipContent />}
+                    formatter={(value: any) => [dataService.formatCurrency(value, defaultCurrency), 'Ingresos']}
+                  />
+                  <Bar 
+                    dataKey="ingresos" 
+                    fill="#4169E1" 
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Distribución de Eventos por Estado</CardTitle>
+          </CardHeader>
+          <CardContent style={{ height: '400px' }}>
+            <ChartContainer
+              config={{
+                prospect: { label: "Prospecto", color: "#FFD700" },
+                confirmed: { label: "Confirmado", color: "#4169E1" },
+                delivered: { label: "Servicio Brindado", color: "#FFA500" },
+                paid: { label: "Pagado", color: "#32CD32" },
+              }}
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={eventStatusData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={120}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {eventStatusData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                </PieChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Financial Summary Card */}
@@ -243,76 +317,6 @@ const Dashboard: React.FC = () => {
             <p className="text-xs text-muted-foreground">
               Prospectos por confirmar
             </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Charts */}
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Proyección Financiera</CardTitle>
-          </CardHeader>
-          <CardContent style={{ height: '400px' }}>
-            <ChartContainer
-              config={{
-                ingresos: { label: "Ingresos", color: "#4169E1" },
-              }}
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={monthlyRevenue}>
-                  <XAxis dataKey="month" />
-                  <YAxis tickFormatter={(value) => dataService.formatCurrency(value, defaultCurrency)} />
-                  <ChartTooltip 
-                    content={<ChartTooltipContent />}
-                    formatter={(value: any) => [dataService.formatCurrency(value, defaultCurrency), 'Ingresos']}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="ingresos" 
-                    stroke="#4169E1" 
-                    strokeWidth={3}
-                    dot={{ fill: '#4169E1', strokeWidth: 2, r: 4 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Distribución de Eventos por Estado</CardTitle>
-          </CardHeader>
-          <CardContent style={{ height: '400px' }}>
-            <ChartContainer
-              config={{
-                prospect: { label: "Prospecto", color: "#FFD700" },
-                confirmed: { label: "Confirmado", color: "#4169E1" },
-                delivered: { label: "Servicio Brindado", color: "#FFA500" },
-                paid: { label: "Pagado", color: "#32CD32" },
-              }}
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={eventStatusData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={120}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {eventStatusData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                </PieChart>
-              </ResponsiveContainer>
-            </ChartContainer>
           </CardContent>
         </Card>
       </div>
