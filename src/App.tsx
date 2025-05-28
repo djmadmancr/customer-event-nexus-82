@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'sonner';
@@ -5,8 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Auth
 import { AuthProvider } from './contexts/AuthContext';
-import Login from './pages/Auth/Login';
-import Register from './pages/Auth/Register';
+import AuthPage from './pages/Auth/AuthPage';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 
 // Layout
@@ -43,7 +43,15 @@ function App() {
               <CrmProvider>
                 <div className="min-h-screen bg-gray-50">
                   <Routes>
-                    <Route path="/" element={<Layout />}>
+                    {/* Auth routes */}
+                    <Route path="/login" element={<AuthPage />} />
+                    
+                    {/* Protected routes */}
+                    <Route path="/" element={
+                      <ProtectedRoute>
+                        <Layout />
+                      </ProtectedRoute>
+                    }>
                       <Route index element={<Dashboard />} />
                       
                       {/* Customer routes */}
@@ -79,10 +87,6 @@ function App() {
                         </ProtectedRoute>
                       } 
                     />
-                    
-                    {/* Auth routes */}
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/register" element={<Register />} />
                     
                     {/* 404 route */}
                     <Route path="*" element={<NotFound />} />

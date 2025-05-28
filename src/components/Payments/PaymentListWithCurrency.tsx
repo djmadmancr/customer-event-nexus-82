@@ -50,7 +50,7 @@ const PaymentListWithCurrency: React.FC<PaymentListProps> = ({ eventId }) => {
     switch (method) {
       case 'cash': return 'Efectivo';
       case 'transfer': return 'Transferencia';
-      case 'card': return 'Tarjeta';
+      case 'credit_card': return 'Tarjeta';
       case 'check': return 'Cheque';
       default: return method;
     }
@@ -63,7 +63,7 @@ const PaymentListWithCurrency: React.FC<PaymentListProps> = ({ eventId }) => {
         return <Badge className={`${baseClasses} bg-green-100 text-green-800`}>Efectivo</Badge>;
       case 'transfer':
         return <Badge className={`${baseClasses} bg-blue-100 text-blue-800`}>Transferencia</Badge>;
-      case 'card':
+      case 'credit_card':
         return <Badge className={`${baseClasses} bg-purple-100 text-purple-800`}>Tarjeta</Badge>;
       case 'check':
         return <Badge className={`${baseClasses} bg-yellow-100 text-yellow-800`}>Cheque</Badge>;

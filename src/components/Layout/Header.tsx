@@ -1,9 +1,16 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Settings } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Settings, LogOut, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useAppConfig } from '@/contexts/AppConfigContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface HeaderProps {
   toggleSidebar: () => void;
@@ -12,6 +19,15 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ toggleSidebar, sidebarOpen }) => {
   const { logoUrl } = useAppConfig();
+  const { userData, signOut } = useAuth();
+  
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
   
   return (
     <header className="bg-white shadow-sm border-b h-16 flex items-center px-4 fixed top-0 left-0 w-full z-30">
@@ -61,12 +77,34 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, sidebarOpen }) => {
           </Link>
         </div>
         
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-4">
+          {/* Welcome message */}
+          {userData && (
+            <span className="text-sm text-gray-600 hidden sm:block">
+              Bienvenido {userData.name}
+            </span>
+          )}
+          
           <Link to="/settings">
             <Button variant="ghost" size="icon">
               <Settings className="h-5 w-5" />
             </Button>
           </Link>
+          
+          {/* User dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <User className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleSignOut}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Cerrar Sesión</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>
