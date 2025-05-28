@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
   signInWithEmailAndPassword, 
@@ -47,22 +48,6 @@ interface AuthProviderProps {
   children: React.ReactNode;
 }
 
-// Demo users for testing
-const DEMO_USERS = [
-  {
-    email: 'admin@ejemplo.com',
-    password: 'admin123',
-    name: 'Administrador',
-    role: 'admin' as UserRole
-  },
-  {
-    email: 'usuario@ejemplo.com',
-    password: 'usuario123',
-    name: 'Usuario Demo',
-    role: 'user' as UserRole
-  }
-];
-
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
@@ -70,38 +55,74 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  // Create demo users on first load
+  // Initialize demo users
   useEffect(() => {
-    const createDemoUsers = async () => {
+    const initializeDemoUsers = async () => {
+      console.log('Initializing demo users...');
+      
       try {
-        for (const demoUser of DEMO_USERS) {
-          try {
-            const userCredential = await createUserWithEmailAndPassword(auth, demoUser.email, demoUser.password);
-            const user = userCredential.user;
-            
-            // Create user document in Firestore
-            await setDoc(doc(firestore, 'users', user.uid), {
-              email: demoUser.email,
-              name: demoUser.name,
-              role: demoUser.role,
-              active: true,
-              createdAt: new Date()
-            });
-            
-            console.log(`Demo user created: ${demoUser.email}`);
-          } catch (error: any) {
-            // User might already exist, that's okay
-            if (error.code !== 'auth/email-already-in-use') {
-              console.error(`Error creating demo user ${demoUser.email}:`, error);
-            }
+        // Try to create admin user
+        try {
+          const adminCredential = await createUserWithEmailAndPassword(auth, 'admin@ejemplo.com', 'admin123');
+          const adminUser = adminCredential.user;
+          
+          await setDoc(doc(firestore, 'users', adminUser.uid), {
+            email: 'admin@ejemplo.com',
+            name: 'Administrador',
+            role: 'admin',
+            active: true,
+            createdAt: new Date()
+          });
+          
+          console.log('Admin user created successfully');
+          
+          // Sign out immediately after creating
+          await firebaseSignOut(auth);
+        } catch (error: any) {
+          if (error.code === 'auth/email-already-in-use') {
+            console.log('Admin user already exists');
+          } else {
+            console.error('Error creating admin user:', error);
           }
         }
+
+        // Try to create regular user
+        try {
+          const userCredential = await createUserWithEmailAndPassword(auth, 'usuario@ejemplo.com', 'usuario123');
+          const regularUser = userCredential.user;
+          
+          await setDoc(doc(firestore, 'users', regularUser.uid), {
+            email: 'usuario@ejemplo.com',
+            name: 'Usuario Demo',
+            role: 'user',
+            active: true,
+            createdAt: new Date()
+          });
+          
+          console.log('Regular user created successfully');
+          
+          // Sign out immediately after creating
+          await firebaseSignOut(auth);
+        } catch (error: any) {
+          if (error.code === 'auth/email-already-in-use') {
+            console.log('Regular user already exists');
+          } else {
+            console.error('Error creating regular user:', error);
+          }
+        }
+        
       } catch (error) {
-        console.error('Error creating demo users:', error);
+        console.error('Error in demo user initialization:', error);
       }
     };
 
-    createDemoUsers();
+    // Only run once on app load
+    const hasInitialized = localStorage.getItem('demo-users-initialized');
+    if (!hasInitialized) {
+      initializeDemoUsers().then(() => {
+        localStorage.setItem('demo-users-initialized', 'true');
+      });
+    }
   }, []);
 
   useEffect(() => {
@@ -157,6 +178,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         errorMessage = "Credenciales incorrectas. Verifica tu email y contraseña.";
       } else if (error.code === 'auth/too-many-requests') {
         errorMessage = "Demasiados intentos fallidos. Intenta más tarde.";
+      } else if (error.code === 'auth/invalid-credential') {
+        errorMessage = "Credenciales inválidas. Verifica tu email y contraseña.";
       }
       
       toast({
