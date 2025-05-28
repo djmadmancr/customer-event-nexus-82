@@ -72,6 +72,17 @@ const PaymentListWithCurrency: React.FC<PaymentListProps> = ({ eventId }) => {
     }
   };
 
+  // Get currency symbol based on selected currency
+  const getCurrencySymbol = (currency: string) => {
+    switch (currency) {
+      case 'USD': return '$';
+      case 'EUR': return '€';
+      case 'CRC': return '₡';
+      case 'GBP': return '£';
+      default: return currency;
+    }
+  };
+
   return (
     <div className="space-y-4">
       {payments.length === 0 ? (
@@ -96,7 +107,7 @@ const PaymentListWithCurrency: React.FC<PaymentListProps> = ({ eventId }) => {
                   {format(payment.paymentDate, 'dd/MM/yyyy', { locale: es })}
                 </TableCell>
                 <TableCell className="font-medium">
-                  {dataService.formatCurrency(payment.amount, defaultCurrency)}
+                  {getCurrencySymbol(defaultCurrency)}{payment.amount.toLocaleString()}
                 </TableCell>
                 <TableCell>
                   {getPaymentMethodBadge(payment.method)}
@@ -128,10 +139,7 @@ const PaymentListWithCurrency: React.FC<PaymentListProps> = ({ eventId }) => {
             Total de pagos: {payments.length}
           </div>
           <div className="text-lg font-semibold">
-            Total: {dataService.formatCurrency(
-              payments.reduce((sum, payment) => sum + payment.amount, 0),
-              defaultCurrency
-            )}
+            Total: {getCurrencySymbol(defaultCurrency)}{payments.reduce((sum, payment) => sum + payment.amount, 0).toLocaleString()}
           </div>
         </div>
       )}

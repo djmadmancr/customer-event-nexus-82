@@ -47,12 +47,62 @@ interface AuthProviderProps {
   children: React.ReactNode;
 }
 
+// Demo users for testing
+const DEMO_USERS = [
+  {
+    email: 'admin@ejemplo.com',
+    password: 'admin123',
+    name: 'Administrador',
+    role: 'admin' as UserRole
+  },
+  {
+    email: 'usuario@ejemplo.com',
+    password: 'usuario123',
+    name: 'Usuario Demo',
+    role: 'user' as UserRole
+  }
+];
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [userData, setUserData] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+
+  // Create demo users on first load
+  useEffect(() => {
+    const createDemoUsers = async () => {
+      try {
+        for (const demoUser of DEMO_USERS) {
+          try {
+            const userCredential = await createUserWithEmailAndPassword(auth, demoUser.email, demoUser.password);
+            const user = userCredential.user;
+            
+            // Create user document in Firestore
+            await setDoc(doc(firestore, 'users', user.uid), {
+              email: demoUser.email,
+              name: demoUser.name,
+              role: demoUser.role,
+              active: true,
+              createdAt: new Date()
+            });
+            
+            console.log(`Demo user created: ${demoUser.email}`);
+          } catch (error: any) {
+            // User might already exist, that's okay
+            if (error.code !== 'auth/email-already-in-use') {
+              console.error(`Error creating demo user ${demoUser.email}:`, error);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error creating demo users:', error);
+      }
+    };
+
+    createDemoUsers();
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
