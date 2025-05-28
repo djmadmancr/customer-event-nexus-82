@@ -73,7 +73,13 @@ const Dashboard: React.FC = () => {
     const dateRange = getDateRange(dateFilter);
     const filteredEvents = filterEventsByDateRange(events, dateRange);
     
-    // Process monthly revenue data
+    // Get all payments within the date range
+    const allPayments = dataService.getAllPayments();
+    const filteredPayments = allPayments.filter(payment => 
+      payment.paymentDate >= dateRange.start && payment.paymentDate <= dateRange.end
+    );
+    
+    // Process monthly revenue data based on actual payments
     const monthlyData: any[] = [];
     const startYear = dateRange.start.getFullYear();
     const endYear = dateRange.end.getFullYear();
@@ -83,14 +89,11 @@ const Dashboard: React.FC = () => {
       const endMonth = year === endYear ? dateRange.end.getMonth() : 11;
       
       for (let month = startMonth; month <= endMonth; month++) {
-        const monthEvents = filteredEvents.filter(event => 
-          event.date.getFullYear() === year && event.date.getMonth() === month
+        const monthPayments = filteredPayments.filter(payment => 
+          payment.paymentDate.getFullYear() === year && payment.paymentDate.getMonth() === month
         );
         
-        const monthRevenue = monthEvents.reduce((sum, event) => {
-          const eventTotal = event.totalWithTax || event.cost;
-          return sum + eventTotal;
-        }, 0);
+        const monthRevenue = monthPayments.reduce((sum, payment) => sum + payment.amount, 0);
         
         monthlyData.push({
           month: new Date(year, month).toLocaleDateString('es', { month: 'short', year: '2-digit' }),
@@ -124,7 +127,7 @@ const Dashboard: React.FC = () => {
     
     setEventStatusData(eventChartData);
 
-    // Calculate stats
+    // Calculate stats based on actual payments
     const totalRevenue = monthlyData.reduce((sum, month) => sum + month.ingresos, 0);
     const paidEvents = filteredEvents.filter(e => e.status === 'paid').length;
     const pendingEvents = filteredEvents.filter(e => e.status === 'prospect').length;
@@ -136,19 +139,21 @@ const Dashboard: React.FC = () => {
       pendingEvents
     });
 
-    // Financial summary calculations using the same dateFilter
-    const paid = dataService.getEventsTotalByStatusAndDateRange('paid', dateRange.start, dateRange.end);
-    setPaidTotal(paid);
+    // Financial summary calculations using actual payments
+    const paidPayments = filteredPayments.reduce((sum, payment) => sum + payment.amount, 0);
+    setPaidTotal(paidPayments);
 
-    // For pending, we need to sum prospect, confirmed and delivered events
-    const prospect = dataService.getEventsTotalByStatusAndDateRange('prospect', dateRange.start, dateRange.end);
-    const confirmed = dataService.getEventsTotalByStatusAndDateRange('confirmed', dateRange.start, dateRange.end);
-    const delivered = dataService.getEventsTotalByStatusAndDateRange('delivered', dateRange.start, dateRange.end);
-    setPendingTotal(prospect + confirmed + delivered);
+    // For pending, calculate from events minus payments
+    const totalEventValue = filteredEvents.reduce((sum, event) => sum + (event.totalWithTax || event.cost), 0);
+    setPendingTotal(totalEventValue - paidPayments);
 
   }, [events, dateFilter]);
 
   const COLORS = ['#FFD700', '#4169E1', '#FFA500', '#32CD32'];
+
+  const formatCurrencyValue = (value: any) => {
+    return `${value.toLocaleString('es-CR')}`;
+  };
 
   return (
     <div className="space-y-6">
@@ -188,10 +193,10 @@ const Dashboard: React.FC = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={monthlyRevenue}>
                   <XAxis dataKey="month" />
-                  <YAxis tickFormatter={(value) => dataService.formatCurrency(value, defaultCurrency)} />
+                  <YAxis tickFormatter={formatCurrencyValue} />
                   <ChartTooltip 
                     content={<ChartTooltipContent />}
-                    formatter={(value: any) => [dataService.formatCurrency(value, defaultCurrency), 'Ingresos']}
+                    formatter={(value: any) => [formatCurrencyValue(value), 'Ingresos']}
                   />
                   <Bar 
                     dataKey="ingresos" 
@@ -289,7 +294,7 @@ const Dashboard: React.FC = () => {
               {dataService.formatCurrency(stats.totalRevenue, defaultCurrency)}
             </div>
             <p className="text-xs text-muted-foreground">
-              Proyección del período
+              Pagos recibidos del período
             </p>
           </CardContent>
         </Card>
