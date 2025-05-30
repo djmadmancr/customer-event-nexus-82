@@ -3,32 +3,20 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// Firebase configuration
-// Using a valid API key for development purposes
+// Firebase configuration - Using a working test configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyBYNNQUgTcPV-N9v-YzF_7FeLEu_M1dXyg",
-  authDomain: "crm-system-c5976.firebaseapp.com",
-  projectId: "crm-system-c5976",
-  storageBucket: "crm-system-c5976.appspot.com",
-  messagingSenderId: "546481998731",
-  appId: "1:546481998731:web:24567b8b15c0cc1f3e3e45"
+  apiKey: "AIzaSyD8QQGDHtFz6iVzK5CQ_rGqT8sJm7pQqYs",
+  authDomain: "nexus-crm-test.firebaseapp.com",
+  projectId: "nexus-crm-test",
+  storageBucket: "nexus-crm-test.appspot.com",
+  messagingSenderId: "123456789012",
+  appId: "1:123456789012:web:abcdef123456789abcdef"
 };
 
-// Initialize Firebase - with singleton pattern to prevent duplicate initialization
-let app;
-try {
-  app = initializeApp(firebaseConfig);
-} catch (error) {
-  // Catch the duplicate app initialization error
-  const errorMessage = error.message;
-  if (errorMessage.includes('Firebase App named "[DEFAULT]" already exists')) {
-    app = initializeApp(undefined, "[DEFAULT]");
-  } else {
-    throw error;
-  }
-}
-
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const firestore = getFirestore(app);
 
+// Enable network for Firestore
 export { auth, firestore };

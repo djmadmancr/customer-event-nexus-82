@@ -10,7 +10,10 @@ import {
 import { 
   doc, 
   getDoc, 
-  setDoc 
+  setDoc,
+  collection,
+  getDocs,
+  updateDoc
 } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { auth, firestore } from '../config/firebase';
@@ -24,6 +27,9 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name: string) => Promise<void>;
   signOut: () => Promise<void>;
+  getAllUsers: () => Promise<User[]>;
+  updateUserRole: (userId: string, newRole: UserRole) => Promise<void>;
+  updateUserStatus: (userId: string, active: boolean) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -47,14 +53,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  // Create demo user on app load
+  // Create demo user on app initialization
   useEffect(() => {
     const createDemoUser = async () => {
       try {
-        console.log('Creating demo user...');
-        const userCredential = await createUserWithEmailAndPassword(auth, 'djmadmancr@gmail.com', 'Djmadman001k');
+        console.log('🔧 Creating demo user with credentials: djmadmancr@gmail.com');
+        
+        // First try to sign out any existing user
+        try {
+          await firebaseSignOut(auth);
+        } catch (e) {
+          // Ignore sign out errors
+        }
+
+        const userCredential = await createUserWithEmailAndPassword(
+          auth, 
+          'djmadmancr@gmail.com', 
+          'Djmadman001k'
+        );
+        
         const demoUser = userCredential.user;
         
+        // Create user document in Firestore
         await setDoc(doc(firestore, 'users', demoUser.uid), {
           email: 'djmadmancr@gmail.com',
           name: 'Demo User',
@@ -63,8 +83,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           createdAt: new Date()
         });
         
-        console.log('✅ Demo user created successfully');
+        console.log('✅ Demo user created successfully with ID:', demoUser.uid);
+        
+        // Sign out the demo user after creation
         await firebaseSignOut(auth);
+        
       } catch (error: any) {
         if (error.code === 'auth/email-already-in-use') {
           console.log('✅ Demo user already exists');
@@ -80,6 +103,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Auth state listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log('🔄 Auth state changed:', user ? `User: ${user.email}` : 'No user');
       setCurrentUser(user);
       
       if (user) {
@@ -91,12 +115,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             const userData = userSnapshot.data() as Omit<User, 'id'>;
             setUserRole(userData.role);
             setUserData({ id: user.uid, ...userData });
+            console.log('✅ User data loaded:', userData.role);
           } else {
+            console.log('⚠️ User document not found, setting default role');
             setUserRole('user');
             setUserData(null);
           }
         } catch (error) {
-          console.error('Error fetching user data:', error);
+          console.error('❌ Error fetching user data:', error);
+          setUserRole('user');
+          setUserData(null);
         }
       } else {
         setUserRole(null);
@@ -112,10 +140,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-      console.log(`Attempting to sign in with: ${email}`);
+      console.log(`🔑 Attempting to sign in with: ${email}`);
       
-      await signInWithEmailAndPassword(auth, email, password);
-      console.log('✅ Sign in successful');
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      console.log('✅ Sign in successful for:', userCredential.user.email);
       
       toast({
         title: "Inicio de sesión exitoso",
@@ -124,7 +152,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error: any) {
       console.error("❌ Error during login:", error);
       
-      let errorMessage = "Credenciales incorrectas. Verifica tu email y contraseña.";
+      let errorMessage = "Error al iniciar sesión. Verifica tus credenciales.";
+      
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        errorMessage = "Email o contraseña incorrectos.";
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = "El formato del email no es válido.";
+      }
       
       toast({
         title: "Error",
@@ -140,6 +174,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signUp = async (email: string, password: string, name: string) => {
     try {
       setLoading(true);
+      console.log(`📝 Creating new user: ${email}`);
       
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
@@ -152,18 +187,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         createdAt: new Date()
       });
       
+      console.log('✅ User created successfully:', email);
+      
       toast({
         title: "Registro exitoso",
         description: "Tu cuenta ha sido creada correctamente.",
       });
       
     } catch (error: any) {
-      console.error("Error during registration:", error);
+      console.error("❌ Error during registration:", error);
       
       let errorMessage = "Error al registrar. Intente nuevamente.";
       
       if (error.code === 'auth/email-already-in-use') {
         errorMessage = "El correo electrónico ya está en uso.";
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = "La contraseña es muy débil.";
       }
       
       toast({
@@ -181,14 +220,81 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signOut = async () => {
     try {
       await firebaseSignOut(auth);
+      console.log('✅ User signed out successfully');
       toast({
         title: "Sesión cerrada",
         description: "Has cerrado sesión correctamente.",
       });
     } catch (error) {
+      console.error('❌ Error signing out:', error);
       toast({
         title: "Error",
         description: "Error al cerrar sesión.",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const getAllUsers = async (): Promise<User[]> => {
+    try {
+      const usersCollection = collection(firestore, 'users');
+      const usersSnapshot = await getDocs(usersCollection);
+      
+      const users: User[] = [];
+      usersSnapshot.forEach((doc) => {
+        const data = doc.data();
+        users.push({
+          id: doc.id,
+          email: data.email,
+          name: data.name,
+          role: data.role,
+          active: data.active,
+          createdAt: data.createdAt?.toDate() || new Date(),
+        });
+      });
+      
+      return users;
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      return [];
+    }
+  };
+
+  const updateUserRole = async (userId: string, newRole: UserRole) => {
+    try {
+      const userDocRef = doc(firestore, 'users', userId);
+      await updateDoc(userDocRef, { role: newRole });
+      
+      toast({
+        title: "Rol actualizado",
+        description: "El rol del usuario ha sido actualizado correctamente.",
+      });
+    } catch (error) {
+      console.error('Error updating user role:', error);
+      toast({
+        title: "Error",
+        description: "Error al actualizar el rol del usuario.",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const updateUserStatus = async (userId: string, active: boolean) => {
+    try {
+      const userDocRef = doc(firestore, 'users', userId);
+      await updateDoc(userDocRef, { active });
+      
+      toast({
+        title: "Estado actualizado",
+        description: `Usuario ${active ? 'activado' : 'desactivado'} correctamente.`,
+      });
+    } catch (error) {
+      console.error('Error updating user status:', error);
+      toast({
+        title: "Error",
+        description: "Error al actualizar el estado del usuario.",
         variant: "destructive",
       });
       throw error;
@@ -203,6 +309,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signIn,
     signUp,
     signOut,
+    getAllUsers,
+    updateUserRole,
+    updateUserStatus,
   };
 
   return (
