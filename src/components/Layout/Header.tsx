@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAppConfig } from '@/contexts/AppConfigContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserProfile } from '@/contexts/UserProfileContext';
 
 interface HeaderProps {
   toggleSidebar: () => void;
@@ -19,7 +20,16 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ toggleSidebar, sidebarOpen }) => {
   const { logoUrl } = useAppConfig();
-  const { userData, signOut } = useAuth();
+  const { userData, signOut, syncUserName } = useAuth();
+  const { userProfile } = useUserProfile();
+  
+  // Sync user name when component mounts
+  React.useEffect(() => {
+    syncUserName();
+  }, [userProfile?.name, syncUserName]);
+
+  // Get the display name (prioritize userProfile name over userData name)
+  const displayName = userProfile?.name || userData?.name || 'Usuario';
   
   const handleSignOut = async () => {
     try {
@@ -79,11 +89,9 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, sidebarOpen }) => {
         
         <div className="flex items-center space-x-4">
           {/* Welcome message */}
-          {userData && (
-            <span className="text-sm text-gray-600 hidden sm:block">
-              Bienvenido {userData.name}
-            </span>
-          )}
+          <span className="text-sm text-gray-600 hidden sm:block">
+            Bienvenido {displayName}
+          </span>
           
           <Link to="/settings">
             <Button variant="ghost" size="icon">

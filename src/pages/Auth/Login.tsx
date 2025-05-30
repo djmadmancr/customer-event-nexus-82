@@ -15,7 +15,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { AlertCircle, CheckCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const loginSchema = z.object({
@@ -34,7 +34,6 @@ const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
-  const [debugInfo, setDebugInfo] = useState<string>('');
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -44,24 +43,14 @@ const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
     },
   });
 
-  // Auto-fill demo credentials
-  const fillDemoCredentials = () => {
-    form.setValue('email', 'djmadmancr@gmail.com');
-    form.setValue('password', 'Djmadman001k');
-    setDebugInfo('Credenciales demo cargadas ✅');
-  };
-
   const onSubmit = async (data: LoginFormValues) => {
     try {
       setIsSubmitting(true);
       setLoginError(null);
-      setDebugInfo(`Intentando login con: ${data.email}`);
       
       console.log('🔄 Form data:', data);
       
       await signIn(data.email, data.password);
-      
-      setDebugInfo('Login exitoso! Redirigiendo...');
       
       // Small delay to show success message
       setTimeout(() => {
@@ -71,7 +60,6 @@ const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
     } catch (error: any) {
       console.error('❌ Login failed:', error);
       setLoginError('Error: ' + (error.message || 'Credenciales incorrectas'));
-      setDebugInfo('Error en login: ' + error.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -79,26 +67,6 @@ const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
 
   return (
     <div className="space-y-4">
-      {/* Debug info */}
-      {debugInfo && (
-        <Alert className="border-yellow-500 bg-yellow-50">
-          <AlertCircle className="h-4 w-4 text-yellow-600" />
-          <AlertDescription className="text-yellow-800">
-            Debug: {debugInfo}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Quick fill button */}
-      <Button 
-        type="button" 
-        variant="outline" 
-        className="w-full border-green-500 text-green-700 hover:bg-green-50"
-        onClick={fillDemoCredentials}
-      >
-        🚀 Usar Credenciales Demo
-      </Button>
-
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           {loginError && (
@@ -116,10 +84,9 @@ const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
                 <FormLabel>Email</FormLabel>
                 <FormControl>
                   <Input 
-                    placeholder="djmadmancr@gmail.com" 
+                    placeholder="tu@email.com" 
                     type="email" 
                     {...field} 
-                    className="font-mono"
                   />
                 </FormControl>
                 <FormMessage />
@@ -135,10 +102,9 @@ const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
                 <FormLabel>Contraseña</FormLabel>
                 <FormControl>
                   <Input 
-                    placeholder="Djmadman001k" 
+                    placeholder="Tu contraseña" 
                     type="password" 
                     {...field} 
-                    className="font-mono"
                   />
                 </FormControl>
                 <FormMessage />

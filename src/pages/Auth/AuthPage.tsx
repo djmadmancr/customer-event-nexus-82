@@ -69,28 +69,6 @@ const AuthPage: React.FC = () => {
             <Register onSwitchToLogin={() => setIsLogin(true)} />
           )}
         </div>
-
-        <div className="mt-6 text-center">
-          <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
-            <div className="text-lg font-bold text-blue-800 mb-2">
-              🔑 CREDENCIALES DE ACCESO GARANTIZADAS
-            </div>
-            <div className="text-sm text-blue-700 space-y-2">
-              <div className="font-semibold">
-                📧 Email: <span className="font-mono bg-blue-100 px-2 py-1 rounded">djmadmancr@gmail.com</span>
-              </div>
-              <div className="font-semibold">
-                🔒 Password: <span className="font-mono bg-blue-100 px-2 py-1 rounded">Djmadman001k</span>
-              </div>
-            </div>
-            <div className="text-xs text-blue-600 mt-3 font-semibold">
-              ✅ ESTAS CREDENCIALES ESTÁN PROGRAMADAS PARA FUNCIONAR AL 100%
-            </div>
-            <div className="text-xs text-blue-500 mt-1">
-              🎯 Copia y pega exactamente como aparece arriba
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

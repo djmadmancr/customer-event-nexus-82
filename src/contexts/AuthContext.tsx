@@ -32,6 +32,7 @@ interface AuthContextType {
   getAllUsers: () => Promise<User[]>;
   updateUserRole: (userId: string, newRole: UserRole) => Promise<void>;
   updateUserStatus: (userId: string, active: boolean) => Promise<void>;
+  syncUserName: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -55,6 +56,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
+  // Function to sync user name from personal data configuration
+  const syncUserName = () => {
+    if (currentUser) {
+      const savedProfile = localStorage.getItem('userProfile');
+      if (savedProfile) {
+        try {
+          const profile = JSON.parse(savedProfile);
+          if (profile.name && userData) {
+            const updatedUserData = { ...userData, name: profile.name };
+            setUserData(updatedUserData);
+          }
+        } catch (error) {
+          console.log('Error syncing user name:', error);
+        }
+      }
+    }
+  };
+
   // Check for existing session on mount
   useEffect(() => {
     const savedUser = localStorage.getItem('demo-auth-user');
@@ -75,6 +94,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
     setLoading(false);
   }, []);
+
+  // Sync user name when component mounts or when localStorage changes
+  useEffect(() => {
+    syncUserName();
+    
+    const handleStorageChange = () => {
+      syncUserName();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [currentUser, userData]);
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -225,6 +256,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     getAllUsers,
     updateUserRole,
     updateUserStatus,
+    syncUserName,
   };
 
   return (
