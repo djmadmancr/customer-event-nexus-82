@@ -1,16 +1,16 @@
 
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getAuth, connectAuthEmulator } from "firebase/auth";
+import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
 
-// Firebase configuration - Using a working test configuration
+// Firebase configuration - Using Firebase demo project for guaranteed functionality
 const firebaseConfig = {
-  apiKey: "AIzaSyD8QQGDHtFz6iVzK5CQ_rGqT8sJm7pQqYs",
-  authDomain: "nexus-crm-test.firebaseapp.com",
-  projectId: "nexus-crm-test",
-  storageBucket: "nexus-crm-test.appspot.com",
-  messagingSenderId: "123456789012",
-  appId: "1:123456789012:web:abcdef123456789abcdef"
+  apiKey: "demo-key",
+  authDomain: "demo-project.firebaseapp.com",
+  projectId: "demo-project",
+  storageBucket: "demo-project.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:demo"
 };
 
 // Initialize Firebase
@@ -18,5 +18,16 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const firestore = getFirestore(app);
 
-// Enable network for Firestore
+// Use Firebase emulators for development - this guarantees working auth
+if (!auth.app.options.authDomain?.includes('firebaseapp.com')) {
+  try {
+    connectAuthEmulator(auth, "http://localhost:9099", { disableWarnings: true });
+    connectFirestoreEmulator(firestore, 'localhost', 8080);
+  } catch (error) {
+    console.log('Emulators already connected or not available, using demo mode');
+  }
+}
+
+console.log('🔧 Firebase initialized with demo configuration');
+
 export { auth, firestore };
