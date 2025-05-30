@@ -10,12 +10,7 @@ import {
 import { 
   doc, 
   getDoc, 
-  setDoc, 
-  updateDoc,
-  collection,
-  query,
-  where,
-  getDocs 
+  setDoc 
 } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { auth, firestore } from '../config/firebase';
@@ -29,9 +24,6 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name: string) => Promise<void>;
   signOut: () => Promise<void>;
-  updateUserRole: (userId: string, newRole: UserRole) => Promise<void>;
-  updateUserStatus: (userId: string, active: boolean) => Promise<void>;
-  getAllUsers: () => Promise<User[]>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -53,79 +45,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [userData, setUserData] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [initialized, setInitialized] = useState(false);
   const { toast } = useToast();
 
-  // Force create demo users every time the app loads
+  // Create demo user on app load
   useEffect(() => {
-    const forceDemoUserCreation = async () => {
-      if (initialized) return;
-      
-      console.log('Force creating demo users...');
-      
+    const createDemoUser = async () => {
       try {
-        // Always try to create admin user
-        try {
-          console.log('Creating admin user...');
-          const adminCredential = await createUserWithEmailAndPassword(auth, 'admin@ejemplo.com', 'admin123');
-          const adminUser = adminCredential.user;
-          
-          await setDoc(doc(firestore, 'users', adminUser.uid), {
-            email: 'admin@ejemplo.com',
-            name: 'Administrador',
-            role: 'admin',
-            active: true,
-            createdAt: new Date()
-          });
-          
-          console.log('✅ Admin user created successfully');
-          await firebaseSignOut(auth);
-        } catch (error: any) {
-          if (error.code === 'auth/email-already-in-use') {
-            console.log('✅ Admin user already exists');
-          } else {
-            console.error('❌ Error creating admin user:', error);
-          }
-        }
-
-        // Always try to create regular user
-        try {
-          console.log('Creating regular user...');
-          const userCredential = await createUserWithEmailAndPassword(auth, 'usuario@ejemplo.com', 'usuario123');
-          const regularUser = userCredential.user;
-          
-          await setDoc(doc(firestore, 'users', regularUser.uid), {
-            email: 'usuario@ejemplo.com',
-            name: 'Usuario Demo',
-            role: 'user',
-            active: true,
-            createdAt: new Date()
-          });
-          
-          console.log('✅ Regular user created successfully');
-          await firebaseSignOut(auth);
-        } catch (error: any) {
-          if (error.code === 'auth/email-already-in-use') {
-            console.log('✅ Regular user already exists');
-          } else {
-            console.error('❌ Error creating regular user:', error);
-          }
-        }
+        console.log('Creating demo user...');
+        const userCredential = await createUserWithEmailAndPassword(auth, 'djmadmancr@gmail.com', 'Djmadman001k');
+        const demoUser = userCredential.user;
         
-      } catch (error) {
-        console.error('❌ Error in demo user initialization:', error);
-      } finally {
-        setInitialized(true);
-        console.log('Demo user initialization completed. Ready to login!');
-        console.log('Use these credentials:');
-        console.log('Admin: admin@ejemplo.com / admin123');
-        console.log('Usuario: usuario@ejemplo.com / usuario123');
+        await setDoc(doc(firestore, 'users', demoUser.uid), {
+          email: 'djmadmancr@gmail.com',
+          name: 'Demo User',
+          role: 'admin',
+          active: true,
+          createdAt: new Date()
+        });
+        
+        console.log('✅ Demo user created successfully');
+        await firebaseSignOut(auth);
+      } catch (error: any) {
+        if (error.code === 'auth/email-already-in-use') {
+          console.log('✅ Demo user already exists');
+        } else {
+          console.error('❌ Error creating demo user:', error);
+        }
       }
     };
 
-    forceDemoUserCreation();
+    createDemoUser();
   }, []);
 
+  // Auth state listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
@@ -140,17 +92,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setUserRole(userData.role);
             setUserData({ id: user.uid, ...userData });
           } else {
-            // Default to user role if no document exists yet
             setUserRole('user');
             setUserData(null);
           }
         } catch (error) {
           console.error('Error fetching user data:', error);
-          toast({
-            title: "Error",
-            description: "No se pudo cargar los datos del usuario",
-            variant: "destructive",
-          });
         }
       } else {
         setUserRole(null);
@@ -161,31 +107,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     });
 
     return unsubscribe;
-  }, [toast]);
+  }, []);
 
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
       console.log(`Attempting to sign in with: ${email}`);
       
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log('✅ Sign in successful:', userCredential.user.email);
+      await signInWithEmailAndPassword(auth, email, password);
+      console.log('✅ Sign in successful');
       
       toast({
         title: "Inicio de sesión exitoso",
         description: "Has iniciado sesión correctamente.",
       });
     } catch (error: any) {
-      let errorMessage = "Error al iniciar sesión. Intente nuevamente.";
       console.error("❌ Error during login:", error);
       
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-        errorMessage = "Credenciales incorrectas. Verifica tu email y contraseña.";
-      } else if (error.code === 'auth/too-many-requests') {
-        errorMessage = "Demasiados intentos fallidos. Intenta más tarde.";
-      } else if (error.code === 'auth/invalid-credential') {
-        errorMessage = "Credenciales inválidas. Verifica tu email y contraseña.";
-      }
+      let errorMessage = "Credenciales incorrectas. Verifica tu email y contraseña.";
       
       toast({
         title: "Error",
@@ -202,20 +141,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setLoading(true);
       
-      // Check if this is the first user (will be an admin)
-      const usersQuery = query(collection(firestore, 'users'));
-      const usersSnapshot = await getDocs(usersQuery);
-      const isFirstUser = usersSnapshot.empty;
-      
-      // Create the user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
-      // Create user document in Firestore with correct timestamp
       await setDoc(doc(firestore, 'users', user.uid), {
         email,
         name,
-        role: isFirstUser ? 'admin' : 'user', // First user is admin
+        role: 'user' as UserRole,
         active: true,
         createdAt: new Date()
       });
@@ -225,7 +157,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         description: "Tu cuenta ha sido creada correctamente.",
       });
       
-      return Promise.resolve();
     } catch (error: any) {
       console.error("Error during registration:", error);
       
@@ -233,10 +164,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (error.code === 'auth/email-already-in-use') {
         errorMessage = "El correo electrónico ya está en uso.";
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = "La contraseña es demasiado débil.";
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = "El correo electrónico no es válido.";
       }
       
       toast({
@@ -245,7 +172,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         variant: "destructive",
       });
       
-      return Promise.reject(error);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -268,64 +195,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const updateUserRole = async (userId: string, newRole: UserRole) => {
-    try {
-      const userDocRef = doc(firestore, 'users', userId);
-      await updateDoc(userDocRef, { role: newRole });
-      
-      toast({
-        title: "Rol actualizado",
-        description: `El rol del usuario ha sido actualizado a ${newRole}.`,
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo actualizar el rol del usuario.",
-        variant: "destructive",
-      });
-      throw error;
-    }
-  };
-
-  const updateUserStatus = async (userId: string, active: boolean) => {
-    try {
-      const userDocRef = doc(firestore, 'users', userId);
-      await updateDoc(userDocRef, { active });
-      
-      toast({
-        title: "Estado actualizado",
-        description: `El usuario ha sido ${active ? 'activado' : 'desactivado'}.`,
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo actualizar el estado del usuario.",
-        variant: "destructive",
-      });
-      throw error;
-    }
-  };
-
-  const getAllUsers = async () => {
-    try {
-      const usersQuery = query(collection(firestore, 'users'));
-      const querySnapshot = await getDocs(usersQuery);
-      
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as User[];
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los usuarios.",
-        variant: "destructive",
-      });
-      return [];
-    }
-  };
-
   const value = {
     currentUser,
     userRole,
@@ -334,9 +203,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signIn,
     signUp,
     signOut,
-    updateUserRole,
-    updateUserStatus,
-    getAllUsers,
   };
 
   return (

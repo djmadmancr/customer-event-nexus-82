@@ -71,15 +71,15 @@ const AuthPage: React.FC = () => {
         </div>
 
         <div className="mt-6 text-center">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="text-sm font-semibold text-blue-800 mb-2">
-              🔑 Credenciales de Prueba Funcionales:
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="text-sm font-semibold text-green-800 mb-2">
+              🔑 Credenciales de Prueba:
             </div>
-            <div className="text-xs text-blue-700 space-y-1">
-              <div><strong>Administrador:</strong> admin@ejemplo.com / admin123</div>
-              <div><strong>Usuario:</strong> usuario@ejemplo.com / usuario123</div>
+            <div className="text-xs text-green-700 space-y-1">
+              <div><strong>Email:</strong> djmadmancr@gmail.com</div>
+              <div><strong>Password:</strong> Djmadman001k</div>
             </div>
-            <div className="text-xs text-blue-600 mt-2">
+            <div className="text-xs text-green-600 mt-2">
               ✅ Estas credenciales están garantizadas para funcionar
             </div>
           </div>
