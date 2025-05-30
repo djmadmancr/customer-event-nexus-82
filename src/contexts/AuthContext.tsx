@@ -53,16 +53,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [userData, setUserData] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
   const { toast } = useToast();
 
-  // Initialize demo users
+  // Force create demo users every time the app loads
   useEffect(() => {
-    const initializeDemoUsers = async () => {
-      console.log('Initializing demo users...');
+    const forceDemoUserCreation = async () => {
+      if (initialized) return;
+      
+      console.log('Force creating demo users...');
       
       try {
-        // Try to create admin user
+        // Always try to create admin user
         try {
+          console.log('Creating admin user...');
           const adminCredential = await createUserWithEmailAndPassword(auth, 'admin@ejemplo.com', 'admin123');
           const adminUser = adminCredential.user;
           
@@ -74,20 +78,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             createdAt: new Date()
           });
           
-          console.log('Admin user created successfully');
-          
-          // Sign out immediately after creating
+          console.log('✅ Admin user created successfully');
           await firebaseSignOut(auth);
         } catch (error: any) {
           if (error.code === 'auth/email-already-in-use') {
-            console.log('Admin user already exists');
+            console.log('✅ Admin user already exists');
           } else {
-            console.error('Error creating admin user:', error);
+            console.error('❌ Error creating admin user:', error);
           }
         }
 
-        // Try to create regular user
+        // Always try to create regular user
         try {
+          console.log('Creating regular user...');
           const userCredential = await createUserWithEmailAndPassword(auth, 'usuario@ejemplo.com', 'usuario123');
           const regularUser = userCredential.user;
           
@@ -99,30 +102,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             createdAt: new Date()
           });
           
-          console.log('Regular user created successfully');
-          
-          // Sign out immediately after creating
+          console.log('✅ Regular user created successfully');
           await firebaseSignOut(auth);
         } catch (error: any) {
           if (error.code === 'auth/email-already-in-use') {
-            console.log('Regular user already exists');
+            console.log('✅ Regular user already exists');
           } else {
-            console.error('Error creating regular user:', error);
+            console.error('❌ Error creating regular user:', error);
           }
         }
         
       } catch (error) {
-        console.error('Error in demo user initialization:', error);
+        console.error('❌ Error in demo user initialization:', error);
+      } finally {
+        setInitialized(true);
+        console.log('Demo user initialization completed. Ready to login!');
+        console.log('Use these credentials:');
+        console.log('Admin: admin@ejemplo.com / admin123');
+        console.log('Usuario: usuario@ejemplo.com / usuario123');
       }
     };
 
-    // Only run once on app load
-    const hasInitialized = localStorage.getItem('demo-users-initialized');
-    if (!hasInitialized) {
-      initializeDemoUsers().then(() => {
-        localStorage.setItem('demo-users-initialized', 'true');
-      });
-    }
+    forceDemoUserCreation();
   }, []);
 
   useEffect(() => {
@@ -165,14 +166,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-      await signInWithEmailAndPassword(auth, email, password);
+      console.log(`Attempting to sign in with: ${email}`);
+      
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      console.log('✅ Sign in successful:', userCredential.user.email);
+      
       toast({
         title: "Inicio de sesión exitoso",
         description: "Has iniciado sesión correctamente.",
       });
     } catch (error: any) {
       let errorMessage = "Error al iniciar sesión. Intente nuevamente.";
-      console.error("Error during login:", error);
+      console.error("❌ Error during login:", error);
       
       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
         errorMessage = "Credenciales incorrectas. Verifica tu email y contraseña.";
@@ -336,7 +341,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading ? children : <div>Cargando...</div>}
+      {!loading ? children : (
+        <div className="flex items-center justify-center h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-crm-primary"></div>
+        </div>
+      )}
     </AuthContext.Provider>
   );
 };

@@ -44,8 +44,8 @@ export interface EventDetail {
   updatedAt: Date;
 }
 
-// Payment Method enum
-export type PaymentMethod = 'cash' | 'credit' | 'transfer' | 'check';
+// Payment Method enum - fixed to use credit_card
+export type PaymentMethod = 'cash' | 'credit_card' | 'transfer' | 'check';
 
 // Currency enum
 export type Currency = 'USD' | 'CRC' | 'EUR';
