@@ -49,6 +49,33 @@ interface AuthProviderProps {
   children: React.ReactNode;
 }
 
+// Utility functions for validation
+const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+const validatePassword = (password: string): { isValid: boolean; message?: string } => {
+  if (password.length < 6) {
+    return { isValid: false, message: 'La contraseña debe tener al menos 6 caracteres' };
+  }
+  if (!/(?=.*[a-z])/.test(password)) {
+    return { isValid: false, message: 'La contraseña debe contener al menos una letra minúscula' };
+  }
+  if (!/(?=.*[A-Z])/.test(password)) {
+    return { isValid: false, message: 'La contraseña debe contener al menos una letra mayúscula' };
+  }
+  if (!/(?=.*\d)/.test(password)) {
+    return { isValid: false, message: 'La contraseña debe contener al menos un número' };
+  }
+  return { isValid: true };
+};
+
+const sanitizeInput = (input: string): string => {
+  // Remove potentially dangerous characters
+  return input.replace(/[<>'"&]/g, '').trim();
+};
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
@@ -110,6 +137,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
+      
+      // Input validation
+      if (!email || !password) {
+        throw new Error('Email y contraseña son requeridos');
+      }
+      
+      if (!validateEmail(email)) {
+        throw new Error('Formato de email inválido');
+      }
+      
       console.log(`🔑 Attempting sign in with: ${email}`);
       
       // Find demo user
@@ -120,6 +157,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (!demoUser) {
         console.log('❌ Invalid credentials for:', email);
         throw new Error('Credenciales inválidas');
+      }
+      
+      if (!demoUser.active) {
+        throw new Error('Usuario desactivado. Contacte al administrador');
       }
       
       // Create auth user object
@@ -147,7 +188,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error("❌ Login error:", error);
       toast({
         title: "Error de inicio de sesión",
-        description: "Email o contraseña incorrectos",
+        description: error instanceof Error ? error.message : "Error desconocido",
         variant: "destructive",
       });
       throw error;
@@ -161,36 +202,73 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(true);
       console.log(`📝 Creating user: ${email}`);
       
+      // Input validation and sanitization
+      const sanitizedEmail = sanitizeInput(email.toLowerCase());
+      const sanitizedName = sanitizeInput(name);
+      
+      if (!sanitizedEmail || !password || !sanitizedName) {
+        throw new Error('Todos los campos son requeridos');
+      }
+      
+      if (!validateEmail(sanitizedEmail)) {
+        throw new Error('Formato de email inválido');
+      }
+      
+      if (sanitizedName.length < 2) {
+        throw new Error('El nombre debe tener al menos 2 caracteres');
+      }
+      
+      if (sanitizedName.length > 50) {
+        throw new Error('El nombre no puede exceder 50 caracteres');
+      }
+      
+      // Password validation
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.isValid) {
+        throw new Error(passwordValidation.message);
+      }
+      
       // Check if user already exists
-      if (DEMO_USERS.find(u => u.email.toLowerCase() === email.toLowerCase())) {
-        throw new Error('El usuario ya existe');
+      const existingUser = DEMO_USERS.find(u => u.email.toLowerCase() === sanitizedEmail);
+      if (existingUser) {
+        throw new Error('Ya existe una cuenta con este email');
       }
       
       // Create new demo user
       const newUser = {
-        id: `demo-${Date.now()}`,
-        email,
-        password,
-        name,
+        id: `demo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        email: sanitizedEmail,
+        password: password, // In a real app, this would be hashed
+        name: sanitizedName,
         role: 'user' as UserRole,
         active: true,
         createdAt: new Date()
       };
       
+      // Add to demo users array
       DEMO_USERS.push(newUser);
       
-      console.log('✅ User created:', email);
+      console.log('✅ User created successfully:', sanitizedEmail);
       
       toast({
         title: "Registro exitoso",
-        description: "Usuario creado correctamente. Ahora puedes iniciar sesión.",
+        description: `Cuenta creada para ${sanitizedName}. Serás redirigido al inicio de sesión.`,
       });
+      
+      // Return success - don't auto-login for security
+      return;
       
     } catch (error) {
       console.error("❌ Registration error:", error);
+      
+      let errorMessage = "Error al crear la cuenta";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Error de registro",
-        description: error instanceof Error ? error.message : "Error al crear usuario",
+        description: errorMessage,
         variant: "destructive",
       });
       throw error;
