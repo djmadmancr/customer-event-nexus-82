@@ -2,6 +2,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { User, UserRole } from '@/types/models';
+import { sanitizeInput, validateEmail, validatePassword } from '@/utils/securityUtils';
+import dataService from '@/services/DataService';
 
 // Demo users - stored in memory for guaranteed functionality
 const DEMO_USERS = [
@@ -48,33 +50,6 @@ export const useAuth = (): AuthContextType => {
 interface AuthProviderProps {
   children: React.ReactNode;
 }
-
-// Utility functions for validation
-const validateEmail = (email: string): boolean => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-};
-
-const validatePassword = (password: string): { isValid: boolean; message?: string } => {
-  if (password.length < 6) {
-    return { isValid: false, message: 'La contraseña debe tener al menos 6 caracteres' };
-  }
-  if (!/(?=.*[a-z])/.test(password)) {
-    return { isValid: false, message: 'La contraseña debe contener al menos una letra minúscula' };
-  }
-  if (!/(?=.*[A-Z])/.test(password)) {
-    return { isValid: false, message: 'La contraseña debe contener al menos una letra mayúscula' };
-  }
-  if (!/(?=.*\d)/.test(password)) {
-    return { isValid: false, message: 'La contraseña debe contener al menos un número' };
-  }
-  return { isValid: true };
-};
-
-const sanitizeInput = (input: string): string => {
-  // Remove potentially dangerous characters
-  return input.replace(/[<>'"&]/g, '').trim();
-};
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
@@ -247,6 +222,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Add to demo users array
       DEMO_USERS.push(newUser);
+      
+      // Create user profile space in data service
+      dataService.createUserProfile(newUser.id);
       
       console.log('✅ User created successfully:', sanitizedEmail);
       

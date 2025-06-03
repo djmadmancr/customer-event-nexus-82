@@ -6,6 +6,7 @@ export interface Customer {
   email: string;
   phone: string;
   notes: string;
+  userId: string; // New field to associate customer with user
   createdAt: Date;
   updatedAt: Date;
 }
@@ -29,6 +30,7 @@ export interface Event {
   totalWithTax?: number; // Total cost including tax
   status: EventStatus;
   comments?: string;
+  userId: string; // New field to associate event with user
   createdAt: Date;
   updatedAt: Date;
 }

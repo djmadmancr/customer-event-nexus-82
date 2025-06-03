@@ -18,6 +18,20 @@ class DataService {
     this.initSampleData();
   }
 
+  // Get current user ID from auth context
+  private getCurrentUserId(): string {
+    const authUser = localStorage.getItem('demo-auth-user');
+    if (authUser) {
+      try {
+        const user = JSON.parse(authUser);
+        return user.uid;
+      } catch (error) {
+        console.error('Error getting current user ID:', error);
+      }
+    }
+    return 'demo-admin'; // Fallback for demo
+  }
+
   // Helper method to calculate event totals with tax
   private calculateEventTotals(event: Event): Event {
     const taxAmount = event.taxPercentage ? (event.cost * event.taxPercentage) / 100 : 0;
@@ -59,83 +73,86 @@ class DataService {
     const defaultTaxPercentage = localStorage.getItem('defaultTaxPercentage');
     const taxPercentage = defaultTaxPercentage ? parseFloat(defaultTaxPercentage) : 13;
     
-    // Create 12 customers
+    // Create demo data only for the admin user
+    const adminUserId = 'demo-admin';
+    
+    // Create 12 customers for admin user
     const customers = [
-      this.addCustomer({
+      this.addCustomerForUser({
         name: 'Juan Pérez Rodríguez',
         email: 'juan.perez@example.com',
         phone: '+506 8888-9999',
         notes: 'Cliente preferente desde 2020'
-      }),
-      this.addCustomer({
+      }, adminUserId),
+      this.addCustomerForUser({
         name: 'María González Jiménez',
         email: 'maria.gonzalez@example.com',
         phone: '+506 7777-8888',
         notes: 'Contactar preferentemente por email'
-      }),
-      this.addCustomer({
+      }, adminUserId),
+      this.addCustomerForUser({
         name: 'Carlos Mendoza López',
         email: 'carlos.mendoza@example.com',
         phone: '+506 6666-7777',
         notes: 'Organizador de eventos corporativos'
-      }),
-      this.addCustomer({
+      }, adminUserId),
+      this.addCustomerForUser({
         name: 'Ana Sofía Vargas',
         email: 'ana.vargas@example.com',
         phone: '+506 5555-6666',
         notes: 'Especialista en bodas'
-      }),
-      this.addCustomer({
+      }, adminUserId),
+      this.addCustomerForUser({
         name: 'Roberto Chen Wang',
         email: 'roberto.chen@example.com',
         phone: '+506 4444-5555',
         notes: 'Cliente corporativo, eventos trimestrales'
-      }),
-      this.addCustomer({
+      }, adminUserId),
+      this.addCustomerForUser({
         name: 'Patricia Morales Vega',
         email: 'patricia.morales@example.com',
         phone: '+506 3333-4444',
         notes: 'Organizadora de quinceañeras'
-      }),
-      this.addCustomer({
+      }, adminUserId),
+      this.addCustomerForUser({
         name: 'Diego Ramírez Castro',
         email: 'diego.ramirez@example.com',
         phone: '+506 2222-3333',
         notes: 'DJ local, colaboraciones frecuentes'
-      }),
-      this.addCustomer({
+      }, adminUserId),
+      this.addCustomerForUser({
         name: 'Lucía Fernández Soto',
         email: 'lucia.fernandez@example.com',
         phone: '+506 1111-2222',
         notes: 'Eventos familiares pequeños'
-      }),
-      this.addCustomer({
+      }, adminUserId),
+      this.addCustomerForUser({
         name: 'Miguel Ángel Herrera',
         email: 'miguel.herrera@example.com',
         phone: '+506 9999-0000',
         notes: 'Cliente VIP, eventos de alta gama'
-      }),
-      this.addCustomer({
+      }, adminUserId),
+      this.addCustomerForUser({
         name: 'Valeria Cordero Ruiz',
         email: 'valeria.cordero@example.com',
         phone: '+506 8888-1111',
         notes: 'Eventos universitarios y juveniles'
-      }),
-      this.addCustomer({
+      }, adminUserId),
+      this.addCustomerForUser({
         name: 'Andrés Solano Quesada',
         email: 'andres.solano@example.com',
         phone: '+506 7777-2222',
         notes: 'Eventos deportivos y celebraciones'
-      }),
-      this.addCustomer({
+      }, adminUserId),
+      this.addCustomerForUser({
         name: 'Isabella Rojas Montero',
         email: 'isabella.rojas@example.com',
         phone: '+506 6666-3333',
         notes: 'Fiestas temáticas y cumpleaños infantiles'
-      })
+      }, adminUserId)
     ];
 
-    // Create events for the last 12 months (at least 1 per month)
+    // Create events for the last 12 months (at least 1 per month) for admin user
     const currentDate = new Date();
     const events = [];
 
@@ -270,35 +287,51 @@ class DataService {
       }
     });
 
-    console.log(`✅ Demo data initialized: ${customers.length} customers, ${events.length} events`);
+    console.log(`✅ Demo data initialized for admin user: ${customers.length} customers, ${events.length} events`);
   }
 
-  // CUSTOMER METHODS
+  // CUSTOMER METHODS - Updated to filter by user
   
   getAllCustomers(): Customer[] {
-    return [...this.customers];
+    const currentUserId = this.getCurrentUserId();
+    return this.customers.filter(customer => customer.userId === currentUserId);
   }
 
   getCustomerById(id: string): Customer | undefined {
-    return this.customers.find(customer => customer.id === id);
+    const currentUserId = this.getCurrentUserId();
+    const customer = this.customers.find(customer => customer.id === id);
+    // Verify the customer belongs to the current user
+    if (customer && customer.userId === currentUserId) {
+      return customer;
+    }
+    return undefined;
   }
 
-  addCustomer(customerData: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>): Customer {
+  addCustomer(customerData: Omit<Customer, 'id' | 'createdAt' | 'updatedAt' | 'userId'>): Customer {
+    const currentUserId = this.getCurrentUserId();
+    return this.addCustomerForUser(customerData, currentUserId);
+  }
+
+  private addCustomerForUser(customerData: Omit<Customer, 'id' | 'createdAt' | 'updatedAt' | 'userId'>, userId: string): Customer {
     const now = new Date();
     const newCustomer: Customer = {
       id: generateId(),
       ...customerData,
+      userId,
       createdAt: now,
       updatedAt: now
     };
     
     this.customers.push(newCustomer);
-    toast.success('Cliente creado exitosamente');
+    if (userId === this.getCurrentUserId()) {
+      toast.success('Cliente creado exitosamente');
+    }
     return newCustomer;
   }
 
-  updateCustomer(id: string, customerData: Partial<Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>>): Customer | undefined {
-    const customerIndex = this.customers.findIndex(customer => customer.id === id);
+  updateCustomer(id: string, customerData: Partial<Omit<Customer, 'id' | 'createdAt' | 'updatedAt' | 'userId'>>): Customer | undefined {
+    const currentUserId = this.getCurrentUserId();
+    const customerIndex = this.customers.findIndex(customer => customer.id === id && customer.userId === currentUserId);
     
     if (customerIndex === -1) {
       toast.error('Cliente no encontrado');
@@ -317,40 +350,58 @@ class DataService {
   }
 
   deleteCustomer(id: string): boolean {
+    const currentUserId = this.getCurrentUserId();
     const initialLength = this.customers.length;
+    const customerToDelete = this.customers.find(c => c.id === id && c.userId === currentUserId);
+    
+    if (!customerToDelete) {
+      toast.error('Cliente no encontrado');
+      return false;
+    }
+    
     this.customers = this.customers.filter(customer => customer.id !== id);
     
     // Also delete associated events and their payments
-    const customerEvents = this.events.filter(event => event.customerId === id);
+    const customerEvents = this.events.filter(event => event.customerId === id && event.userId === currentUserId);
     customerEvents.forEach(event => {
       this.deleteEvent(event.id);
     });
     
-    const success = this.customers.length < initialLength;
-    if (success) {
-      toast.success('Cliente eliminado exitosamente');
-    } else {
-      toast.error('Cliente no encontrado');
-    }
-    
-    return success;
+    toast.success('Cliente eliminado exitosamente');
+    return true;
   }
 
-  // EVENT METHODS
+  // EVENT METHODS - Updated to filter by user
   
   getAllEvents(): Event[] {
-    return [...this.events];
+    const currentUserId = this.getCurrentUserId();
+    return this.events.filter(event => event.userId === currentUserId);
   }
 
   getEventsByCustomerId(customerId: string): Event[] {
-    return this.events.filter(event => event.customerId === customerId);
+    const currentUserId = this.getCurrentUserId();
+    return this.events.filter(event => event.customerId === customerId && event.userId === currentUserId);
   }
 
   getEventById(id: string): Event | undefined {
-    return this.events.find(event => event.id === id);
+    const currentUserId = this.getCurrentUserId();
+    const event = this.events.find(event => event.id === id);
+    if (event && event.userId === currentUserId) {
+      return event;
+    }
+    return undefined;
   }
 
-  addEvent(eventData: Omit<Event, 'id' | 'createdAt' | 'updatedAt' | 'taxAmount' | 'totalWithTax'>): Event {
+  addEvent(eventData: Omit<Event, 'id' | 'createdAt' | 'updatedAt' | 'taxAmount' | 'totalWithTax' | 'userId'>): Event {
+    const currentUserId = this.getCurrentUserId();
+    
+    // Verify the customer belongs to the current user
+    const customer = this.getCustomerById(eventData.customerId);
+    if (!customer) {
+      toast.error('Cliente no encontrado o no autorizado');
+      throw new Error('Cliente no encontrado o no autorizado');
+    }
+    
     const now = new Date();
     
     // Get default tax from localStorage if not provided
@@ -362,6 +413,7 @@ class DataService {
     let newEvent: Event = {
       id: generateId(),
       ...eventData,
+      userId: currentUserId,
       createdAt: now,
       updatedAt: now
     };
@@ -374,8 +426,9 @@ class DataService {
     return newEvent;
   }
 
-  updateEvent(id: string, eventData: Partial<Omit<Event, 'id' | 'createdAt' | 'updatedAt' | 'taxAmount' | 'totalWithTax'>>): Event | undefined {
-    const eventIndex = this.events.findIndex(event => event.id === id);
+  updateEvent(id: string, eventData: Partial<Omit<Event, 'id' | 'createdAt' | 'updatedAt' | 'taxAmount' | 'totalWithTax' | 'userId'>>): Event | undefined {
+    const currentUserId = this.getCurrentUserId();
+    const eventIndex = this.events.findIndex(event => event.id === id && event.userId === currentUserId);
     
     if (eventIndex === -1) {
       toast.error('Evento no encontrado');
@@ -401,21 +454,22 @@ class DataService {
   }
 
   deleteEvent(id: string): boolean {
-    const initialLength = this.events.length;
+    const currentUserId = this.getCurrentUserId();
+    const eventToDelete = this.events.find(e => e.id === id && e.userId === currentUserId);
+    
+    if (!eventToDelete) {
+      toast.error('Evento no encontrado');
+      return false;
+    }
+    
     this.events = this.events.filter(event => event.id !== id);
     
     // Also delete associated payments and details
     this.payments = this.payments.filter(payment => payment.eventId !== id);
     this.eventDetails = this.eventDetails.filter(detail => detail.eventId !== id);
     
-    const success = this.events.length < initialLength;
-    if (success) {
-      toast.success('Evento eliminado exitosamente');
-    } else {
-      toast.error('Evento no encontrado');
-    }
-    
-    return success;
+    toast.success('Evento eliminado exitosamente');
+    return true;
   }
 
   // Add tax to event
@@ -428,21 +482,41 @@ class DataService {
     return this.updateEvent(eventId, { taxPercentage: 0 });
   }
 
-  // EVENT DETAILS METHODS
+  // EVENT DETAILS METHODS - Updated to check event ownership
   
   getAllEventDetails(): EventDetail[] {
-    return [...this.eventDetails];
+    const currentUserId = this.getCurrentUserId();
+    const userEventIds = this.events.filter(e => e.userId === currentUserId).map(e => e.id);
+    return this.eventDetails.filter(detail => userEventIds.includes(detail.eventId));
   }
 
   getEventDetailsByEventId(eventId: string): EventDetail[] {
+    const currentUserId = this.getCurrentUserId();
+    const event = this.getEventById(eventId);
+    if (!event) return [];
+    
     return this.eventDetails.filter(detail => detail.eventId === eventId);
   }
 
   getEventDetailById(id: string): EventDetail | undefined {
-    return this.eventDetails.find(detail => detail.id === id);
+    const currentUserId = this.getCurrentUserId();
+    const detail = this.eventDetails.find(detail => detail.id === id);
+    if (!detail) return undefined;
+    
+    // Check if the event belongs to the current user
+    const event = this.getEventById(detail.eventId);
+    return event ? detail : undefined;
   }
 
   addEventDetail(detailData: Omit<EventDetail, 'id' | 'createdAt' | 'updatedAt'>): EventDetail {
+    const currentUserId = this.getCurrentUserId();
+    const event = this.getEventById(detailData.eventId);
+    
+    if (!event) {
+      toast.error('Evento no encontrado o no autorizado');
+      throw new Error('Evento no encontrado o no autorizado');
+    }
+    
     const now = new Date();
     const newDetail: EventDetail = {
       id: generateId(),
@@ -457,13 +531,13 @@ class DataService {
   }
 
   updateEventDetail(id: string, detailData: Partial<Omit<EventDetail, 'id' | 'createdAt' | 'updatedAt'>>): EventDetail | undefined {
-    const detailIndex = this.eventDetails.findIndex(detail => detail.id === id);
-    
-    if (detailIndex === -1) {
+    const detail = this.getEventDetailById(id);
+    if (!detail) {
       toast.error('Detalle no encontrado');
       return undefined;
     }
     
+    const detailIndex = this.eventDetails.findIndex(d => d.id === id);
     const updatedDetail: EventDetail = {
       ...this.eventDetails[detailIndex],
       ...detailData,
@@ -476,34 +550,48 @@ class DataService {
   }
 
   deleteEventDetail(id: string): boolean {
-    const initialLength = this.eventDetails.length;
-    this.eventDetails = this.eventDetails.filter(detail => detail.id !== id);
-    
-    const success = this.eventDetails.length < initialLength;
-    if (success) {
-      toast.success('Detalle eliminado exitosamente');
-    } else {
+    const detail = this.getEventDetailById(id);
+    if (!detail) {
       toast.error('Detalle no encontrado');
+      return false;
     }
     
-    return success;
+    this.eventDetails = this.eventDetails.filter(detail => detail.id !== id);
+    toast.success('Detalle eliminado exitosamente');
+    return true;
   }
 
-  // PAYMENT METHODS
+  // PAYMENT METHODS - Updated to check event ownership
   
   getAllPayments(): Payment[] {
-    return [...this.payments];
+    const currentUserId = this.getCurrentUserId();
+    const userEventIds = this.events.filter(e => e.userId === currentUserId).map(e => e.id);
+    return this.payments.filter(payment => userEventIds.includes(payment.eventId));
   }
 
   getPaymentsByEventId(eventId: string): Payment[] {
+    const event = this.getEventById(eventId);
+    if (!event) return [];
+    
     return this.payments.filter(payment => payment.eventId === eventId);
   }
 
   getPaymentById(id: string): Payment | undefined {
-    return this.payments.find(payment => payment.id === id);
+    const payment = this.payments.find(payment => payment.id === id);
+    if (!payment) return undefined;
+    
+    // Check if the event belongs to the current user
+    const event = this.getEventById(payment.eventId);
+    return event ? payment : undefined;
   }
 
   addPayment(paymentData: Omit<Payment, 'id' | 'createdAt' | 'updatedAt'>): Payment {
+    const event = this.getEventById(paymentData.eventId);
+    if (!event) {
+      toast.error('Evento no encontrado o no autorizado');
+      throw new Error('Evento no encontrado o no autorizado');
+    }
+    
     const now = new Date();
     const newPayment: Payment = {
       id: generateId(),
@@ -523,13 +611,13 @@ class DataService {
   }
 
   updatePayment(id: string, paymentData: Partial<Omit<Payment, 'id' | 'createdAt' | 'updatedAt'>>): Payment | undefined {
-    const paymentIndex = this.payments.findIndex(payment => payment.id === id);
-    
-    if (paymentIndex === -1) {
+    const payment = this.getPaymentById(id);
+    if (!payment) {
       toast.error('Pago no encontrado');
       return undefined;
     }
     
+    const paymentIndex = this.payments.findIndex(p => p.id === id);
     const updatedPayment: Payment = {
       ...this.payments[paymentIndex],
       ...paymentData,
@@ -546,25 +634,20 @@ class DataService {
   }
 
   deletePayment(id: string): boolean {
-    const payment = this.payments.find(p => p.id === id);
-    const eventId = payment?.eventId;
+    const payment = this.getPaymentById(id);
+    if (!payment) {
+      toast.error('Pago no encontrado');
+      return false;
+    }
     
-    const initialLength = this.payments.length;
-    this.payments = this.payments.filter(payment => payment.id !== id);
+    const eventId = payment.eventId;
+    this.payments = this.payments.filter(p => p.id !== id);
     
     // Update event status after payment deletion
-    if (eventId) {
-      this.updateEventStatusBasedOnPayments(eventId);
-    }
+    this.updateEventStatusBasedOnPayments(eventId);
     
-    const success = this.payments.length < initialLength;
-    if (success) {
-      toast.success('Pago eliminado exitosamente');
-    } else {
-      toast.error('Pago no encontrado');
-    }
-    
-    return success;
+    toast.success('Pago eliminado exitosamente');
+    return true;
   }
 
   // CURRENCY HELPER METHODS
@@ -582,23 +665,32 @@ class DataService {
     return `${symbol}${amount.toLocaleString('es-CR')}`;
   }
 
-  // FINANCIAL SUMMARY METHODS
+  // FINANCIAL SUMMARY METHODS - Updated to filter by user
   getEventsTotalByStatus(status: EventStatus): number {
+    const currentUserId = this.getCurrentUserId();
     return this.events
-      .filter(event => event.status === status)
+      .filter(event => event.status === status && event.userId === currentUserId)
       .reduce((total, event) => total + (event.totalWithTax || event.cost || 0), 0);
   }
 
   getEventsTotalByStatusAndDateRange(status: EventStatus, startDate?: Date, endDate?: Date): number {
+    const currentUserId = this.getCurrentUserId();
     return this.events
       .filter(event => {
-        if (event.status !== status) return false;
+        if (event.status !== status || event.userId !== currentUserId) return false;
         if (!startDate && !endDate) return true;
         if (startDate && event.date < startDate) return false;
         if (endDate && event.date > endDate) return false;
         return true;
       })
       .reduce((total, event) => total + (event.totalWithTax || event.cost || 0), 0);
+  }
+
+  // Create initial profile for new user
+  createUserProfile(userId: string): void {
+    // This method is called when a new user registers
+    // It doesn't create any initial data, the user will create their own
+    console.log(`✅ User profile space created for user: ${userId}`);
   }
 }
 
