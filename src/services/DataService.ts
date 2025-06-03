@@ -1,3 +1,4 @@
+
 import { Customer, Event, EventStatus, SelectableEventStatus, EventDetail, Payment, PaymentMethod, Currency } from '../types/models';
 import { toast } from 'sonner';
 
@@ -14,8 +15,8 @@ class DataService {
   private payments: Payment[] = [];
 
   constructor() {
-    // Initialize with enhanced sample data
-    this.initSampleData();
+    // Initialize with demo data only for the specific demo user
+    this.initDemoDataForSpecificUser();
   }
 
   // Get current user ID from auth context
@@ -29,7 +30,7 @@ class DataService {
         console.error('Error getting current user ID:', error);
       }
     }
-    return 'demo-admin'; // Fallback for demo
+    return '';
   }
 
   // Helper method to calculate event totals with tax
@@ -68,13 +69,36 @@ class DataService {
     }
   }
 
-  private initSampleData() {
+  private initDemoDataForSpecificUser() {
+    // ONLY create demo data for the specific demo user email
+    const DEMO_USER_EMAIL = 'djmadmancr@gmail.com';
+    const DEMO_USER_ID = 'demo-admin';
+    
+    // Check if current user is the demo user
+    const authUser = localStorage.getItem('demo-auth-user');
+    let isDemoUser = false;
+    
+    if (authUser) {
+      try {
+        const user = JSON.parse(authUser);
+        isDemoUser = user.email === DEMO_USER_EMAIL;
+      } catch (error) {
+        console.log('No auth user found');
+      }
+    }
+
+    // Only initialize demo data if this is the demo user
+    if (!isDemoUser) {
+      console.log('✅ New user profile initialized - no demo data');
+      return;
+    }
+
     // Get default tax from localStorage
     const defaultTaxPercentage = localStorage.getItem('defaultTaxPercentage');
     const taxPercentage = defaultTaxPercentage ? parseFloat(defaultTaxPercentage) : 13;
     
     // Create demo data only for the admin user
-    const adminUserId = 'demo-admin';
+    const adminUserId = DEMO_USER_ID;
     
     // Create 12 customers for admin user
     const customers = [
@@ -189,7 +213,7 @@ class DataService {
 
       const cost = Math.floor(Math.random() * 800000) + 150000; // Between 150k and 950k
       
-      const event = this.addEvent({
+      const event = this.addEventForUser({
         customerId: randomCustomer.id,
         title: randomEventType,
         date: eventDate,
@@ -197,7 +221,7 @@ class DataService {
         cost: cost,
         taxPercentage: taxPercentage,
         status: status
-      });
+      }, adminUserId);
 
       events.push(event);
 
@@ -219,7 +243,7 @@ class DataService {
 
         const additionalCost = Math.floor(Math.random() * 600000) + 200000;
         
-        const additionalEvent = this.addEvent({
+        const additionalEvent = this.addEventForUser({
           customerId: anotherCustomer.id,
           title: anotherEventType,
           date: additionalEventDate,
@@ -227,7 +251,7 @@ class DataService {
           cost: additionalCost,
           taxPercentage: taxPercentage,
           status: additionalStatus
-        });
+        }, adminUserId);
 
         events.push(additionalEvent);
       }
@@ -246,59 +270,61 @@ class DataService {
       
       for (let i = 0; i < numDetails; i++) {
         const equipment = equipmentTypes[Math.floor(Math.random() * equipmentTypes.length)];
-        this.addEventDetail({
+        this.addEventDetailForUser({
           eventId: event.id,
           description: equipment,
           quantity: Math.floor(Math.random() * 4) + 1,
           notes: i === 0 ? 'Equipo principal del evento' : 'Equipo adicional'
-        });
+        }, adminUserId);
       }
     });
 
-    // Add payments for delivered and paid events
+    // Add payments for delivered and paid events - FIXED: changed 'card' to 'credit'
     const paidEvents = events.filter(e => e.status === 'paid' || e.status === 'delivered');
     paidEvents.forEach(event => {
       if (Math.random() > 0.3) { // 70% of events have payments
-        const paymentMethods: PaymentMethod[] = ['cash', 'transfer', 'card'];
+        const paymentMethods: PaymentMethod[] = ['cash', 'transfer', 'credit']; // FIXED: 'card' -> 'credit'
         const randomMethod = paymentMethods[Math.floor(Math.random() * paymentMethods.length)];
         
         // For paid events, add full payment
         if (event.status === 'paid') {
-          this.addPayment({
+          this.addPaymentForUser({
             eventId: event.id,
             amount: event.totalWithTax || event.cost,
             currency: 'CRC',
             paymentDate: new Date(event.date.getTime() + (Math.random() * 7 * 24 * 60 * 60 * 1000)), // Within a week after event
             method: randomMethod,
             notes: 'Pago completo del evento'
-          });
+          }, adminUserId);
         } else {
           // For delivered events, add partial payment
           const partialAmount = Math.floor((event.totalWithTax || event.cost) * (0.3 + Math.random() * 0.4)); // 30-70% of total
-          this.addPayment({
+          this.addPaymentForUser({
             eventId: event.id,
             amount: partialAmount,
             currency: 'CRC',
             paymentDate: new Date(event.date.getTime() - (Math.random() * 30 * 24 * 60 * 60 * 1000)), // Up to 30 days before event
             method: randomMethod,
             notes: 'Pago parcial - anticipo'
-          });
+          }, adminUserId);
         }
       }
     });
 
-    console.log(`✅ Demo data initialized for admin user: ${customers.length} customers, ${events.length} events`);
+    console.log(`✅ Demo data initialized for demo user: ${customers.length} customers, ${events.length} events`);
   }
 
   // CUSTOMER METHODS - Updated to filter by user
   
   getAllCustomers(): Customer[] {
     const currentUserId = this.getCurrentUserId();
+    if (!currentUserId) return [];
     return this.customers.filter(customer => customer.userId === currentUserId);
   }
 
   getCustomerById(id: string): Customer | undefined {
     const currentUserId = this.getCurrentUserId();
+    if (!currentUserId) return undefined;
     const customer = this.customers.find(customer => customer.id === id);
     // Verify the customer belongs to the current user
     if (customer && customer.userId === currentUserId) {
@@ -309,6 +335,10 @@ class DataService {
 
   addCustomer(customerData: Omit<Customer, 'id' | 'createdAt' | 'updatedAt' | 'userId'>): Customer {
     const currentUserId = this.getCurrentUserId();
+    if (!currentUserId) {
+      toast.error('Usuario no autenticado');
+      throw new Error('Usuario no autenticado');
+    }
     return this.addCustomerForUser(customerData, currentUserId);
   }
 
@@ -331,6 +361,10 @@ class DataService {
 
   updateCustomer(id: string, customerData: Partial<Omit<Customer, 'id' | 'createdAt' | 'updatedAt' | 'userId'>>): Customer | undefined {
     const currentUserId = this.getCurrentUserId();
+    if (!currentUserId) {
+      toast.error('Usuario no autenticado');
+      return undefined;
+    }
     const customerIndex = this.customers.findIndex(customer => customer.id === id && customer.userId === currentUserId);
     
     if (customerIndex === -1) {
@@ -351,7 +385,10 @@ class DataService {
 
   deleteCustomer(id: string): boolean {
     const currentUserId = this.getCurrentUserId();
-    const initialLength = this.customers.length;
+    if (!currentUserId) {
+      toast.error('Usuario no autenticado');
+      return false;
+    }
     const customerToDelete = this.customers.find(c => c.id === id && c.userId === currentUserId);
     
     if (!customerToDelete) {
@@ -375,16 +412,19 @@ class DataService {
   
   getAllEvents(): Event[] {
     const currentUserId = this.getCurrentUserId();
+    if (!currentUserId) return [];
     return this.events.filter(event => event.userId === currentUserId);
   }
 
   getEventsByCustomerId(customerId: string): Event[] {
     const currentUserId = this.getCurrentUserId();
+    if (!currentUserId) return [];
     return this.events.filter(event => event.customerId === customerId && event.userId === currentUserId);
   }
 
   getEventById(id: string): Event | undefined {
     const currentUserId = this.getCurrentUserId();
+    if (!currentUserId) return undefined;
     const event = this.events.find(event => event.id === id);
     if (event && event.userId === currentUserId) {
       return event;
@@ -394,12 +434,21 @@ class DataService {
 
   addEvent(eventData: Omit<Event, 'id' | 'createdAt' | 'updatedAt' | 'taxAmount' | 'totalWithTax' | 'userId'>): Event {
     const currentUserId = this.getCurrentUserId();
-    
-    // Verify the customer belongs to the current user
-    const customer = this.getCustomerById(eventData.customerId);
-    if (!customer) {
-      toast.error('Cliente no encontrado o no autorizado');
-      throw new Error('Cliente no encontrado o no autorizado');
+    if (!currentUserId) {
+      toast.error('Usuario no autenticado');
+      throw new Error('Usuario no autenticado');
+    }
+    return this.addEventForUser(eventData, currentUserId);
+  }
+
+  private addEventForUser(eventData: Omit<Event, 'id' | 'createdAt' | 'updatedAt' | 'taxAmount' | 'totalWithTax' | 'userId'>, userId: string): Event {
+    // Verify the customer belongs to the current user (only if not creating demo data)
+    if (userId === this.getCurrentUserId()) {
+      const customer = this.getCustomerById(eventData.customerId);
+      if (!customer) {
+        toast.error('Cliente no encontrado o no autorizado');
+        throw new Error('Cliente no encontrado o no autorizado');
+      }
     }
     
     const now = new Date();
@@ -413,7 +462,7 @@ class DataService {
     let newEvent: Event = {
       id: generateId(),
       ...eventData,
-      userId: currentUserId,
+      userId: userId,
       createdAt: now,
       updatedAt: now
     };
@@ -422,12 +471,18 @@ class DataService {
     newEvent = this.calculateEventTotals(newEvent);
     
     this.events.push(newEvent);
-    toast.success('Evento creado exitosamente');
+    if (userId === this.getCurrentUserId()) {
+      toast.success('Evento creado exitosamente');
+    }
     return newEvent;
   }
 
   updateEvent(id: string, eventData: Partial<Omit<Event, 'id' | 'createdAt' | 'updatedAt' | 'taxAmount' | 'totalWithTax' | 'userId'>>): Event | undefined {
     const currentUserId = this.getCurrentUserId();
+    if (!currentUserId) {
+      toast.error('Usuario no autenticado');
+      return undefined;
+    }
     const eventIndex = this.events.findIndex(event => event.id === id && event.userId === currentUserId);
     
     if (eventIndex === -1) {
@@ -455,6 +510,10 @@ class DataService {
 
   deleteEvent(id: string): boolean {
     const currentUserId = this.getCurrentUserId();
+    if (!currentUserId) {
+      toast.error('Usuario no autenticado');
+      return false;
+    }
     const eventToDelete = this.events.find(e => e.id === id && e.userId === currentUserId);
     
     if (!eventToDelete) {
@@ -486,12 +545,14 @@ class DataService {
   
   getAllEventDetails(): EventDetail[] {
     const currentUserId = this.getCurrentUserId();
+    if (!currentUserId) return [];
     const userEventIds = this.events.filter(e => e.userId === currentUserId).map(e => e.id);
     return this.eventDetails.filter(detail => userEventIds.includes(detail.eventId));
   }
 
   getEventDetailsByEventId(eventId: string): EventDetail[] {
     const currentUserId = this.getCurrentUserId();
+    if (!currentUserId) return [];
     const event = this.getEventById(eventId);
     if (!event) return [];
     
@@ -500,6 +561,7 @@ class DataService {
 
   getEventDetailById(id: string): EventDetail | undefined {
     const currentUserId = this.getCurrentUserId();
+    if (!currentUserId) return undefined;
     const detail = this.eventDetails.find(detail => detail.id === id);
     if (!detail) return undefined;
     
@@ -510,11 +572,21 @@ class DataService {
 
   addEventDetail(detailData: Omit<EventDetail, 'id' | 'createdAt' | 'updatedAt'>): EventDetail {
     const currentUserId = this.getCurrentUserId();
-    const event = this.getEventById(detailData.eventId);
-    
-    if (!event) {
-      toast.error('Evento no encontrado o no autorizado');
-      throw new Error('Evento no encontrado o no autorizado');
+    if (!currentUserId) {
+      toast.error('Usuario no autenticado');
+      throw new Error('Usuario no autenticado');
+    }
+    return this.addEventDetailForUser(detailData, currentUserId);
+  }
+
+  private addEventDetailForUser(detailData: Omit<EventDetail, 'id' | 'createdAt' | 'updatedAt'>, userId: string): EventDetail {
+    // Verify event exists and belongs to user (only if not creating demo data)
+    if (userId === this.getCurrentUserId()) {
+      const event = this.getEventById(detailData.eventId);
+      if (!event) {
+        toast.error('Evento no encontrado o no autorizado');
+        throw new Error('Evento no encontrado o no autorizado');
+      }
     }
     
     const now = new Date();
@@ -526,7 +598,9 @@ class DataService {
     };
     
     this.eventDetails.push(newDetail);
-    toast.success('Detalle agregado exitosamente');
+    if (userId === this.getCurrentUserId()) {
+      toast.success('Detalle agregado exitosamente');
+    }
     return newDetail;
   }
 
@@ -565,6 +639,7 @@ class DataService {
   
   getAllPayments(): Payment[] {
     const currentUserId = this.getCurrentUserId();
+    if (!currentUserId) return [];
     const userEventIds = this.events.filter(e => e.userId === currentUserId).map(e => e.id);
     return this.payments.filter(payment => userEventIds.includes(payment.eventId));
   }
@@ -586,10 +661,22 @@ class DataService {
   }
 
   addPayment(paymentData: Omit<Payment, 'id' | 'createdAt' | 'updatedAt'>): Payment {
-    const event = this.getEventById(paymentData.eventId);
-    if (!event) {
-      toast.error('Evento no encontrado o no autorizado');
-      throw new Error('Evento no encontrado o no autorizado');
+    const currentUserId = this.getCurrentUserId();
+    if (!currentUserId) {
+      toast.error('Usuario no autenticado');
+      throw new Error('Usuario no autenticado');
+    }
+    return this.addPaymentForUser(paymentData, currentUserId);
+  }
+
+  private addPaymentForUser(paymentData: Omit<Payment, 'id' | 'createdAt' | 'updatedAt'>, userId: string): Payment {
+    // Verify event exists and belongs to user (only if not creating demo data)
+    if (userId === this.getCurrentUserId()) {
+      const event = this.getEventById(paymentData.eventId);
+      if (!event) {
+        toast.error('Evento no encontrado o no autorizado');
+        throw new Error('Evento no encontrado o no autorizado');
+      }
     }
     
     const now = new Date();
@@ -606,7 +693,9 @@ class DataService {
     // Update event status based on new payment
     this.updateEventStatusBasedOnPayments(paymentData.eventId);
     
-    toast.success('Pago registrado exitosamente');
+    if (userId === this.getCurrentUserId()) {
+      toast.success('Pago registrado exitosamente');
+    }
     return newPayment;
   }
 
@@ -668,6 +757,7 @@ class DataService {
   // FINANCIAL SUMMARY METHODS - Updated to filter by user
   getEventsTotalByStatus(status: EventStatus): number {
     const currentUserId = this.getCurrentUserId();
+    if (!currentUserId) return 0;
     return this.events
       .filter(event => event.status === status && event.userId === currentUserId)
       .reduce((total, event) => total + (event.totalWithTax || event.cost || 0), 0);
@@ -675,6 +765,7 @@ class DataService {
 
   getEventsTotalByStatusAndDateRange(status: EventStatus, startDate?: Date, endDate?: Date): number {
     const currentUserId = this.getCurrentUserId();
+    if (!currentUserId) return 0;
     return this.events
       .filter(event => {
         if (event.status !== status || event.userId !== currentUserId) return false;
@@ -691,6 +782,25 @@ class DataService {
     // This method is called when a new user registers
     // It doesn't create any initial data, the user will create their own
     console.log(`✅ User profile space created for user: ${userId}`);
+  }
+
+  // Clear all data for current user (for testing purposes)
+  clearUserData(): void {
+    const currentUserId = this.getCurrentUserId();
+    if (!currentUserId) return;
+    
+    this.customers = this.customers.filter(c => c.userId !== currentUserId);
+    this.events = this.events.filter(e => e.userId !== currentUserId);
+    this.eventDetails = this.eventDetails.filter(d => {
+      const eventExists = this.events.some(e => e.id === d.eventId);
+      return eventExists;
+    });
+    this.payments = this.payments.filter(p => {
+      const eventExists = this.events.some(e => e.id === p.eventId);
+      return eventExists;
+    });
+    
+    console.log(`✅ User data cleared for user: ${currentUserId}`);
   }
 }
 
