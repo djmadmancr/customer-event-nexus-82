@@ -24,6 +24,7 @@ import PaymentPage from './pages/Payments/PaymentPage';
 import AdminDashboard from './pages/Admin/Dashboard';
 import UserManagement from './pages/Admin/UserManagement';
 import AppSettings from './pages/Settings/AppSettings';
+import BookingForm from './pages/Booking/BookingForm';
 
 // Contexts
 import { CrmProvider } from './contexts/CrmContext';
@@ -45,6 +46,9 @@ function App() {
                 <CrmProvider>
                   <div className="min-h-screen bg-gray-50">
                     <Routes>
+                      {/* Public booking form route */}
+                      <Route path="/booking/:userId" element={<BookingForm />} />
+                      
                       {/* Auth routes */}
                       <Route path="/login" element={<AuthPage />} />
                       

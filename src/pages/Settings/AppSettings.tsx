@@ -21,18 +21,22 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Upload, Trash2, Mail, TestTube, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Upload, Trash2, Mail, TestTube, Eye, EyeOff, Copy, Check } from 'lucide-react';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { useAppConfig } from '@/contexts/AppConfigContext';
 import { useEmailConfig } from '@/contexts/EmailConfigContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Currency } from '@/types/models';
 
 const settingsSchema = z.object({
   name: z.string().min(2, { message: 'El nombre debe tener al menos 2 caracteres.' }),
-  artistName: z.string().optional(),
   email: z.string().email({ message: 'Debe ser un email válido.' }),
   phone: z.string().min(8, { message: 'El teléfono debe tener al menos 8 caracteres.' }),
+});
+
+const artisticDataSchema = z.object({
+  artistName: z.string().optional(),
 });
 
 const appConfigSchema = z.object({
@@ -56,30 +60,43 @@ const emailConfigSchema = z.object({
 });
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
+type ArtisticDataFormValues = z.infer<typeof artisticDataSchema>;
 type AppConfigFormValues = z.infer<typeof appConfigSchema>;
 type EmailConfigFormValues = z.infer<typeof emailConfigSchema>;
 
 const AppSettings: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUpdatingLogo, setIsUpdatingLogo] = useState(false);
+  const [isUpdatingArtisticData, setIsUpdatingArtisticData] = useState(false);
   const [isUpdatingAppConfig, setIsUpdatingAppConfig] = useState(false);
   const [isUpdatingEmailConfig, setIsUpdatingEmailConfig] = useState(false);
   const [isTestingEmail, setIsTestingEmail] = useState(false);
   const [showSmtpPassword, setShowSmtpPassword] = useState(false);
   const [showImapPassword, setShowImapPassword] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   
   const { userProfile, updateUserProfile } = useUserProfile();
   const { logoUrl, defaultCurrency, defaultTaxPercentage, updateAppLogo, updateDefaultCurrency, updateDefaultTaxPercentage } = useAppConfig();
   const { emailConfig, updateEmailConfig, isConfigured, testEmailConnection } = useEmailConfig();
+  const { currentUser } = useAuth();
   const { toast } = useToast();
+
+  // Generate unique booking link for this user
+  const bookingLink = `${window.location.origin}/booking/${currentUser?.uid}`;
 
   const form = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
     defaultValues: {
       name: userProfile?.name || '',
-      artistName: userProfile?.artistName || '',
       email: userProfile?.email || '',
       phone: userProfile?.phone || '',
+    },
+  });
+
+  const artisticForm = useForm<ArtisticDataFormValues>({
+    resolver: zodResolver(artisticDataSchema),
+    defaultValues: {
+      artistName: userProfile?.artistName || '',
     },
   });
 
@@ -101,12 +118,14 @@ const AppSettings: React.FC = () => {
     if (userProfile) {
       form.reset({
         name: userProfile.name,
-        artistName: userProfile.artistName || '',
         email: userProfile.email,
         phone: userProfile.phone,
       });
+      artisticForm.reset({
+        artistName: userProfile.artistName || '',
+      });
     }
-  }, [userProfile, form]);
+  }, [userProfile, form, artisticForm]);
 
   React.useEffect(() => {
     appConfigForm.reset({
@@ -124,7 +143,6 @@ const AppSettings: React.FC = () => {
     try {
       updateUserProfile({
         name: data.name,
-        artistName: data.artistName,
         email: data.email,
         phone: data.phone,
       });
@@ -141,6 +159,28 @@ const AppSettings: React.FC = () => {
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const onArtisticDataSubmit = async (data: ArtisticDataFormValues) => {
+    setIsUpdatingArtisticData(true);
+    try {
+      updateUserProfile({
+        artistName: data.artistName,
+      });
+      
+      toast({
+        title: "Datos artísticos actualizados",
+        description: "Tus datos artísticos han sido actualizados correctamente.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar los datos artísticos.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingArtisticData(false);
     }
   };
 
@@ -209,6 +249,24 @@ const AppSettings: React.FC = () => {
       });
     } finally {
       setIsTestingEmail(false);
+    }
+  };
+
+  const copyBookingLink = async () => {
+    try {
+      await navigator.clipboard.writeText(bookingLink);
+      setLinkCopied(true);
+      toast({
+        title: "Link copiado",
+        description: "El link de bookings ha sido copiado al portapapeles.",
+      });
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo copiar el link.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -282,9 +340,9 @@ const AppSettings: React.FC = () => {
   return (
     <div className="container mx-auto space-y-6">
       <Tabs defaultValue="profile" className="max-w-4xl mx-auto">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="profile">Perfil</TabsTrigger>
-          <TabsTrigger value="logo">Logo</TabsTrigger>
+          <TabsTrigger value="artistic">Datos Artísticos</TabsTrigger>
           <TabsTrigger value="app">Aplicación</TabsTrigger>
           <TabsTrigger value="email">Email</TabsTrigger>
         </TabsList>
@@ -305,20 +363,6 @@ const AppSettings: React.FC = () => {
                         <FormLabel>Nombre Completo</FormLabel>
                         <FormControl>
                           <Input placeholder="Tu nombre completo" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="artistName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nombre Artístico (DJ/Banda)</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Nombre artístico o de la banda" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -371,70 +415,106 @@ const AppSettings: React.FC = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="logo">
+        <TabsContent value="artistic">
           <Card>
             <CardHeader>
-              <CardTitle>Logo de la Empresa</CardTitle>
+              <CardTitle>Datos Artísticos</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {logoUrl && (
-                  <div className="mb-4">
-                    <p className="text-sm font-medium mb-2">Vista previa:</p>
-                    <div className="flex items-center justify-between">
-                      <img 
-                        src={logoUrl} 
-                        alt="Logo Preview" 
-                        className="max-h-20 max-w-xs border p-2 rounded"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        onClick={removeLogo}
-                        disabled={isUpdatingLogo}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Eliminar logo
-                      </Button>
+              <div className="space-y-6">
+                {/* Logo Section */}
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Logo de la Empresa</h3>
+                  {logoUrl && (
+                    <div className="mb-4">
+                      <p className="text-sm font-medium mb-2">Vista previa:</p>
+                      <div className="flex items-center justify-between">
+                        <img 
+                          src={logoUrl} 
+                          alt="Logo Preview" 
+                          className="max-h-20 max-w-xs border p-2 rounded"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={removeLogo}
+                          disabled={isUpdatingLogo}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Eliminar logo
+                        </Button>
+                      </div>
                     </div>
+                  )}
+                  
+                  <div className="flex flex-col space-y-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => document.getElementById('logo-upload')?.click()}
+                      disabled={isUpdatingLogo}
+                    >
+                      {isUpdatingLogo ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Guardando...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 mr-2" />
+                          {logoUrl ? 'Cambiar Logo' : 'Subir Logo'}
+                        </>
+                      )}
+                    </Button>
+                    <input
+                      id="logo-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageChange}
+                      disabled={isUpdatingLogo}
+                    />
+                    <p className="text-sm text-gray-500">
+                      Formatos aceptados: JPG, PNG. Tamaño máximo: 2MB. Recomendado: 200x50px
+                    </p>
                   </div>
-                )}
-                
-                <div className="flex flex-col space-y-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => document.getElementById('logo-upload')?.click()}
-                    disabled={isUpdatingLogo}
-                  >
-                    {isUpdatingLogo ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Guardando...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="h-4 w-4 mr-2" />
-                        {logoUrl ? 'Cambiar Logo' : 'Subir Logo'}
-                      </>
-                    )}
-                  </Button>
-                  <input
-                    id="logo-upload"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleImageChange}
-                    disabled={isUpdatingLogo}
-                  />
-                  <p className="text-sm text-gray-500">
-                    Formatos aceptados: JPG, PNG. Tamaño máximo: 2MB. Recomendado: 200x50px
-                  </p>
                 </div>
+
+                {/* Artist Name Form */}
+                <Form {...artisticForm}>
+                  <form onSubmit={artisticForm.handleSubmit(onArtisticDataSubmit)} className="space-y-6">
+                    <FormField
+                      control={artisticForm.control}
+                      name="artistName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nombre Artístico (DJ/Banda)</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Nombre artístico o de la banda" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-crm-primary hover:bg-crm-primary/90"
+                      disabled={isUpdatingArtisticData}
+                    >
+                      {isUpdatingArtisticData ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Guardando...
+                        </>
+                      ) : 'Guardar Datos Artísticos'}
+                    </Button>
+                  </form>
+                </Form>
               </div>
             </CardContent>
           </Card>
@@ -446,72 +526,104 @@ const AppSettings: React.FC = () => {
               <CardTitle>Configuración de la Aplicación</CardTitle>
             </CardHeader>
             <CardContent>
-              <Form {...appConfigForm}>
-                <form onSubmit={appConfigForm.handleSubmit(onAppConfigSubmit)} className="space-y-6">
-                  <FormField
-                    control={appConfigForm.control}
-                    name="defaultCurrency"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Divisa Principal</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona la divisa" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="CRC">Colones Costarricenses (₡)</SelectItem>
-                            <SelectItem value="USD">Dólares Americanos ($)</SelectItem>
-                            <SelectItem value="EUR">Euros (€)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        <p className="text-sm text-gray-500">
-                          Esta divisa se utilizará en toda la plataforma
-                        </p>
-                      </FormItem>
-                    )}
-                  />
+              <div className="space-y-6">
+                {/* Booking Link Section */}
+                <div className="p-4 bg-gray-50 rounded-lg border">
+                  <h3 className="font-medium text-gray-700 mb-3">Link para Bookings</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Comparte este link con tus clientes para que puedan solicitar cotizaciones directamente.
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      onClick={copyBookingLink}
+                      className="bg-crm-primary hover:bg-crm-primary/90"
+                    >
+                      {linkCopied ? (
+                        <>
+                          <Check className="h-4 w-4 mr-2" />
+                          Copiado
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Link para Bookings
+                        </>
+                      )}
+                    </Button>
+                    <div className="flex-1 px-3 py-2 bg-white border rounded text-sm text-gray-600 truncate">
+                      {bookingLink}
+                    </div>
+                  </div>
+                </div>
 
-                  <FormField
-                    control={appConfigForm.control}
-                    name="defaultTaxPercentage"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Porcentaje de Impuesto por Defecto (%)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            min="0" 
-                            max="100" 
-                            step="0.1"
-                            placeholder="13" 
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                        <p className="text-sm text-gray-500">
-                          Este impuesto se aplicará automáticamente a todos los eventos nuevos
-                        </p>
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-crm-primary hover:bg-crm-primary/90"
-                    disabled={isUpdatingAppConfig}
-                  >
-                    {isUpdatingAppConfig ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Guardando...
-                      </>
-                    ) : 'Guardar Configuración'}
-                  </Button>
-                </form>
-              </Form>
+                <Form {...appConfigForm}>
+                  <form onSubmit={appConfigForm.handleSubmit(onAppConfigSubmit)} className="space-y-6">
+                    <FormField
+                      control={appConfigForm.control}
+                      name="defaultCurrency"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Divisa Principal</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecciona la divisa" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="CRC">Colones Costarricenses (₡)</SelectItem>
+                              <SelectItem value="USD">Dólares Americanos ($)</SelectItem>
+                              <SelectItem value="EUR">Euros (€)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                          <p className="text-sm text-gray-500">
+                            Esta divisa se utilizará en toda la plataforma
+                          </p>
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={appConfigForm.control}
+                      name="defaultTaxPercentage"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Porcentaje de Impuesto por Defecto (%)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              min="0" 
+                              max="100" 
+                              step="0.1"
+                              placeholder="13" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                          <p className="text-sm text-gray-500">
+                            Este impuesto se aplicará automáticamente a todos los eventos nuevos
+                          </p>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-crm-primary hover:bg-crm-primary/90"
+                      disabled={isUpdatingAppConfig}
+                    >
+                      {isUpdatingAppConfig ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Guardando...
+                        </>
+                      ) : 'Guardar Configuración'}
+                    </Button>
+                  </form>
+                </Form>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

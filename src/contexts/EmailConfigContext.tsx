@@ -94,11 +94,12 @@ export const EmailConfigProvider: React.FC<EmailConfigProviderProps> = ({ childr
     localStorage.setItem(configKey, JSON.stringify(updatedConfig));
   };
 
-  const isConfigured = 
+  const isConfigured = Boolean(
     emailConfig.smtpHost && 
     emailConfig.smtpUser && 
     emailConfig.smtpPassword && 
-    emailConfig.fromEmail;
+    emailConfig.fromEmail
+  );
 
   const testEmailConnection = async (): Promise<boolean> => {
     // In a real implementation, this would test the SMTP connection

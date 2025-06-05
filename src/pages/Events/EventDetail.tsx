@@ -9,9 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Pencil, Plus, ArrowLeft, User, Calendar, CreditCard, MapPin, DollarSign, AlertCircle } from 'lucide-react';
+import { Pencil, Plus, ArrowLeft, User, Calendar, CreditCard, MapPin, Coins, AlertCircle, ChevronDown } from 'lucide-react';
 import { useCrm } from '@/contexts/CrmContext';
 import { useAppConfig } from '@/contexts/AppConfigContext';
+import { useEmailConfig } from '@/contexts/EmailConfigContext';
 import dataService from '@/services/DataService';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -22,12 +23,19 @@ import EventPdfExporter from '@/components/Events/EventPdfExporter';
 import EventComments from '@/components/Events/EventComments';
 import EventTaxManager from '@/components/Events/EventTaxManager';
 import { Event as CrmEvent } from '@/types/models';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const EventDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { customers, selectedEvent, setSelectedEvent } = useCrm();
   const { defaultCurrency } = useAppConfig();
+  const { isConfigured } = useEmailConfig();
   const [activeTab, setActiveTab] = useState('info');
   const [isAddingPayment, setIsAddingPayment] = useState(false);
   const [eventDetails, setEventDetails] = useState([]);
@@ -162,13 +170,31 @@ const EventDetail = () => {
         <EventTaxManager event={selectedEvent} onTaxUpdate={handleTaxUpdate} />
         
         {customer && (
-          <EventPdfExporter 
-            event={selectedEvent} 
-            customer={customer}
-            payments={payments}
-            eventDetails={eventDetails}
-          />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                Propuesta
+                <ChevronDown className="h-4 w-4 ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem asChild>
+                <EventPdfExporter 
+                  event={selectedEvent} 
+                  customer={customer}
+                  payments={payments}
+                  eventDetails={eventDetails}
+                />
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={!isConfigured}>
+                <span className={!isConfigured ? "text-gray-400" : ""}>
+                  Enviar por Email
+                </span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
+        
         <Button 
           variant="outline"
           onClick={() => navigate(`/events/${selectedEvent.id}/edit`)}
@@ -187,11 +213,12 @@ const EventDetail = () => {
       
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-4 w-[500px]">
+        <TabsList className="grid grid-cols-5 w-[600px]">
           <TabsTrigger value="info">Información</TabsTrigger>
           <TabsTrigger value="details">Detalles</TabsTrigger>
           <TabsTrigger value="payments">Pagos</TabsTrigger>
           <TabsTrigger value="comments">Comentarios</TabsTrigger>
+          <TabsTrigger value="history">Historial</TabsTrigger>
         </TabsList>
         
         <TabsContent value="info" className="mt-4">
@@ -225,7 +252,7 @@ const EventDetail = () => {
                 </div>
                 
                 <div className="flex items-center space-x-3">
-                  <DollarSign className="h-5 w-5 text-gray-400" />
+                  <Coins className="h-5 w-5 text-gray-400" />
                   <div>
                     <h3 className="text-sm font-medium text-gray-500">Costo</h3>
                     <div className="mt-1">
@@ -345,6 +372,20 @@ const EventDetail = () => {
 
         <TabsContent value="comments" className="mt-4">
           <EventComments event={selectedEvent} onCommentUpdated={handleEventUpdate} />
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Historial de Propuestas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8 text-gray-500">
+                <p>No hay propuestas enviadas para este evento.</p>
+                <p className="text-sm mt-2">Las propuestas enviadas por email aparecerán aquí.</p>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
       

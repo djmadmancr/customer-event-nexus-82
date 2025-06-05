@@ -1,117 +1,177 @@
 
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Settings, LogOut, User } from 'lucide-react';
+import React, { useState } from 'react';
+import { Bell, Menu, Settings, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { 
+import { Badge } from '@/components/ui/badge';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useAppConfig } from '@/contexts/AppConfigContext';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/contexts/UserProfileContext';
+import { useAppConfig } from '@/contexts/AppConfigContext';
+import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
   toggleSidebar: () => void;
-  sidebarOpen: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({ toggleSidebar, sidebarOpen }) => {
-  const { logoUrl } = useAppConfig();
-  const { userData, signOut, syncUserName } = useAuth();
+const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
+  const { currentUser, logout } = useAuth();
   const { userProfile } = useUserProfile();
-  
-  // Sync user name when component mounts
-  React.useEffect(() => {
-    syncUserName();
-  }, [userProfile?.name, syncUserName]);
+  const { logoUrl } = useAppConfig();
+  const navigate = useNavigate();
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
-  // Get the display name (prioritize userProfile name over userData name)
-  const displayName = userProfile?.name || userData?.name || 'Usuario';
-  
-  const handleSignOut = async () => {
+  // Mock notifications - in real app, these would come from context/service
+  const notifications = [
+    {
+      id: 1,
+      type: 'new_event',
+      message: 'Nuevo evento creado: "Presentación de Producto"',
+      time: '2 horas ago',
+      read: false,
+    },
+    {
+      id: 2,
+      type: 'new_customer',
+      message: 'Nuevo cliente registrado: María González',
+      time: '5 horas ago',
+      read: false,
+    },
+    {
+      id: 3,
+      type: 'prospect_followup',
+      message: 'Seguimiento: Evento "Boda Ana & Carlos" lleva 3 días en prospecto',
+      time: '1 día ago',
+      read: true,
+    },
+  ];
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const handleLogout = async () => {
     try {
-      await signOut();
+      await logout();
+      navigate('/login');
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('Error during logout:', error);
     }
   };
-  
+
   return (
-    <header className="bg-white shadow-sm border-b h-16 flex items-center px-4 fixed top-0 left-0 w-full z-30">
-      <div className="flex items-center justify-between w-full">
+    <header className="bg-white border-b border-gray-200 px-4 py-3 fixed top-0 left-0 right-0 z-30">
+      <div className="flex items-center justify-between">
         <div className="flex items-center">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={toggleSidebar} 
-            className="md:flex hidden"
-            title={sidebarOpen ? "Colapsar menú" : "Expandir menú"}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleSidebar}
+            className="md:hidden"
           >
-            {sidebarOpen ? 
-              <ChevronLeft className="h-5 w-5" /> : 
-              <ChevronRight className="h-5 w-5" />
-            }
+            <Menu className="h-5 w-5" />
           </Button>
           
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={toggleSidebar} 
-            className="md:hidden block"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-          
-          <Link to="/" className="flex items-center ml-2 md:ml-0">
-            {logoUrl ? (
+          <div className="flex items-center ml-2 md:ml-0">
+            {logoUrl && (
               <img 
                 src={logoUrl} 
                 alt="Logo" 
-                className="h-8 max-w-32 mr-2"
+                className="h-8 w-auto mr-3"
                 onError={(e) => {
-                  // If image fails to load, show text fallback
                   (e.currentTarget as HTMLImageElement).style.display = 'none';
                 }}
               />
-            ) : (
-              <div className="bg-crm-primary rounded-md p-1">
-                <h1 className="text-white text-xl font-bold px-2">B</h1>
-              </div>
             )}
-            <h1 className="text-crm-text ml-2 text-xl font-semibold hidden md:block">
+            <h1 className="text-xl font-bold text-crm-primary">
               Bassline CRM
             </h1>
-          </Link>
+          </div>
         </div>
-        
-        <div className="flex items-center space-x-4">
-          {/* Welcome message */}
-          <span className="text-sm text-gray-600 hidden sm:block">
-            Bienvenido {displayName}
-          </span>
-          
-          {/* User dropdown */}
+
+        <div className="flex items-center space-x-2">
+          {/* Notifications */}
+          <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="relative">
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <Badge 
+                    variant="destructive" 
+                    className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs"
+                  >
+                    {unreadCount}
+                  </Badge>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-0" align="end">
+              <div className="p-4 border-b">
+                <h3 className="font-medium">Notificaciones</h3>
+              </div>
+              <div className="max-h-96 overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500">
+                    No hay notificaciones
+                  </div>
+                ) : (
+                  notifications.map((notification) => (
+                    <div
+                      key={notification.id}
+                      className={`p-4 border-b hover:bg-gray-50 cursor-pointer ${
+                        !notification.read ? 'bg-blue-50' : ''
+                      }`}
+                    >
+                      <p className="text-sm font-medium">{notification.message}</p>
+                      <p className="text-xs text-gray-500 mt-1">{notification.time}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+              {notifications.length > 0 && (
+                <div className="p-2 border-t">
+                  <Button variant="ghost" size="sm" className="w-full">
+                    Marcar todas como leídas
+                  </Button>
+                </div>
+              )}
+            </PopoverContent>
+          </Popover>
+
+          {/* User menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <User className="h-5 w-5" />
+              <Button variant="ghost" className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-crm-primary rounded-full flex items-center justify-center text-white text-sm font-medium">
+                  {userProfile?.name ? userProfile.name.charAt(0).toUpperCase() : 'U'}
+                </div>
+                <span className="hidden md:block text-sm font-medium">
+                  {userProfile?.name || 'Usuario'}
+                </span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem asChild>
-                <Link to="/settings" className="flex items-center">
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Configuración</span>
-                </Link>
+            <DropdownMenuContent align="end" className="w-56">
+              <div className="px-2 py-2">
+                <p className="text-sm font-medium">{userProfile?.name || 'Usuario'}</p>
+                <p className="text-xs text-gray-500">{currentUser?.email}</p>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate('/settings')}>
+                <Settings className="mr-2 h-4 w-4" />
+                Configuración
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSignOut}>
+              <DropdownMenuItem onClick={handleLogout} className="text-red-600">
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>Cerrar Sesión</span>
+                Cerrar Sesión
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
