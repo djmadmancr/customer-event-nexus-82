@@ -14,6 +14,7 @@ import { useEmailConfig } from '@/contexts/EmailConfigContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Copy, CheckCircle, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Currency } from '@/types/models';
 
 const profileSchema = z.object({
   name: z.string().optional(),
@@ -47,7 +48,7 @@ const emailSchema = z.object({
 
 const AppSettings = () => {
   const { userProfile, updateUserProfile } = useUserProfile();
-  const { defaultCurrency, updateDefaultCurrency, logoUrl, updateLogoUrl } = useAppConfig();
+  const { defaultCurrency, updateDefaultCurrency, logoUrl, updateAppLogo } = useAppConfig();
   const { emailConfig, updateEmailConfig, testEmailConnection, configureGmail, isConfigured } = useEmailConfig();
   const { currentUser } = useAuth();
   const { toast } = useToast();
@@ -206,7 +207,7 @@ const AppSettings = () => {
                 <Input
                   id="logo"
                   value={logoUrl || ''}
-                  onChange={(e) => updateLogoUrl(e.target.value)}
+                  onChange={(e) => updateAppLogo(e.target.value)}
                   placeholder="https://ejemplo.com/mi-logo.png"
                 />
                 {logoUrl && (
@@ -237,7 +238,7 @@ const AppSettings = () => {
                 <select
                   id="currency"
                   value={defaultCurrency}
-                  onChange={(e) => updateDefaultCurrency(e.target.value)}
+                  onChange={(e) => updateDefaultCurrency(e.target.value as Currency)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="USD">USD - Dólar Estadounidense</option>

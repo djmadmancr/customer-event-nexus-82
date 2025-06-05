@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Currency } from '@/types/models';
 import { useAuth } from './AuthContext';
@@ -84,6 +83,9 @@ export const AppConfigProvider: React.FC<AppConfigProviderProps> = ({ children }
     }
   };
 
+  // Add updateLogoUrl as an alias for compatibility
+  const updateLogoUrl = updateAppLogo;
+
   const updateDefaultCurrency = (currency: Currency) => {
     if (!currentUser) return;
     
@@ -107,6 +109,7 @@ export const AppConfigProvider: React.FC<AppConfigProviderProps> = ({ children }
     defaultCurrency,
     defaultTaxPercentage,
     updateAppLogo,
+    updateLogoUrl, // Add alias for backward compatibility
     updateDefaultCurrency,
     updateDefaultTaxPercentage,
   };

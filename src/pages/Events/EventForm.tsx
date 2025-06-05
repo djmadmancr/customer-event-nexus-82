@@ -108,7 +108,17 @@ const EventForm = () => {
       if (id) {
         dataService.updateEvent(id, data);
       } else {
-        dataService.addEvent(data);
+        // Ensure all required fields are present for new events
+        const eventData = {
+          customerId: data.customerId,
+          title: data.title,
+          date: data.date,
+          venue: data.venue,
+          cost: data.cost,
+          status: data.status,
+          comments: data.comments || '',
+        };
+        dataService.addEvent(eventData);
       }
       
       refreshEvents();
