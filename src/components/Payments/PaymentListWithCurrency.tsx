@@ -7,7 +7,7 @@ import { Pencil, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import dataService from '@/services/DataService';
-import { useAppConfig } from '@/contexts/AppConfigContext';
+import { useUserProfile } from '@/contexts/UserProfileContext';
 import { Payment, PaymentMethod } from '@/types/models';
 
 interface PaymentListProps {
@@ -15,7 +15,7 @@ interface PaymentListProps {
 }
 
 const PaymentListWithCurrency: React.FC<PaymentListProps> = ({ eventId }) => {
-  const { defaultCurrency } = useAppConfig();
+  const { userProfile } = useUserProfile();
   const [payments, setPayments] = useState<Payment[]>([]);
 
   useEffect(() => {
@@ -72,14 +72,17 @@ const PaymentListWithCurrency: React.FC<PaymentListProps> = ({ eventId }) => {
     }
   };
 
-  // Get currency symbol based on selected currency
-  const getCurrencySymbol = (currency: string) => {
-    switch (currency) {
+  // Get currency symbol based on user's configured currency
+  const getCurrencySymbol = (currency?: string) => {
+    const defaultCurrency = userProfile?.defaultCurrency || 'USD';
+    const currencyToUse = currency || defaultCurrency;
+    
+    switch (currencyToUse) {
       case 'USD': return '$';
       case 'EUR': return '€';
       case 'CRC': return '₡';
       case 'GBP': return '£';
-      default: return currency;
+      default: return currencyToUse;
     }
   };
 
@@ -107,7 +110,7 @@ const PaymentListWithCurrency: React.FC<PaymentListProps> = ({ eventId }) => {
                   {format(payment.paymentDate, 'dd/MM/yyyy', { locale: es })}
                 </TableCell>
                 <TableCell className="font-medium">
-                  {getCurrencySymbol(defaultCurrency)}{payment.amount.toLocaleString()}
+                  {getCurrencySymbol(payment.currency)}{payment.amount.toLocaleString()}
                 </TableCell>
                 <TableCell>
                   {getPaymentMethodBadge(payment.method)}
@@ -139,7 +142,7 @@ const PaymentListWithCurrency: React.FC<PaymentListProps> = ({ eventId }) => {
             Total de pagos: {payments.length}
           </div>
           <div className="text-lg font-semibold">
-            Total: {getCurrencySymbol(defaultCurrency)}{payments.reduce((sum, payment) => sum + payment.amount, 0).toLocaleString()}
+            Total: {getCurrencySymbol()}{payments.reduce((sum, payment) => sum + payment.amount, 0).toLocaleString()}
           </div>
         </div>
       )}

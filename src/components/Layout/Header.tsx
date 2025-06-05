@@ -25,7 +25,7 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
-  const { currentUser, logout } = useAuth();
+  const { currentUser, signOut } = useAuth();
   const { userProfile } = useUserProfile();
   const { logoUrl } = useAppConfig();
   const navigate = useNavigate();
@@ -60,7 +60,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
 
   const handleLogout = async () => {
     try {
-      await logout();
+      await signOut();
       navigate('/login');
     } catch (error) {
       console.error('Error during logout:', error);

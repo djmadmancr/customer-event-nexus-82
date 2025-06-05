@@ -89,26 +89,28 @@ const BookingForm = () => {
     
     setIsSubmitting(true);
     try {
-      // Create new customer
-      const customerId = dataService.addCustomer({
+      // Create new customer with correct structure
+      const newCustomer = {
         name: data.customerName,
         email: data.customerEmail,
         phone: data.customerPhone,
         notes: data.eventDescription || '',
-        userId: userId, // Associate with the target user
-      });
+      };
 
-      // Create new event as prospect
-      dataService.addEvent({
+      const customerId = dataService.addCustomer(newCustomer, userId);
+
+      // Create new event as prospect with correct structure
+      const newEvent = {
         customerId,
         title: data.eventTitle,
         date: data.eventDate,
         venue: data.eventVenue,
         cost: 0, // Will be filled later by the user
-        status: 'prospect',
+        status: 'prospect' as const,
         comments: data.eventDescription,
-        userId: userId, // Associate with the target user
-      });
+      };
+
+      dataService.addEvent(newEvent, userId);
 
       setIsSubmitted(true);
     } catch (error) {

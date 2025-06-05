@@ -10,6 +10,7 @@ import { Pencil, Plus, ArrowLeft } from 'lucide-react';
 import { useCrm } from '@/contexts/CrmContext';
 import dataService from '@/services/DataService';
 import EventList from '../Events/EventList';
+import CustomerEmails from '@/components/Customers/CustomerEmails';
 
 const CustomerDetail = () => {
   const { id } = useParams();
@@ -68,9 +69,10 @@ const CustomerDetail = () => {
       
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-2 w-[300px]">
+        <TabsList className="grid grid-cols-3 w-[400px]">
           <TabsTrigger value="info">Información</TabsTrigger>
           <TabsTrigger value="events">Eventos</TabsTrigger>
+          <TabsTrigger value="emails">Email</TabsTrigger>
         </TabsList>
         
         <TabsContent value="info" className="mt-4">
@@ -122,6 +124,10 @@ const CustomerDetail = () => {
               />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="emails" className="mt-4">
+          <CustomerEmails customerId={selectedCustomer.id} />
         </TabsContent>
       </Tabs>
     </div>

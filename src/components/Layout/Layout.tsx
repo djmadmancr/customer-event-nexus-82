@@ -48,7 +48,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   
   return (
     <div className="min-h-screen bg-crm-background">
-      <Header toggleSidebar={toggleSidebar} sidebarOpen={sidebarOpen} />
+      <Header toggleSidebar={toggleSidebar} />
       <Sidebar 
         isOpen={sidebarOpen} 
         mobileOpen={mobileSidebarOpen}
