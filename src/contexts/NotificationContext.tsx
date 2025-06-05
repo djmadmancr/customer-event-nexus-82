@@ -61,7 +61,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
   // Save notifications to localStorage
   useEffect(() => {
-    if (currentUser && notifications.length > 0) {
+    if (currentUser && notifications.length >= 0) {
       const notificationsKey = `notifications_${currentUser.uid}`;
       localStorage.setItem(notificationsKey, JSON.stringify(notifications));
     }
@@ -111,9 +111,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   };
 
   const markAllAsRead = () => {
-    setNotifications(prev =>
-      prev.map(notification => ({ ...notification, read: true }))
-    );
+    setNotifications(prev => prev.filter(notification => notification.read));
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;

@@ -22,6 +22,7 @@ interface EmailConfigContextType {
   updateEmailConfig: (config: Partial<EmailConfig>) => void;
   isConfigured: boolean;
   testEmailConnection: () => Promise<boolean>;
+  configureGmail: () => void;
 }
 
 const defaultEmailConfig: EmailConfig = {
@@ -119,11 +120,26 @@ export const EmailConfigProvider: React.FC<EmailConfigProviderProps> = ({ childr
     }
   };
 
+  const configureGmail = () => {
+    // Configure Gmail settings
+    const gmailConfig = {
+      smtpHost: 'smtp.gmail.com',
+      smtpPort: 587,
+      smtpSecure: false,
+      imapHost: 'imap.gmail.com',
+      imapPort: 993,
+      imapSecure: true,
+    };
+    
+    updateEmailConfig(gmailConfig);
+  };
+
   const value = {
     emailConfig,
     updateEmailConfig,
     isConfigured,
     testEmailConnection,
+    configureGmail,
   };
 
   return (

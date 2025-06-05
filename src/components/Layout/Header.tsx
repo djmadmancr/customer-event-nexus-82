@@ -18,6 +18,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { useAppConfig } from '@/contexts/AppConfigContext';
+import { useNotifications } from '@/contexts/NotificationContext';
 import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
@@ -28,35 +29,9 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
   const { currentUser, signOut } = useAuth();
   const { userProfile } = useUserProfile();
   const { logoUrl } = useAppConfig();
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const navigate = useNavigate();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-
-  // Mock notifications - in real app, these would come from context/service
-  const notifications = [
-    {
-      id: 1,
-      type: 'new_event',
-      message: 'Nuevo evento creado: "Presentación de Producto"',
-      time: '2 horas ago',
-      read: false,
-    },
-    {
-      id: 2,
-      type: 'new_customer',
-      message: 'Nuevo cliente registrado: María González',
-      time: '5 horas ago',
-      read: false,
-    },
-    {
-      id: 3,
-      type: 'prospect_followup',
-      message: 'Seguimiento: Evento "Boda Ana & Carlos" lleva 3 días en prospecto',
-      time: '1 día ago',
-      read: true,
-    },
-  ];
-
-  const unreadCount = notifications.filter(n => !n.read).length;
 
   const handleLogout = async () => {
     try {
@@ -65,6 +40,29 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
     } catch (error) {
       console.error('Error during logout:', error);
     }
+  };
+
+  const handleNotificationClick = (notification: any) => {
+    markAsRead(notification.id);
+    setNotificationsOpen(false);
+
+    // Navigate based on notification type
+    if (notification.type === 'new_event' && notification.eventId) {
+      navigate(`/events/${notification.eventId}`);
+    } else if (notification.type === 'new_customer' && notification.customerId) {
+      navigate(`/customers/${notification.customerId}`);
+    } else if (notification.type === 'prospect_followup' && notification.eventId) {
+      navigate(`/events/${notification.eventId}`);
+    } else if (notification.type === 'email_received') {
+      // Navigate to customer emails tab if customerId exists
+      if (notification.customerId) {
+        navigate(`/customers/${notification.customerId}`);
+      }
+    }
+  };
+
+  const handleMarkAllAsRead = () => {
+    markAllAsRead();
   };
 
   return (
@@ -129,6 +127,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
                       className={`p-4 border-b hover:bg-gray-50 cursor-pointer ${
                         !notification.read ? 'bg-blue-50' : ''
                       }`}
+                      onClick={() => handleNotificationClick(notification)}
                     >
                       <p className="text-sm font-medium">{notification.message}</p>
                       <p className="text-xs text-gray-500 mt-1">{notification.time}</p>
@@ -136,9 +135,9 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
                   ))
                 )}
               </div>
-              {notifications.length > 0 && (
+              {notifications.filter(n => !n.read).length > 0 && (
                 <div className="p-2 border-t">
-                  <Button variant="ghost" size="sm" className="w-full">
+                  <Button variant="ghost" size="sm" className="w-full" onClick={handleMarkAllAsRead}>
                     Marcar todas como leídas
                   </Button>
                 </div>

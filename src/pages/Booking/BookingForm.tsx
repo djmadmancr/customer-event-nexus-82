@@ -97,7 +97,7 @@ const BookingForm = () => {
         notes: data.eventDescription || '',
       };
 
-      const customerId = dataService.addCustomer(newCustomer, userId);
+      const customerId = dataService.addCustomer(newCustomer);
 
       // Create new event as prospect with correct structure
       const newEvent = {
@@ -110,7 +110,7 @@ const BookingForm = () => {
         comments: data.eventDescription,
       };
 
-      dataService.addEvent(newEvent, userId);
+      dataService.addEvent(newEvent);
 
       setIsSubmitted(true);
     } catch (error) {
