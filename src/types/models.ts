@@ -49,8 +49,8 @@ export interface EventDetail {
 // Payment Method enum - fixed to use credit instead of credit_card
 export type PaymentMethod = 'cash' | 'credit' | 'transfer' | 'check';
 
-// Currency enum
-export type Currency = 'USD' | 'CRC' | 'EUR';
+// Currency enum - Added MXN and COP that are used in the app
+export type Currency = 'USD' | 'CRC' | 'EUR' | 'MXN' | 'COP';
 
 // Payment Model
 export interface Payment {
@@ -88,4 +88,16 @@ export interface UserProfile {
   logoUrl?: string;
   defaultCurrency?: Currency;
   updatedAt: Date;
+}
+
+// Notification Model
+export interface Notification {
+  id: string;
+  type: 'event_reminder' | 'payment_due' | 'general';
+  title: string;
+  message: string;
+  targetId?: string; // ID of related event, customer, etc.
+  targetType?: 'event' | 'customer';
+  isRead: boolean;
+  createdAt: Date;
 }

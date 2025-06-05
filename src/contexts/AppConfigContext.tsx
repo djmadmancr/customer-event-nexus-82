@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Currency } from '@/types/models';
 import { useAuth } from './AuthContext';
@@ -7,6 +8,7 @@ interface AppConfigContextType {
   defaultCurrency: Currency;
   defaultTaxPercentage: number;
   updateAppLogo: (logoUrl: string | null) => Promise<void>;
+  updateLogoUrl: (logoUrl: string | null) => Promise<void>; // Add explicit type for alias
   updateDefaultCurrency: (currency: Currency) => void;
   updateDefaultTaxPercentage: (taxPercentage: number) => void;
 }

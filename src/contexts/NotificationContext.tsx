@@ -1,24 +1,15 @@
 
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { Notification } from '@/types/models';
 import { useAuth } from './AuthContext';
-import { useCrm } from './CrmContext';
-
-interface Notification {
-  id: string;
-  type: 'new_event' | 'new_customer' | 'email_received' | 'prospect_followup';
-  message: string;
-  time: string;
-  read: boolean;
-  eventId?: string;
-  customerId?: string;
-}
 
 interface NotificationContextType {
   notifications: Notification[];
   unreadCount: number;
+  addNotification: (notification: Omit<Notification, 'id' | 'isRead' | 'createdAt'>) => void;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
-  addNotification: (notification: Omit<Notification, 'id' | 'time' | 'read'>) => void;
+  removeNotification: (id: string) => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -37,10 +28,9 @@ interface NotificationProviderProps {
 
 export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children }) => {
   const { currentUser } = useAuth();
-  const { events, customers } = useCrm();
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
-  // Load notifications from localStorage
+  // Load notifications from localStorage when user changes
   useEffect(() => {
     if (currentUser) {
       const notificationsKey = `notifications_${currentUser.uid}`;
@@ -48,55 +38,37 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       
       if (savedNotifications) {
         try {
-          setNotifications(JSON.parse(savedNotifications));
+          const parsedNotifications = JSON.parse(savedNotifications);
+          setNotifications(parsedNotifications.map((n: any) => ({
+            ...n,
+            createdAt: new Date(n.createdAt)
+          })));
         } catch (error) {
           console.error('Error loading notifications:', error);
           setNotifications([]);
         }
+      } else {
+        setNotifications([]);
       }
     } else {
       setNotifications([]);
     }
   }, [currentUser?.uid]);
 
-  // Save notifications to localStorage
+  // Save notifications to localStorage whenever notifications change
   useEffect(() => {
-    if (currentUser && notifications.length >= 0) {
+    if (currentUser) {
       const notificationsKey = `notifications_${currentUser.uid}`;
       localStorage.setItem(notificationsKey, JSON.stringify(notifications));
     }
   }, [notifications, currentUser?.uid]);
 
-  // Check for prospect follow-ups every day (simplified for demo)
-  useEffect(() => {
-    if (events.length > 0) {
-      const now = new Date();
-      const threeDaysAgo = new Date(now.getTime() - (3 * 24 * 60 * 60 * 1000));
-
-      events.forEach(event => {
-        if (event.status === 'prospect' && event.createdAt <= threeDaysAgo) {
-          const existingNotification = notifications.find(
-            n => n.type === 'prospect_followup' && n.eventId === event.id
-          );
-
-          if (!existingNotification) {
-            addNotification({
-              type: 'prospect_followup',
-              message: `Seguimiento: Evento "${event.title}" lleva 3 días en prospecto`,
-              eventId: event.id,
-            });
-          }
-        }
-      });
-    }
-  }, [events]);
-
-  const addNotification = (notification: Omit<Notification, 'id' | 'time' | 'read'>) => {
+  const addNotification = (notificationData: Omit<Notification, 'id' | 'isRead' | 'createdAt'>) => {
     const newNotification: Notification = {
-      ...notification,
-      id: Date.now().toString(),
-      time: new Date().toLocaleString(),
-      read: false,
+      ...notificationData,
+      id: `notification_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      isRead: false,
+      createdAt: new Date(),
     };
 
     setNotifications(prev => [newNotification, ...prev]);
@@ -105,23 +77,29 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   const markAsRead = (id: string) => {
     setNotifications(prev =>
       prev.map(notification =>
-        notification.id === id ? { ...notification, read: true } : notification
+        notification.id === id ? { ...notification, isRead: true } : notification
       )
     );
   };
 
   const markAllAsRead = () => {
-    setNotifications(prev => prev.filter(notification => notification.read));
+    // Remove all read notifications instead of just marking them as read
+    setNotifications(prev => prev.filter(notification => notification.isRead === false));
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const removeNotification = (id: string) => {
+    setNotifications(prev => prev.filter(notification => notification.id !== id));
+  };
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
 
   const value = {
     notifications,
     unreadCount,
+    addNotification,
     markAsRead,
     markAllAsRead,
-    addNotification,
+    removeNotification,
   };
 
   return (

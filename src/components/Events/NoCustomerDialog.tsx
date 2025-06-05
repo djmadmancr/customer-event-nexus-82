@@ -1,14 +1,14 @@
 
 import React from 'react';
+import { Button } from '@/components/ui/button';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface NoCustomerDialogProps {
   open: boolean;
@@ -22,21 +22,25 @@ const NoCustomerDialog: React.FC<NoCustomerDialogProps> = ({
   onCreateCustomer,
 }) => {
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Cliente requerido</AlertDialogTitle>
-          <AlertDialogDescription>
-            Para crear un evento necesitas primero crear un cliente. ¿Deseas crear un cliente ahora?
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogAction onClick={onCreateCustomer}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>No hay clientes disponibles</DialogTitle>
+          <DialogDescription>
+            Para crear un evento necesitas tener al menos un cliente registrado.
+            ¿Deseas crear un cliente primero?
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button onClick={onCreateCustomer}>
             Crear Cliente
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

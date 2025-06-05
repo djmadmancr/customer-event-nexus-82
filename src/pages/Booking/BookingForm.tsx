@@ -101,7 +101,7 @@ const BookingForm = () => {
 
       // Create new event as prospect with correct structure
       const newEvent = {
-        customerId: customerId, // Use the returned ID string, not the whole customer object
+        customerId: customerId, // This is already a string ID from addCustomer
         title: data.eventTitle,
         date: data.eventDate,
         venue: data.eventVenue,
