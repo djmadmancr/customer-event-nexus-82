@@ -61,7 +61,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Function to sync user name from personal data configuration
   const syncUserName = () => {
     if (currentUser) {
-      const savedProfile = localStorage.getItem('userProfile');
+      const profileKey = `userProfile_${currentUser.uid}`;
+      const savedProfile = localStorage.getItem(profileKey);
       if (savedProfile) {
         try {
           const profile = JSON.parse(savedProfile);
@@ -225,6 +226,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Create user profile space in data service
       dataService.createUserProfile(newUser.id);
+      
+      // Create user profile with the name from registration
+      const defaultProfile = {
+        id: newUser.id,
+        name: sanitizedName, // Use the name from registration
+        artistName: '',
+        email: sanitizedEmail,
+        phone: '+506 0000-0000',
+        logoUrl: '',
+        updatedAt: new Date(),
+      };
+      
+      // Save profile with user-specific key
+      const profileKey = `userProfile_${newUser.id}`;
+      localStorage.setItem(profileKey, JSON.stringify(defaultProfile));
       
       console.log('✅ User created successfully:', sanitizedEmail);
       

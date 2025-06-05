@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Users, Calendar, CreditCard, Settings, X, TrendingUp } from 'lucide-react';
+import { Users, Calendar, CreditCard, X, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -37,12 +37,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, mobileOpen, toggleSidebar }) 
       name: 'Pagos', 
       path: '/payments', 
       icon: <CreditCard className="h-5 w-5" />,
-      exact: false 
-    },
-    { 
-      name: 'Configuración', 
-      path: '/settings', 
-      icon: <Settings className="h-5 w-5" />,
       exact: false 
     },
   ];
@@ -110,7 +104,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, mobileOpen, toggleSidebar }) 
             <div className="bg-crm-accent rounded-md p-4">
               <h3 className="font-medium text-crm-primary mb-2">Tip del día</h3>
               <p className="text-sm text-gray-600">
-                Añade notas detalladas sobre tus clientes para recordar detalles importantes.
+                Utiliza las propuestas en PDF para enviar cotizaciones profesionales por email.
               </p>
             </div>
           </div>

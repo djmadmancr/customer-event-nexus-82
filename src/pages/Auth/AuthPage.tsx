@@ -26,7 +26,7 @@ const AuthPage: React.FC = () => {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
           <h1 className="text-3xl font-extrabold text-gray-900 mb-2">
-            NEXUS CRM
+            Bassline CRM
           </h1>
           <p className="text-sm text-gray-600">
             Sistema de Gestión de Eventos
