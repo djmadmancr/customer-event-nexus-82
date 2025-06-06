@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CalendarDays, Users, Calendar, Coins, TrendingUp, User } from 'lucide-react';
 import { useCrm } from '@/contexts/CrmContext';
 import { useAppConfig } from '@/contexts/AppConfigContext';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, FunnelChart, Funnel, LabelList } from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell } from 'recharts';
 import dataService from '@/services/DataService';
 import DashboardFilters from '@/components/Dashboard/DashboardFilters';
 
@@ -63,7 +63,7 @@ const Dashboard = () => {
     .filter(event => event.status === 'paid')
     .reduce((sum, event) => sum + event.cost, 0);
 
-  // Event status distribution with updated colors
+  // Event status distribution with updated colors that match the app theme
   const statusData = [
     { name: 'Prospectos', value: filteredEvents.filter(e => e.status === 'prospect').length, color: '#A855F7' },
     { name: 'Confirmados', value: filteredEvents.filter(e => e.status === 'confirmed').length, color: '#6366F1' },
@@ -71,7 +71,7 @@ const Dashboard = () => {
     { name: 'Pagados', value: filteredEvents.filter(e => e.status === 'paid').length, color: '#7C3AED' },
   ];
 
-  // Top 5 customers by revenue
+  // Top 5 customers by revenue (as a list instead of chart)
   const topCustomers = customers
     .map(customer => {
       const customerEvents = filteredEvents.filter(e => e.customerId === customer.id && e.status === 'paid');
@@ -263,7 +263,7 @@ const Dashboard = () => {
 
       {/* New Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Customers */}
+        {/* Top 5 Customers by Revenue - Now as a List */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
@@ -273,20 +273,26 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             {topCustomers.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={topCustomers} layout="horizontal">
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" />
-                  <YAxis dataKey="name" type="category" width={100} />
-                  <Tooltip 
-                    formatter={(value: number) => [
-                      dataService.formatCurrency(value, defaultCurrency), 
-                      'Ingresos'
-                    ]}
-                  />
-                  <Bar dataKey="revenue" fill="#6E59A5" />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="space-y-4">
+                {topCustomers.map((customer, index) => (
+                  <div key={customer.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex items-center justify-center w-8 h-8 bg-crm-primary text-white rounded-full text-sm font-bold">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{customer.name}</p>
+                        <p className="text-sm text-gray-500">{customer.eventCount} evento(s)</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-green-600">
+                        {dataService.formatCurrency(customer.revenue, defaultCurrency)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : (
               <div className="flex items-center justify-center h-[300px] text-gray-500">
                 No hay datos de ingresos disponibles

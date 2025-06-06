@@ -225,7 +225,7 @@ const SubscriptionSettings = () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {subscriptionData && (
+        {subscriptionData ? (
           <>
             {/* Status Overview */}
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
@@ -267,7 +267,7 @@ const SubscriptionSettings = () => {
                   ) : (
                     <>
                       <CreditCard className="mr-2 h-4 w-4" />
-                      Suscribirse - $29.99/mes
+                      Suscribirse - $7.99/mes
                     </>
                   )}
                 </Button>
@@ -308,7 +308,7 @@ const SubscriptionSettings = () => {
 
             {/* Plan Information */}
             <div className="text-sm text-gray-600 bg-blue-50 p-4 rounded-lg">
-              <h4 className="font-semibold mb-2">Plan Premium - $29.99/mes</h4>
+              <h4 className="font-semibold mb-2">Plan Premium - $7.99/mes</h4>
               <ul className="space-y-1">
                 <li>• Acceso completo a todas las funcionalidades</li>
                 <li>• Gestión ilimitada de clientes y eventos</li>
@@ -317,6 +317,35 @@ const SubscriptionSettings = () => {
               </ul>
             </div>
           </>
+        ) : (
+          <div className="text-center py-8">
+            <div className="space-y-4">
+              <XCircle className="mx-auto h-12 w-12 text-red-500" />
+              <div>
+                <h3 className="font-semibold">Sin Suscripción Activa</h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  Suscríbete para acceder a todas las funcionalidades premium
+                </p>
+              </div>
+              <Button 
+                onClick={handleSubscribe}
+                disabled={checkoutLoading}
+                className="bg-crm-primary hover:bg-crm-primary/90"
+              >
+                {checkoutLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Procesando...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Suscribirse - $7.99/mes
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         )}
       </CardContent>
     </Card>

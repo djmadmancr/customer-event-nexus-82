@@ -1,4 +1,3 @@
-
 import { Customer, Event, EventStatus, SelectableEventStatus, EventDetail, Payment, PaymentMethod, Currency } from '../types/models';
 import { toast } from 'sonner';
 
@@ -59,11 +58,11 @@ class DataService {
       event.status = 'paid';
       event.updatedAt = new Date();
     }
-    // If total payments don't cover the cost and it was marked as paid, revert to delivered
+    // If total payments don't cover the cost and it was marked as paid, revert to show_completed
     else if (totalPaid < eventTotal && event.status === 'paid') {
       // Only revert if it was automatically set to paid
       if (event.status === 'paid') {
-        event.status = 'delivered';
+        event.status = 'show_completed';
         event.updatedAt = new Date();
       }
     }
@@ -204,9 +203,9 @@ class DataService {
       // Determine status based on date
       let status: EventStatus;
       if (monthsAgo > 2) {
-        status = Math.random() > 0.3 ? 'paid' : 'delivered';
+        status = Math.random() > 0.3 ? 'paid' : 'show_completed';
       } else if (monthsAgo > 0) {
-        status = Math.random() > 0.5 ? 'delivered' : 'confirmed';
+        status = Math.random() > 0.5 ? 'show_completed' : 'confirmed';
       } else {
         status = Math.random() > 0.7 ? 'confirmed' : 'prospect';
       }
@@ -234,9 +233,9 @@ class DataService {
         
         let additionalStatus: EventStatus;
         if (monthsAgo > 2) {
-          additionalStatus = Math.random() > 0.2 ? 'paid' : 'delivered';
+          additionalStatus = Math.random() > 0.2 ? 'paid' : 'show_completed';
         } else if (monthsAgo > 0) {
-          additionalStatus = Math.random() > 0.4 ? 'delivered' : 'confirmed';
+          additionalStatus = Math.random() > 0.4 ? 'show_completed' : 'confirmed';
         } else {
           additionalStatus = Math.random() > 0.6 ? 'confirmed' : 'prospect';
         }
@@ -279,8 +278,8 @@ class DataService {
       }
     });
 
-    // Add payments for delivered and paid events - FIXED: changed 'card' to 'credit'
-    const paidEvents = events.filter(e => e.status === 'paid' || e.status === 'delivered');
+    // Add payments for show_completed and paid events - FIXED: changed 'card' to 'credit'
+    const paidEvents = events.filter(e => e.status === 'paid' || e.status === 'show_completed');
     paidEvents.forEach(event => {
       if (Math.random() > 0.3) { // 70% of events have payments
         const paymentMethods: PaymentMethod[] = ['cash', 'transfer', 'credit']; // FIXED: 'card' -> 'credit'
@@ -297,7 +296,7 @@ class DataService {
             notes: 'Pago completo del evento'
           }, adminUserId);
         } else {
-          // For delivered events, add partial payment
+          // For show_completed events, add partial payment
           const partialAmount = Math.floor((event.totalWithTax || event.cost) * (0.3 + Math.random() * 0.4)); // 30-70% of total
           this.addPaymentForUser({
             eventId: event.id,

@@ -27,11 +27,11 @@ const FinancialSummary: React.FC = () => {
       const paid = dataService.getEventsTotalByStatusAndDateRange('paid', startDate, endDate);
       setPaidTotal(paid);
 
-      // For pending, we need to sum prospect, confirmed and delivered events
+      // For pending, we need to sum prospect, confirmed and show_completed events
       const prospect = dataService.getEventsTotalByStatusAndDateRange('prospect', startDate, endDate);
       const confirmed = dataService.getEventsTotalByStatusAndDateRange('confirmed', startDate, endDate);
-      const delivered = dataService.getEventsTotalByStatusAndDateRange('delivered', startDate, endDate);
-      setPendingTotal(prospect + confirmed + delivered);
+      const showCompleted = dataService.getEventsTotalByStatusAndDateRange('show_completed', startDate, endDate);
+      setPendingTotal(prospect + confirmed + showCompleted);
     };
 
     calculateTotals();
