@@ -31,6 +31,7 @@ import { CrmProvider } from './contexts/CrmContext';
 import { AppConfigProvider } from './contexts/AppConfigContext';
 import { UserProfileProvider } from './contexts/UserProfileContext';
 import { EmailConfigProvider } from './contexts/EmailConfigContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 import Dashboard from './pages/Dashboard/Dashboard';
 
 const queryClient = new QueryClient();
@@ -43,63 +44,65 @@ function App() {
           <AppConfigProvider>
             <UserProfileProvider>
               <EmailConfigProvider>
-                <CrmProvider>
-                  <div className="min-h-screen bg-gray-50">
-                    <Routes>
-                      {/* Public booking form route */}
-                      <Route path="/booking/:userId" element={<BookingForm />} />
-                      
-                      {/* Auth routes */}
-                      <Route path="/login" element={<AuthPage />} />
-                      
-                      {/* Protected routes */}
-                      <Route path="/" element={
-                        <ProtectedRoute>
-                          <Layout />
-                        </ProtectedRoute>
-                      }>
-                        <Route index element={<Dashboard />} />
+                <NotificationProvider>
+                  <CrmProvider>
+                    <div className="min-h-screen bg-gray-50">
+                      <Routes>
+                        {/* Public booking form route */}
+                        <Route path="/booking/:userId" element={<BookingForm />} />
                         
-                        {/* Customer routes */}
-                        <Route path="customers" element={<CustomerList />} />
-                        <Route path="customers/new" element={<CustomerForm />} />
-                        <Route path="customers/:id" element={<CustomerDetail />} />
-                        <Route path="customers/:id/edit" element={<CustomerForm />} />
+                        {/* Auth routes */}
+                        <Route path="/login" element={<AuthPage />} />
                         
-                        {/* Event routes */}
-                        <Route path="events" element={<EventList />} />
-                        <Route path="events/new" element={<EventForm />} />
-                        <Route path="events/:id" element={<EventDetail />} />
-                        <Route path="events/:id/edit" element={<EventForm />} />
-                        
-                        {/* Payment routes */}
-                        <Route path="payments" element={<PaymentPage />} />
-                        
-                        {/* Settings routes */}
-                        <Route path="settings" element={<AppSettings />} />
-                      </Route>
-                      
-                      {/* Admin routes */}
-                      <Route 
-                        path="/admin/*" 
-                        element={
-                          <ProtectedRoute requiredRole="admin">
-                            <Layout>
-                              <Routes>
-                                <Route path="dashboard" element={<AdminDashboard />} />
-                                <Route path="users" element={<UserManagement />} />
-                              </Routes>
-                            </Layout>
+                        {/* Protected routes */}
+                        <Route path="/" element={
+                          <ProtectedRoute>
+                            <Layout />
                           </ProtectedRoute>
-                        } 
-                      />
-                      
-                      {/* 404 route */}
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                    <Toaster />
-                  </div>
-                </CrmProvider>
+                        }>
+                          <Route index element={<Dashboard />} />
+                          
+                          {/* Customer routes */}
+                          <Route path="customers" element={<CustomerList />} />
+                          <Route path="customers/new" element={<CustomerForm />} />
+                          <Route path="customers/:id" element={<CustomerDetail />} />
+                          <Route path="customers/:id/edit" element={<CustomerForm />} />
+                          
+                          {/* Event routes */}
+                          <Route path="events" element={<EventList />} />
+                          <Route path="events/new" element={<EventForm />} />
+                          <Route path="events/:id" element={<EventDetail />} />
+                          <Route path="events/:id/edit" element={<EventForm />} />
+                          
+                          {/* Payment routes */}
+                          <Route path="payments" element={<PaymentPage />} />
+                          
+                          {/* Settings routes */}
+                          <Route path="settings" element={<AppSettings />} />
+                        </Route>
+                        
+                        {/* Admin routes */}
+                        <Route 
+                          path="/admin/*" 
+                          element={
+                            <ProtectedRoute requiredRole="admin">
+                              <Layout>
+                                <Routes>
+                                  <Route path="dashboard" element={<AdminDashboard />} />
+                                  <Route path="users" element={<UserManagement />} />
+                                </Routes>
+                              </Layout>
+                            </ProtectedRoute>
+                          } 
+                        />
+                        
+                        {/* 404 route */}
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                      <Toaster />
+                    </div>
+                  </CrmProvider>
+                </NotificationProvider>
               </EmailConfigProvider>
             </UserProfileProvider>
           </AppConfigProvider>
