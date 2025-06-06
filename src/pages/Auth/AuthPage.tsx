@@ -25,9 +25,7 @@ const AuthPage: React.FC = () => {
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
-          <h1 className="text-3xl font-extrabold text-gray-900 mb-2">
-            Bassline CRM
-          </h1>
+          <img src="../public/logo.png"></img>
           <p className="text-sm text-gray-600">
             Sistema de Gestión de Eventos
           </p>

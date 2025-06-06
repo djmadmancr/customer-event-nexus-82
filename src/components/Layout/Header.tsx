@@ -84,9 +84,9 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
                 }}
               />
             )}
-            <h1 className="text-xl font-bold text-crm-primary">
-              Bassline CRM
-            </h1>
+            
+              <img src="../public/logo.png"></img>
+           
           </div>
         </div>
 
