@@ -20,6 +20,8 @@ import { useUserProfile } from '@/contexts/UserProfileContext';
 import { useAppConfig } from '@/contexts/AppConfigContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface HeaderProps {
   toggleSidebar: () => void;
@@ -46,18 +48,11 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
     markAsRead(notification.id);
     setNotificationsOpen(false);
 
-    // Navigate based on notification type
-    if (notification.type === 'new_event' && notification.eventId) {
-      navigate(`/events/${notification.eventId}`);
-    } else if (notification.type === 'new_customer' && notification.customerId) {
-      navigate(`/customers/${notification.customerId}`);
-    } else if (notification.type === 'prospect_followup' && notification.eventId) {
-      navigate(`/events/${notification.eventId}`);
-    } else if (notification.type === 'email_received') {
-      // Navigate to customer emails tab if customerId exists
-      if (notification.customerId) {
-        navigate(`/customers/${notification.customerId}`);
-      }
+    // Navigate based on notification type and targetType
+    if (notification.targetType === 'event' && notification.targetId) {
+      navigate(`/events/${notification.targetId}`);
+    } else if (notification.targetType === 'customer' && notification.targetId) {
+      navigate(`/customers/${notification.targetId}`);
     }
   };
 
@@ -125,17 +120,20 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
                     <div
                       key={notification.id}
                       className={`p-4 border-b hover:bg-gray-50 cursor-pointer ${
-                        !notification.read ? 'bg-blue-50' : ''
+                        !notification.isRead ? 'bg-blue-50' : ''
                       }`}
                       onClick={() => handleNotificationClick(notification)}
                     >
-                      <p className="text-sm font-medium">{notification.message}</p>
-                      <p className="text-xs text-gray-500 mt-1">{notification.time}</p>
+                      <p className="text-sm font-medium">{notification.title}</p>
+                      <p className="text-xs text-gray-600 mt-1">{notification.message}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {format(notification.createdAt, 'PPp', { locale: es })}
+                      </p>
                     </div>
                   ))
                 )}
               </div>
-              {notifications.filter(n => !n.read).length > 0 && (
+              {notifications.filter(n => !n.isRead).length > 0 && (
                 <div className="p-2 border-t">
                   <Button variant="ghost" size="sm" className="w-full" onClick={handleMarkAllAsRead}>
                     Marcar todas como leídas
