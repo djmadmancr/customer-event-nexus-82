@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CalendarDays, Users, Calendar, Coins } from 'lucide-react';
+import { CalendarDays, Users, Calendar, Coins, TrendingUp, User } from 'lucide-react';
 import { useCrm } from '@/contexts/CrmContext';
 import { useAppConfig } from '@/contexts/AppConfigContext';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell } from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, FunnelChart, Funnel, LabelList } from 'recharts';
 import dataService from '@/services/DataService';
 import DashboardFilters from '@/components/Dashboard/DashboardFilters';
 
@@ -12,7 +12,6 @@ const Dashboard = () => {
   const { customers, events } = useCrm();
   const { defaultCurrency } = useAppConfig();
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
-  const [projectionData, setProjectionData] = useState<any[]>([]);
   const [filteredEvents, setFilteredEvents] = useState(events);
   const [filters, setFilters] = useState<any>({});
 
@@ -64,12 +63,45 @@ const Dashboard = () => {
     .filter(event => event.status === 'paid')
     .reduce((sum, event) => sum + event.cost, 0);
 
-  // Event status distribution
+  // Event status distribution with updated colors
   const statusData = [
-    { name: 'Prospectos', value: filteredEvents.filter(e => e.status === 'prospect').length, color: '#f59e0b' },
-    { name: 'Confirmados', value: filteredEvents.filter(e => e.status === 'confirmed').length, color: '#3b82f6' },
-    { name: 'Entregados', value: filteredEvents.filter(e => e.status === 'delivered').length, color: '#10b981' },
-    { name: 'Pagados', value: filteredEvents.filter(e => e.status === 'paid').length, color: '#22c55e' },
+    { name: 'Prospectos', value: filteredEvents.filter(e => e.status === 'prospect').length, color: '#A855F7' },
+    { name: 'Confirmados', value: filteredEvents.filter(e => e.status === 'confirmed').length, color: '#6366F1' },
+    { name: 'Show Realizado', value: filteredEvents.filter(e => e.status === 'show_completed').length, color: '#8B5CF6' },
+    { name: 'Pagados', value: filteredEvents.filter(e => e.status === 'paid').length, color: '#7C3AED' },
+  ];
+
+  // Top 5 customers by revenue
+  const topCustomers = customers
+    .map(customer => {
+      const customerEvents = filteredEvents.filter(e => e.customerId === customer.id && e.status === 'paid');
+      const revenue = customerEvents.reduce((sum, event) => sum + event.cost, 0);
+      return { name: customer.name, revenue, eventCount: customerEvents.length };
+    })
+    .filter(customer => customer.revenue > 0)
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 5);
+
+  // Event category distribution
+  const categoryData = [
+    { name: 'Bodas', value: filteredEvents.filter(e => e.category === 'wedding').length, color: '#7C3AED' },
+    { name: 'Cumpleaños', value: filteredEvents.filter(e => e.category === 'birthday').length, color: '#A855F7' },
+    { name: 'Corporativos', value: filteredEvents.filter(e => e.category === 'corporate').length, color: '#6366F1' },
+    { name: 'Club', value: filteredEvents.filter(e => e.category === 'club').length, color: '#8B5CF6' },
+    { name: 'Otros', value: filteredEvents.filter(e => e.category === 'other' || !e.category).length, color: '#9333EA' },
+  ].filter(category => category.value > 0);
+
+  // Conversion funnel data
+  const totalProspects = events.filter(e => e.status === 'prospect').length;
+  const totalConfirmed = events.filter(e => e.status === 'confirmed').length;
+  const totalCompleted = events.filter(e => e.status === 'show_completed').length;
+  const totalPaid = events.filter(e => e.status === 'paid').length;
+
+  const funnelData = [
+    { name: 'Prospectos', value: totalProspects, fill: '#A855F7' },
+    { name: 'Confirmados', value: totalConfirmed, fill: '#6366F1' },
+    { name: 'Show Realizado', value: totalCompleted, fill: '#8B5CF6' },
+    { name: 'Pagados', value: totalPaid, fill: '#7C3AED' },
   ];
 
   useEffect(() => {
@@ -101,29 +133,6 @@ const Dashboard = () => {
     }));
 
     setMonthlyData(chartData);
-
-    // Calculate projection for current month and next 2 months
-    const projectionMonths = [];
-    for (let i = 0; i < 3; i++) {
-      const date = new Date(currentYear, currentDate.getMonth() + i, 1);
-      const monthKey = date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
-      
-      const monthRevenue = filteredEvents
-        .filter(event => {
-          const eventDate = new Date(event.date);
-          return eventDate.getMonth() === date.getMonth() && 
-                 eventDate.getFullYear() === date.getFullYear() &&
-                 (event.status === 'confirmed' || event.status === 'delivered' || event.status === 'paid');
-        })
-        .reduce((sum, event) => sum + event.cost, 0);
-
-      projectionMonths.push({
-        month: monthKey,
-        projected: monthRevenue,
-      });
-    }
-
-    setProjectionData(projectionMonths);
   }, [filteredEvents]);
 
   return (
@@ -219,7 +228,7 @@ const Dashboard = () => {
                     'Ingresos'
                   ]}
                 />
-                <Bar dataKey="revenue" fill="#6366f1" />
+                <Bar dataKey="revenue" fill="#6E59A5" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -252,24 +261,89 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Financial Projection */}
+      {/* New Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Top Customers */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <User className="mr-2 h-5 w-5" />
+              Top 5 Clientes por Ingresos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {topCustomers.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={topCustomers} layout="horizontal">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis dataKey="name" type="category" width={100} />
+                  <Tooltip 
+                    formatter={(value: number) => [
+                      dataService.formatCurrency(value, defaultCurrency), 
+                      'Ingresos'
+                    ]}
+                  />
+                  <Bar dataKey="revenue" fill="#6E59A5" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-gray-500">
+                No hay datos de ingresos disponibles
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Event Category Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Distribución de Tipos de Evento</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {categoryData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={categoryData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    dataKey="value"
+                    label={({ name, value }) => `${name}: ${value}`}
+                  >
+                    {categoryData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-gray-500">
+                No hay eventos categorizados
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Conversion Funnel */}
       <Card>
         <CardHeader>
-          <CardTitle>Proyección Financiera - Próximos 3 Meses</CardTitle>
+          <CardTitle className="flex items-center">
+            <TrendingUp className="mr-2 h-5 w-5" />
+            Tasa de Conversión de Prospectos
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={projectionData}>
+            <BarChart data={funnelData}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
+              <XAxis dataKey="name" />
               <YAxis />
-              <Tooltip 
-                formatter={(value: number) => [
-                  dataService.formatCurrency(value, defaultCurrency), 
-                  'Proyectado'
-                ]}
-              />
-              <Bar dataKey="projected" fill="#10b981" />
+              <Tooltip />
+              <Bar dataKey="value" fill="#6E59A5" />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>

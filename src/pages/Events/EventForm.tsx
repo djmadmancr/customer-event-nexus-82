@@ -45,7 +45,8 @@ const eventSchema = z.object({
   date: z.date({ required_error: "Por favor selecciona una fecha" }),
   venue: z.string().min(2, { message: 'El lugar debe tener al menos 2 caracteres' }),
   cost: z.coerce.number().min(0, { message: 'El costo debe ser mayor o igual a 0' }),
-  status: z.enum(['prospect', 'confirmed', 'delivered', 'paid']),
+  status: z.enum(['prospect', 'confirmed', 'show_completed', 'paid']),
+  category: z.enum(['wedding', 'birthday', 'corporate', 'club', 'other']).optional(),
   comments: z.string().optional(),
 });
 
@@ -69,6 +70,7 @@ const EventForm = () => {
       venue: '',
       cost: 0,
       status: 'prospect',
+      category: 'other',
       comments: '',
     },
   });
@@ -90,6 +92,7 @@ const EventForm = () => {
           venue: event.venue,
           cost: event.cost,
           status: event.status,
+          category: event.category || 'other',
           comments: event.comments || '',
         });
       }
@@ -116,6 +119,7 @@ const EventForm = () => {
           venue: data.venue,
           cost: data.cost,
           status: data.status,
+          category: data.category || 'other',
           comments: data.comments || '',
         };
         dataService.addEvent(eventData);
@@ -133,14 +137,6 @@ const EventForm = () => {
   const handleCreateCustomer = () => {
     setShowNoCustomerDialog(false);
     navigate('/customers/new');
-  };
-
-  const currencySymbols: { [key: string]: string } = {
-    USD: '$',
-    EUR: '€',
-    CRC: '₡',
-    MXN: '$',
-    COP: '$',
   };
 
   return (
@@ -195,6 +191,31 @@ const EventForm = () => {
                     <FormControl>
                       <Input placeholder="Ej. Boda de Juan y María" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Categoría del Evento</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona una categoría" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="wedding">Bodas</SelectItem>
+                        <SelectItem value="birthday">Cumpleaños</SelectItem>
+                        <SelectItem value="corporate">Eventos Corporativos</SelectItem>
+                        <SelectItem value="club">Club</SelectItem>
+                        <SelectItem value="other">Otros</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -289,7 +310,7 @@ const EventForm = () => {
                       <SelectContent>
                         <SelectItem value="prospect">Prospecto</SelectItem>
                         <SelectItem value="confirmed">Confirmado</SelectItem>
-                        <SelectItem value="delivered">Entregado</SelectItem>
+                        <SelectItem value="show_completed">Show Realizado</SelectItem>
                         <SelectItem value="paid">Pagado</SelectItem>
                       </SelectContent>
                     </Select>

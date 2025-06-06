@@ -12,10 +12,13 @@ export interface Customer {
 }
 
 // Event Status enum - 'paid' will be calculated automatically based on payments
-export type EventStatus = 'prospect' | 'confirmed' | 'delivered' | 'paid';
+export type EventStatus = 'prospect' | 'confirmed' | 'show_completed' | 'paid';
 
 // Selectable Event Status (user can only choose these manually) - removed 'paid'
-export type SelectableEventStatus = 'prospect' | 'confirmed' | 'delivered';
+export type SelectableEventStatus = 'prospect' | 'confirmed' | 'show_completed';
+
+// Event Category enum
+export type EventCategory = 'wedding' | 'birthday' | 'corporate' | 'club' | 'other';
 
 // Event Model
 export interface Event {
@@ -29,6 +32,7 @@ export interface Event {
   taxAmount?: number; // Calculated tax amount
   totalWithTax?: number; // Total cost including tax
   status: EventStatus;
+  category?: EventCategory; // New field for event category
   comments?: string;
   userId: string; // New field to associate event with user
   createdAt: Date;

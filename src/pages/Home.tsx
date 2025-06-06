@@ -23,7 +23,7 @@ const Home = () => {
   const pendingEvents = events.filter(event => event.status === 'prospect').length;
   const confirmedEvents = events.filter(event => event.status === 'confirmed').length;
   const paidEvents = events.filter(event => event.status === 'paid').length;
-  const completedEvents = events.filter(event => event.status === 'delivered').length;
+  const completedEvents = events.filter(event => event.status === 'show_completed').length;
 
   // Calculate total revenue
   const totalRevenue = events.reduce((sum, event) => {
@@ -105,20 +105,20 @@ const Home = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
-              <div className="p-3 bg-crm-pending rounded-md">
-                <div className="text-sm font-medium">Pendientes</div>
+              <div className="p-3 bg-purple-100 rounded-md">
+                <div className="text-sm font-medium">Prospectos</div>
                 <div className="text-2xl font-bold">{pendingEvents}</div>
               </div>
-              <div className="p-3 bg-crm-confirmed rounded-md">
+              <div className="p-3 bg-blue-100 rounded-md">
                 <div className="text-sm font-medium">Confirmados</div>
                 <div className="text-2xl font-bold">{confirmedEvents}</div>
               </div>
-              <div className="p-3 bg-crm-paid rounded-md">
+              <div className="p-3 bg-purple-200 rounded-md">
                 <div className="text-sm font-medium">Pagados</div>
                 <div className="text-2xl font-bold">{paidEvents}</div>
               </div>
-              <div className="p-3 bg-crm-completed rounded-md">
-                <div className="text-sm font-medium">Completados</div>
+              <div className="p-3 bg-indigo-100 rounded-md">
+                <div className="text-sm font-medium">Show Realizado</div>
                 <div className="text-2xl font-bold">{completedEvents}</div>
               </div>
             </div>
@@ -153,14 +153,14 @@ const Home = () => {
                         </p>
                         <span 
                           className={`text-xs px-2 py-1 rounded-full ${
-                            event.status === 'prospect' ? 'bg-crm-pending' : 
-                            event.status === 'confirmed' ? 'bg-crm-confirmed' :
-                            event.status === 'paid' ? 'bg-crm-paid' : 'bg-crm-completed'
+                            event.status === 'prospect' ? 'bg-purple-100 text-purple-800' : 
+                            event.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
+                            event.status === 'paid' ? 'bg-purple-200 text-purple-900' : 'bg-indigo-100 text-indigo-800'
                           }`}
                         >
-                          {event.status === 'prospect' ? 'Pendiente' :
+                          {event.status === 'prospect' ? 'Prospecto' :
                             event.status === 'confirmed' ? 'Confirmado' :
-                            event.status === 'paid' ? 'Pagado' : 'Completado'}
+                            event.status === 'paid' ? 'Pagado' : 'Show Realizado'}
                         </span>
                       </div>
                     </li>
