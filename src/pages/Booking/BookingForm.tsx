@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -99,9 +98,9 @@ const BookingForm = () => {
 
       const customerId = dataService.addCustomer(newCustomer);
 
-      // Create new event as prospect with correct structure - use the string ID
+      // Create new event as prospect with correct structure - ensure customerId is string
       const newEvent = {
-        customerId: customerId, // This is a string ID from addCustomer
+        customerId: customerId, // This is already a string ID from addCustomer
         title: data.eventTitle,
         date: data.eventDate,
         venue: data.eventVenue,

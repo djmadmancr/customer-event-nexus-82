@@ -6,31 +6,70 @@ import { useCrm } from '@/contexts/CrmContext';
 import { useAppConfig } from '@/contexts/AppConfigContext';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell } from 'recharts';
 import dataService from '@/services/DataService';
+import DashboardFilters from '@/components/Dashboard/DashboardFilters';
 
 const Dashboard = () => {
   const { customers, events } = useCrm();
   const { defaultCurrency } = useAppConfig();
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
   const [projectionData, setProjectionData] = useState<any[]>([]);
+  const [filteredEvents, setFilteredEvents] = useState(events);
+  const [filters, setFilters] = useState<any>({});
 
-  // Calculate stats
+  // Apply filters to events
+  useEffect(() => {
+    let filtered = [...events];
+
+    if (filters.dateRange?.from || filters.dateRange?.to) {
+      filtered = filtered.filter(event => {
+        const eventDate = new Date(event.date);
+        if (filters.dateRange.from && eventDate < filters.dateRange.from) return false;
+        if (filters.dateRange.to && eventDate > filters.dateRange.to) return false;
+        return true;
+      });
+    }
+
+    if (filters.status) {
+      filtered = filtered.filter(event => event.status === filters.status);
+    }
+
+    if (filters.minAmount !== undefined || filters.maxAmount !== undefined) {
+      filtered = filtered.filter(event => {
+        if (filters.minAmount !== undefined && event.cost < filters.minAmount) return false;
+        if (filters.maxAmount !== undefined && event.cost > filters.maxAmount) return false;
+        return true;
+      });
+    }
+
+    setFilteredEvents(filtered);
+  }, [events, filters]);
+
+  const handleFiltersChange = (newFilters: any) => {
+    setFilters(newFilters);
+  };
+
+  const handleClearFilters = () => {
+    setFilters({});
+  };
+
+  // Calculate stats based on filtered events
   const totalCustomers = customers.length;
-  const totalEvents = events.length;
-  const upcomingEvents = events.filter(event => 
+  const totalEvents = filteredEvents.length;
+  const upcomingEvents = filteredEvents.filter(event => 
     event.date >= new Date() && 
     event.date <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
   ).length;
   
-  const totalRevenue = events
+  const totalRevenue = filteredEvents
     .filter(event => event.status === 'paid')
     .reduce((sum, event) => sum + event.cost, 0);
 
   // Event status distribution
   const statusData = [
-    { name: 'Prospectos', value: events.filter(e => e.status === 'prospect').length, color: '#f59e0b' },
-    { name: 'Confirmados', value: events.filter(e => e.status === 'confirmed').length, color: '#3b82f6' },
-    { name: 'Entregados', value: events.filter(e => e.status === 'delivered').length, color: '#10b981' },
-    { name: 'Pagados', value: events.filter(e => e.status === 'paid').length, color: '#22c55e' },
+    { name: 'Prospectos', value: filteredEvents.filter(e => e.status === 'prospect').length, color: '#f59e0b' },
+    { name: 'Confirmados', value: filteredEvents.filter(e => e.status === 'confirmed').length, color: '#3b82f6' },
+    { name: 'Entregados', value: filteredEvents.filter(e => e.status === 'delivered').length, color: '#10b981' },
+    { name: 'Pagados', value: filteredEvents.filter(e => e.status === 'paid').length, color: '#22c55e' },
   ];
 
   useEffect(() => {
@@ -46,7 +85,7 @@ const Dashboard = () => {
       monthlyRevenue[monthKey] = 0;
     }
 
-    events.forEach(event => {
+    filteredEvents.forEach(event => {
       if (event.status === 'paid') {
         const eventDate = new Date(event.date);
         const monthKey = eventDate.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
@@ -69,7 +108,7 @@ const Dashboard = () => {
       const date = new Date(currentYear, currentDate.getMonth() + i, 1);
       const monthKey = date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
       
-      const monthRevenue = events
+      const monthRevenue = filteredEvents
         .filter(event => {
           const eventDate = new Date(event.date);
           return eventDate.getMonth() === date.getMonth() && 
@@ -85,10 +124,16 @@ const Dashboard = () => {
     }
 
     setProjectionData(projectionMonths);
-  }, [events]);
+  }, [filteredEvents]);
 
   return (
     <div className="space-y-6">
+      {/* Dashboard Filters */}
+      <DashboardFilters 
+        onFiltersChange={handleFiltersChange}
+        onClearFilters={handleClearFilters}
+      />
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
@@ -115,10 +160,13 @@ const Dashboard = () => {
           <CardContent>
             <div className="text-2xl font-bold">{totalEvents}</div>
             <p className="text-xs text-muted-foreground">
-              +{events.filter(e => {
-                const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-                return e.createdAt >= weekAgo;
-              }).length} esta semana
+              {filters.dateRange?.from || filters.dateRange?.to || filters.status || filters.minAmount || filters.maxAmount
+                ? 'Filtrados'
+                : `+${events.filter(e => {
+                    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+                    return e.createdAt >= weekAgo;
+                  }).length} esta semana`
+              }
             </p>
           </CardContent>
         </Card>

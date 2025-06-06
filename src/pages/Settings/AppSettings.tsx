@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -7,14 +8,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Switch } from '@/components/ui/switch';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { useAppConfig } from '@/contexts/AppConfigContext';
-import { useEmailConfig } from '@/contexts/EmailConfigContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { Copy, CheckCircle, Mail } from 'lucide-react';
+import { Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Currency } from '@/types/models';
+import EmailSettings from '@/components/Settings/EmailSettings';
+import SubscriptionSettings from '@/components/Settings/SubscriptionSettings';
 
 const profileSchema = z.object({
   name: z.string().optional(),
@@ -31,28 +32,11 @@ const appSchema = z.object({
   currency: z.enum(['USD', 'EUR', 'CRC', 'MXN', 'COP']),
 });
 
-const emailSchema = z.object({
-  smtpHost: z.string().optional(),
-  smtpPort: z.number().optional(),
-  smtpSecure: z.boolean().optional(),
-  smtpUser: z.string().optional(),
-  smtpPassword: z.string().optional(),
-  imapHost: z.string().optional(),
-  imapPort: z.number().optional(),
-  imapSecure: z.boolean().optional(),
-  imapUser: z.string().optional(),
-  imapPassword: z.string().optional(),
-  fromName: z.string().optional(),
-  fromEmail: z.string().email().optional(),
-});
-
 const AppSettings = () => {
   const { userProfile, updateUserProfile } = useUserProfile();
   const { defaultCurrency, updateDefaultCurrency, logoUrl, updateAppLogo } = useAppConfig();
-  const { emailConfig, updateEmailConfig, testEmailConnection, configureGmail, isConfigured } = useEmailConfig();
   const { currentUser } = useAuth();
   const { toast } = useToast();
-  const [isTestingConnection, setIsTestingConnection] = useState(false);
 
   const profileForm = useForm({
     resolver: zodResolver(profileSchema),
@@ -78,24 +62,6 @@ const AppSettings = () => {
     },
   });
 
-  const emailForm = useForm({
-    resolver: zodResolver(emailSchema),
-    defaultValues: {
-      smtpHost: emailConfig.smtpHost,
-      smtpPort: emailConfig.smtpPort,
-      smtpSecure: emailConfig.smtpSecure,
-      smtpUser: emailConfig.smtpUser,
-      smtpPassword: emailConfig.smtpPassword,
-      imapHost: emailConfig.imapHost,
-      imapPort: emailConfig.imapPort,
-      imapSecure: emailConfig.imapSecure,
-      imapUser: emailConfig.imapUser,
-      imapPassword: emailConfig.imapPassword,
-      fromName: emailConfig.fromName,
-      fromEmail: emailConfig.fromEmail,
-    },
-  });
-
   const handleCopyBookingLink = () => {
     if (currentUser) {
       const bookingUrl = `${window.location.origin}/booking/${currentUser.uid}`;
@@ -107,44 +73,15 @@ const AppSettings = () => {
     }
   };
 
-  const handleTestConnection = async () => {
-    setIsTestingConnection(true);
-    try {
-      const success = await testEmailConnection();
-      toast({
-        title: success ? "Conexión exitosa" : "Error de conexión",
-        description: success 
-          ? "La configuración de email está funcionando correctamente" 
-          : "No se pudo conectar con el servidor de email",
-        variant: success ? "default" : "destructive",
-      });
-    } catch (error) {
-      toast({
-        title: "Error de conexión",
-        description: "No se pudo probar la conexión",
-        variant: "destructive",
-      });
-    } finally {
-      setIsTestingConnection(false);
-    }
-  };
-
-  const handleGmailSetup = () => {
-    configureGmail();
-    toast({
-      title: "Configuración de Gmail aplicada",
-      description: "Se han configurado los servidores de Gmail. Completa tu usuario y contraseña.",
-    });
-  };
-
   return (
     <div className="space-y-6">
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="profile">Perfil</TabsTrigger>
           <TabsTrigger value="artist">Datos Artísticos</TabsTrigger>
           <TabsTrigger value="app">Aplicación</TabsTrigger>
           <TabsTrigger value="email">Email</TabsTrigger>
+          <TabsTrigger value="subscription">Suscripción</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="mt-6">
@@ -270,170 +207,11 @@ const AppSettings = () => {
         </TabsContent>
 
         <TabsContent value="email" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Configuración de Email</CardTitle>
-              <div className="flex gap-2">
-                <Button onClick={handleGmailSetup} variant="outline" size="sm">
-                  <Mail className="h-4 w-4 mr-2" />
-                  Configurar Gmail
-                </Button>
-                <Button 
-                  onClick={handleTestConnection} 
-                  variant="outline" 
-                  size="sm"
-                  disabled={isTestingConnection || !isConfigured}
-                >
-                  {isTestingConnection ? 'Probando...' : 'Probar Conexión'}
-                </Button>
-                {isConfigured && (
-                  <div className="flex items-center text-green-600">
-                    <CheckCircle className="h-4 w-4 mr-1" />
-                    <span className="text-sm">Configurado</span>
-                  </div>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Configuración SMTP (Envío)</h3>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="smtpHost">Servidor SMTP</Label>
-                    <Input
-                      id="smtpHost"
-                      value={emailConfig.smtpHost}
-                      onChange={(e) => updateEmailConfig({ smtpHost: e.target.value })}
-                      placeholder="smtp.gmail.com"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="smtpPort">Puerto</Label>
-                    <Input
-                      id="smtpPort"
-                      type="number"
-                      value={emailConfig.smtpPort}
-                      onChange={(e) => updateEmailConfig({ smtpPort: parseInt(e.target.value) })}
-                      placeholder="587"
-                    />
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="smtpSecure"
-                      checked={emailConfig.smtpSecure}
-                      onCheckedChange={(checked) => updateEmailConfig({ smtpSecure: checked })}
-                    />
-                    <Label htmlFor="smtpSecure">Conexión Segura</Label>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="smtpUser">Usuario</Label>
-                    <Input
-                      id="smtpUser"
-                      value={emailConfig.smtpUser}
-                      onChange={(e) => updateEmailConfig({ smtpUser: e.target.value })}
-                      placeholder="tu@gmail.com"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="smtpPassword">Contraseña</Label>
-                    <Input
-                      id="smtpPassword"
-                      type="password"
-                      value={emailConfig.smtpPassword}
-                      onChange={(e) => updateEmailConfig({ smtpPassword: e.target.value })}
-                      placeholder="Contraseña o App Password"
-                    />
-                  </div>
-                </div>
+          <EmailSettings />
+        </TabsContent>
 
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Configuración IMAP (Recepción)</h3>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="imapHost">Servidor IMAP</Label>
-                    <Input
-                      id="imapHost"
-                      value={emailConfig.imapHost}
-                      onChange={(e) => updateEmailConfig({ imapHost: e.target.value })}
-                      placeholder="imap.gmail.com"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="imapPort">Puerto</Label>
-                    <Input
-                      id="imapPort"
-                      type="number"
-                      value={emailConfig.imapPort}
-                      onChange={(e) => updateEmailConfig({ imapPort: parseInt(e.target.value) })}
-                      placeholder="993"
-                    />
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="imapSecure"
-                      checked={emailConfig.imapSecure}
-                      onCheckedChange={(checked) => updateEmailConfig({ imapSecure: checked })}
-                    />
-                    <Label htmlFor="imapSecure">Conexión Segura</Label>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="imapUser">Usuario</Label>
-                    <Input
-                      id="imapUser"
-                      value={emailConfig.imapUser}
-                      onChange={(e) => updateEmailConfig({ imapUser: e.target.value })}
-                      placeholder="tu@gmail.com"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="imapPassword">Contraseña</Label>
-                    <Input
-                      id="imapPassword"
-                      type="password"
-                      value={emailConfig.imapPassword}
-                      onChange={(e) => updateEmailConfig({ imapPassword: e.target.value })}
-                      placeholder="Contraseña o App Password"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4 border-t pt-4">
-                <h3 className="text-lg font-medium">Información del Remitente</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="fromName">Nombre del Remitente</Label>
-                    <Input
-                      id="fromName"
-                      value={emailConfig.fromName}
-                      onChange={(e) => updateEmailConfig({ fromName: e.target.value })}
-                      placeholder="Tu Nombre"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="fromEmail">Email del Remitente</Label>
-                    <Input
-                      id="fromEmail"
-                      value={emailConfig.fromEmail}
-                      onChange={(e) => updateEmailConfig({ fromEmail: e.target.value })}
-                      placeholder="tu@gmail.com"
-                    />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="subscription" className="mt-6">
+          <SubscriptionSettings />
         </TabsContent>
       </Tabs>
     </div>
