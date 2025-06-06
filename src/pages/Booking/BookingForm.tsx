@@ -96,11 +96,11 @@ const BookingForm = () => {
         notes: data.eventDescription || '',
       };
 
-      const customerId = dataService.addCustomer(newCustomer);
+      const customer = dataService.addCustomer(newCustomer);
 
       // Create new event as prospect with correct structure - ensure customerId is string
       const newEvent = {
-        customerId: customerId, // This is already a string ID from addCustomer
+        customerId: customer.id, // Use the customer ID string instead of the full object
         title: data.eventTitle,
         date: data.eventDate,
         venue: data.eventVenue,
