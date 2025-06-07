@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -25,7 +24,14 @@ const AuthPage: React.FC = () => {
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
-          <img src="../public/logo.png"></img>
+          <img 
+            src="/logo.png" 
+            alt="Bassline Logo" 
+            className="h-12 w-auto max-w-[200px] mx-auto mb-4"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).style.display = 'none';
+            }}
+          />
           <p className="text-sm text-gray-600">
             Sistema de Gestión de Eventos
           </p>

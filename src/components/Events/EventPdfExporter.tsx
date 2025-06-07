@@ -1,4 +1,3 @@
-
 import React, { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Event, Customer, Payment } from '@/types/models';
@@ -86,8 +85,8 @@ const EventPdfExporter: React.FC<EventPdfExporterProps> = ({
                   <img 
                     src={logoUrl} 
                     alt="Logo de la empresa" 
-                    className="h-20 max-w-48 object-contain"
-                    style={{ maxHeight: '80px', maxWidth: '192px' }}
+                    className="h-20 w-auto max-w-[200px] object-contain"
+                    style={{ maxHeight: '80px', maxWidth: '200px' }}
                   />
                 </div>
               )}

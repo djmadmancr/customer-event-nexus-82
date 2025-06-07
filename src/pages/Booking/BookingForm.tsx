@@ -130,7 +130,7 @@ const BookingForm = () => {
                   <img 
                     src={logoUrl} 
                     alt="Logo" 
-                    className="h-16 mx-auto mb-4"
+                    className="h-16 w-auto max-w-[200px] mx-auto mb-4"
                   />
                 )}
                 <h1 className="text-2xl font-bold text-green-600 mb-2">
@@ -171,7 +171,7 @@ const BookingForm = () => {
               <img 
                 src={logoUrl} 
                 alt="Logo" 
-                className="h-16 mx-auto mb-4"
+                className="h-16 w-auto max-w-[200px] mx-auto mb-4"
               />
             )}
             <CardTitle className="text-2xl">
