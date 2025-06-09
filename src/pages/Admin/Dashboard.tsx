@@ -1,346 +1,249 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { Users, Calendar, CreditCard, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { useCrm } from '@/contexts/CrmContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell } from 'recharts';
 import dataService from '@/services/DataService';
-import { User, Event, Payment, EventStatus } from '@/types/models';
-import { useAppConfig } from '@/contexts/AppConfigContext';
 
-type DateFilter = 'last3months' | 'next3months' | 'currentYear' | 'lastYear';
+const AdminDashboard = () => {
+  const { customers, events, payments } = useCrm();
+  const { currentUser } = useAuth();
+  const [systemHealth, setSystemHealth] = useState({ status: 'healthy', issues: [] });
 
-const AdminDashboard: React.FC = () => {
-  const { getAllUsers } = useAuth();
-  const { defaultCurrency } = useAppConfig();
-  const [users, setUsers] = useState<User[]>([]);
-  const [events, setEvents] = useState(dataService.getAllEvents());
-  const [payments, setPayments] = useState(dataService.getAllPayments());
-  const [activeTab, setActiveTab] = useState('overview');
-  const [dateFilter, setDateFilter] = useState<DateFilter>('currentYear');
-  
-  // Financial projection data
-  const [monthlyRevenue, setMonthlyRevenue] = useState<any[]>([]);
-  
-  // Event status data for charts
-  const [eventStatusData, setEventStatusData] = useState<any[]>([]);
-
-  const getDateRange = (filter: DateFilter) => {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth();
-    
-    switch (filter) {
-      case 'last3months':
-        const start3MonthsAgo = new Date(currentYear, currentMonth - 3, 1);
-        return { start: start3MonthsAgo, end: now };
-      case 'next3months':
-        const end3MonthsLater = new Date(currentYear, currentMonth + 3, 31);
-        return { start: now, end: end3MonthsLater };
-      case 'currentYear':
-        return { 
-          start: new Date(currentYear, 0, 1), 
-          end: new Date(currentYear, 11, 31) 
-        };
-      case 'lastYear':
-        return { 
-          start: new Date(currentYear - 1, 0, 1), 
-          end: new Date(currentYear - 1, 11, 31) 
-        };
-      default:
-        return { 
-          start: new Date(currentYear, 0, 1), 
-          end: new Date(currentYear, 11, 31) 
-        };
-    }
-  };
-
-  const filterEventsByDateRange = (events: Event[], dateRange: { start: Date; end: Date }) => {
-    return events.filter(event => 
-      event.date >= dateRange.start && event.date <= dateRange.end
-    );
-  };
-  
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const usersData = await getAllUsers();
-        setUsers(usersData);
-      } catch (error) {
-        console.error('Error fetching users:', error);
-      }
-    };
-    
-    fetchUsers();
-    
-    const dateRange = getDateRange(dateFilter);
-    const filteredEvents = filterEventsByDateRange(events, dateRange);
-    
-    // Process monthly revenue data
-    const monthlyData: any[] = [];
-    const startYear = dateRange.start.getFullYear();
-    const endYear = dateRange.end.getFullYear();
-    
-    for (let year = startYear; year <= endYear; year++) {
-      const startMonth = year === startYear ? dateRange.start.getMonth() : 0;
-      const endMonth = year === endYear ? dateRange.end.getMonth() : 11;
-      
-      for (let month = startMonth; month <= endMonth; month++) {
-        const monthEvents = filteredEvents.filter(event => 
-          event.date.getFullYear() === year && event.date.getMonth() === month
-        );
-        
-        const monthRevenue = monthEvents.reduce((sum, event) => {
-          const eventTotal = event.totalWithTax || event.cost;
-          return sum + eventTotal;
-        }, 0);
-        
-        monthlyData.push({
-          month: new Date(year, month).toLocaleDateString('es', { month: 'short', year: '2-digit' }),
-          ingresos: monthRevenue
-        });
-      }
-    }
-    
-    setMonthlyRevenue(monthlyData);
-    
-    // Process event status data
-    const statusCounts = {
-      prospect: 0,
-      confirmed: 0,
-      delivered: 0,
-      paid: 0
-    };
-    
-    filteredEvents.forEach(event => {
-      statusCounts[event.status as EventStatus] += 1;
-    });
-    
-    const eventChartData = [
-      { name: 'Prospecto', value: statusCounts.prospect },
-      { name: 'Confirmado', value: statusCounts.confirmed },
-      { name: 'Servicio Brindado', value: statusCounts.delivered },
-      { name: 'Pagado', value: statusCounts.paid },
-    ];
-    
-    setEventStatusData(eventChartData);
-    
-  }, [getAllUsers, events, payments, dateFilter]);
-  
-  // Colors for pie chart
-  const COLORS = ['#FFD700', '#4169E1', '#FFA500', '#32CD32'];
-  
-  // Statistics
-  const dateRange = getDateRange(dateFilter);
-  const filteredEvents = filterEventsByDateRange(events, dateRange);
+  // Calculate system metrics
+  const totalUsers = 1; // In a real app, this would come from user management
+  const totalCustomers = customers.length;
   const totalEvents = events.length;
-  const filteredEventsCount = filteredEvents.length;
-  const totalRevenue = monthlyRevenue.reduce((sum, month) => sum + month.ingresos, 0);
+  const totalRevenue = payments.reduce((sum, payment) => sum + payment.amount, 0);
+
+  // User activity metrics
+  const activeUsers = 1; // Mock data
+  const newUsersThisWeek = 1; // Mock data
+  
+  // Event status distribution
+  const eventStatusData = [
+    { name: 'Prospectos', value: events.filter(e => e.status === 'prospect').length, color: '#A855F7' },
+    { name: 'Confirmados', value: events.filter(e => e.status === 'confirmed').length, color: '#6366F1' },
+    { name: 'Show Realizado', value: events.filter(e => e.status === 'show_completed').length, color: '#8B5CF6' },
+    { name: 'Pagados', value: events.filter(e => e.status === 'paid').length, color: '#7C3AED' },
+  ];
+
+  // Revenue trend (last 6 months)
+  const revenueData = [
+    { month: 'Ene', revenue: 12000 },
+    { month: 'Feb', revenue: 15000 },
+    { month: 'Mar', revenue: 18000 },
+    { month: 'Abr', revenue: 16000 },
+    { month: 'May', revenue: 22000 },
+    { month: 'Jun', revenue: 25000 },
+  ];
+
+  // System health check
+  useEffect(() => {
+    const checkSystemHealth = () => {
+      const issues = [];
+      
+      // Check for potential issues
+      if (events.filter(e => e.status === 'prospect').length > 10) {
+        issues.push('Alto número de prospectos sin confirmar');
+      }
+      
+      if (payments.filter(p => p.status === 'pending').length > 5) {
+        issues.push('Múltiples pagos pendientes');
+      }
+
+      setSystemHealth({
+        status: issues.length > 0 ? 'warning' : 'healthy',
+        issues
+      });
+    };
+
+    checkSystemHealth();
+  }, [events, payments]);
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Panel de Administración</h1>
-        <Select value={dateFilter} onValueChange={(value: DateFilter) => setDateFilter(value)}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Filtrar por período" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="last3months">Últimos 3 meses</SelectItem>
-            <SelectItem value="next3months">Próximos 3 meses</SelectItem>
-            <SelectItem value="currentYear">Año presente</SelectItem>
-            <SelectItem value="lastYear">Año pasado</SelectItem>
-          </SelectContent>
-        </Select>
+      {/* System Health Alert */}
+      {systemHealth.status === 'warning' && (
+        <Card className="border-yellow-200 bg-yellow-50">
+          <CardHeader>
+            <CardTitle className="flex items-center text-yellow-800">
+              <AlertTriangle className="mr-2 h-5 w-5" />
+              Alertas del Sistema
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="list-disc list-inside space-y-1 text-yellow-700">
+              {systemHealth.issues.map((issue, index) => (
+                <li key={index}>{issue}</li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Overview Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Usuarios Activos</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{activeUsers}</div>
+            <p className="text-xs text-muted-foreground">
+              +{newUsersThisWeek} esta semana
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Clientes</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalCustomers}</div>
+            <p className="text-xs text-muted-foreground">
+              En el sistema
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Eventos</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalEvents}</div>
+            <p className="text-xs text-muted-foreground">
+              Eventos registrados
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle>
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {dataService.formatCurrency(totalRevenue, 'USD')}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Ingresos acumulados
+            </p>
+          </CardContent>
+        </Card>
       </div>
-      
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="overview">Resumen</TabsTrigger>
-          <TabsTrigger value="users">Usuarios</TabsTrigger>
-          <TabsTrigger value="finances">Finanzas</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="overview" className="mt-6">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total de Usuarios</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{users.length}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Usuarios registrados en la plataforma
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Eventos (Período)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{filteredEventsCount}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Total: {totalEvents} eventos
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Ingresos (Período)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {dataService.formatCurrency(totalRevenue, defaultCurrency)}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Proyección del período seleccionado
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-          
-          <div className="grid gap-6 md:grid-cols-2 mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Proyección Financiera</CardTitle>
-              </CardHeader>
-              <CardContent style={{ height: '350px' }}>
-                <ChartContainer
-                  config={{
-                    ingresos: { label: "Ingresos", color: "#4169E1" },
-                  }}
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Revenue Trend */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Tendencia de Ingresos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={revenueData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip 
+                  formatter={(value: number) => [
+                    dataService.formatCurrency(value, 'USD'), 
+                    'Ingresos'
+                  ]}
+                />
+                <Bar dataKey="revenue" fill="#6E59A5" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Event Status Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Estado de Eventos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={eventStatusData}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  dataKey="value"
+                  label={({ name, value }) => `${name}: ${value}`}
                 >
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={monthlyRevenue}>
-                      <XAxis dataKey="month" />
-                      <YAxis tickFormatter={(value) => dataService.formatCurrency(value, defaultCurrency)} />
-                      <ChartTooltip 
-                        content={<ChartTooltipContent />}
-                        formatter={(value: any) => [dataService.formatCurrency(value, defaultCurrency), 'Ingresos']}
-                      />
-                      <Legend />
-                      <Line 
-                        type="monotone" 
-                        dataKey="ingresos" 
-                        stroke="#4169E1" 
-                        strokeWidth={3}
-                        dot={{ fill: '#4169E1', strokeWidth: 2, r: 4 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Distribución de Eventos por Estado</CardTitle>
-              </CardHeader>
-              <CardContent style={{ height: '350px' }}>
-                <ChartContainer
-                  config={{
-                    prospect: { label: "Prospecto", color: "#FFD700" },
-                    confirmed: { label: "Confirmado", color: "#4169E1" },
-                    delivered: { label: "Servicio Brindado", color: "#FFA500" },
-                    paid: { label: "Pagado", color: "#32CD32" },
-                  }}
-                >
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={eventStatusData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={100}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      >
-                        {eventStatusData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
-              </CardContent>
-            </Card>
+                  {eventStatusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* System Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Acciones del Sistema</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Button variant="outline" className="justify-start">
+              <Users className="mr-2 h-4 w-4" />
+              Gestionar Usuarios
+            </Button>
+            <Button variant="outline" className="justify-start">
+              <TrendingUp className="mr-2 h-4 w-4" />
+              Reportes Avanzados
+            </Button>
+            <Button variant="outline" className="justify-start">
+              <AlertTriangle className="mr-2 h-4 w-4" />
+              Logs del Sistema
+            </Button>
           </div>
-        </TabsContent>
-        
-        <TabsContent value="users" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Usuarios Registrados</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {users.map((user) => (
-                  <div key={user.id} className="flex justify-between items-center p-4 border rounded-lg">
-                    <div>
-                      <h3 className="font-medium">{user.name}</h3>
-                      <p className="text-sm text-gray-500">{user.email}</p>
-                    </div>
-                    <div className="text-right">
-                      <span className={`px-2 py-1 rounded text-xs ${
-                        user.role === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {user.role === 'admin' ? 'Administrador' : 'Usuario'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+        </CardContent>
+      </Card>
+
+      {/* Recent Activity */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Actividad Reciente</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {events.slice(0, 5).map((event) => (
+              <div key={event.id} className="flex items-center space-x-4">
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{event.title}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(event.date).toLocaleDateString('es-ES')}
+                  </p>
+                </div>
+                <Badge variant="secondary">
+                  {event.status === 'prospect' && 'Prospecto'}
+                  {event.status === 'confirmed' && 'Confirmado'}
+                  {event.status === 'show_completed' && 'Show Realizado'}
+                  {event.status === 'paid' && 'Pagado'}
+                </Badge>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="finances" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Resumen Financiero Detallado</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="p-4 border rounded-lg">
-                  <h3 className="font-medium">Eventos Pagados</h3>
-                  <p className="text-2xl font-bold text-green-600">
-                    {dataService.formatCurrency(
-                      dataService.getEventsTotalByStatusAndDateRange('paid', dateRange.start, dateRange.end), 
-                      defaultCurrency
-                    )}
-                  </p>
-                </div>
-                <div className="p-4 border rounded-lg">
-                  <h3 className="font-medium">Eventos Confirmados</h3>
-                  <p className="text-2xl font-bold text-blue-600">
-                    {dataService.formatCurrency(
-                      dataService.getEventsTotalByStatusAndDateRange('confirmed', dateRange.start, dateRange.end), 
-                      defaultCurrency
-                    )}
-                  </p>
-                </div>
-                <div className="p-4 border rounded-lg">
-                  <h3 className="font-medium">Eventos Entregados</h3>
-                  <p className="text-2xl font-bold text-orange-600">
-                    {dataService.formatCurrency(
-                      dataService.getEventsTotalByStatusAndDateRange('delivered', dateRange.start, dateRange.end), 
-                      defaultCurrency
-                    )}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

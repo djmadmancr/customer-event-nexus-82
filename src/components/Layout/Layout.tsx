@@ -5,6 +5,7 @@ import Sidebar from './Sidebar';
 import { useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Outlet } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface LayoutProps {
   children?: React.ReactNode;
@@ -14,10 +15,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const location = useLocation();
+  const isMobile = useIsMobile();
   
   const toggleSidebar = () => {
     // On mobile
-    if (window.innerWidth < 768) {
+    if (isMobile) {
       setMobileSidebarOpen(!mobileSidebarOpen);
     } else {
       // On desktop
@@ -58,12 +60,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <main 
         className={cn(
           "pt-16 transition-all duration-300 ease-in-out",
-          sidebarOpen ? "md:ml-64" : "md:ml-16"
+          !isMobile && sidebarOpen ? "md:ml-64" : !isMobile ? "md:ml-16" : ""
         )}
       >
-        <div className="p-4 md:p-6">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold">{getPageTitle()}</h1>
+        <div className="p-2 md:p-4 lg:p-6">
+          <div className="mb-4 md:mb-6">
+            <h1 className="text-xl md:text-2xl font-bold">{getPageTitle()}</h1>
           </div>
           {children || <Outlet />}
         </div>

@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Users, Calendar, CreditCard, X, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -13,6 +14,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, mobileOpen, toggleSidebar }) => {
   const location = useLocation();
+  const isMobile = useIsMobile();
   
   const menuItems = [
     { 
@@ -55,9 +57,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, mobileOpen, toggleSidebar }) 
       <aside 
         className={cn(
           "bg-white border-r fixed top-0 left-0 z-50 h-full transition-all duration-300 ease-in-out",
-          isOpen ? "w-64" : "w-16",
-          mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
-          "pt-16 md:pt-16 md:z-20"
+          !isMobile && isOpen ? "w-64" : !isMobile ? "w-16" : "w-64",
+          mobileOpen ? "translate-x-0" : isMobile ? "-translate-x-full" : "translate-x-0",
+          "pt-16"
         )}
       >
         <div className="p-4 flex flex-col h-full">
@@ -80,15 +82,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, mobileOpen, toggleSidebar }) 
                     : "text-gray-600 hover:bg-gray-100"
                 )}
                 onClick={() => {
-                  if (window.innerWidth < 768) toggleSidebar();
+                  if (isMobile) toggleSidebar();
                 }}
-                title={!isOpen ? item.name : undefined}
+                title={!isMobile && !isOpen ? item.name : undefined}
               >
                 <div className="flex items-center">
                   {item.icon}
                   <span className={cn(
                     "ml-3 transition-opacity duration-300",
-                    isOpen ? "opacity-100" : "opacity-0 hidden md:block md:absolute md:pointer-events-none"
+                    (isMobile || isOpen) ? "opacity-100" : "opacity-0 hidden md:block md:absolute md:pointer-events-none"
                   )}>
                     {item.name}
                   </span>
@@ -99,7 +101,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, mobileOpen, toggleSidebar }) 
           
           <div className={cn(
             "mt-auto pt-6",
-            !isOpen && "hidden"
+            !isMobile && !isOpen && "hidden"
           )}>
             <div className="bg-crm-accent rounded-md p-4">
               <h3 className="font-medium text-crm-primary mb-2">Tip del día</h3>
