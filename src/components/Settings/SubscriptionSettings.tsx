@@ -84,6 +84,7 @@ const SubscriptionSettings = () => {
         return;
       }
 
+      console.log('Invoking create-checkout function...');
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         headers: {
           Authorization: `Bearer ${sessionData.session.access_token}`,
@@ -102,7 +103,7 @@ const SubscriptionSettings = () => {
 
       if (data?.url) {
         console.log('Redirecting to checkout:', data.url);
-        // Redirect to Stripe checkout
+        // Open Stripe checkout in the same window
         window.location.href = data.url;
         
         toast({
@@ -110,6 +111,7 @@ const SubscriptionSettings = () => {
           description: "Serás redirigido a la página de pago segura de Stripe",
         });
       } else {
+        console.error('No URL received from checkout session');
         throw new Error('No se recibió URL de checkout');
       }
     } catch (error) {
