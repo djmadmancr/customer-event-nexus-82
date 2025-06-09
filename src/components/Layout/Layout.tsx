@@ -52,9 +52,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     <div className="min-h-screen bg-crm-background">
       <Header toggleSidebar={toggleSidebar} />
       <Sidebar 
-        isOpen={sidebarOpen} 
-        mobileOpen={mobileSidebarOpen}
-        toggleSidebar={toggleSidebar} 
+        isOpen={isMobile ? mobileSidebarOpen : sidebarOpen}
+        onClose={() => isMobile ? setMobileSidebarOpen(false) : setSidebarOpen(false)}
       />
       
       <main 

@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCrm } from '@/contexts/CrmContext';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Users, Calendar, DollarSign, TrendingUp } from 'lucide-react';
+import { Users, Calendar, Coins, TrendingUp } from 'lucide-react';
 import { useAppConfig } from '@/contexts/AppConfigContext';
 import dataService from '@/services/DataService';
 
@@ -25,7 +25,7 @@ const Dashboard = () => {
   const currentYear = new Date().getFullYear();
   const thisMonthRevenue = payments
     .filter(payment => {
-      const paymentDate = new Date(payment.date);
+      const paymentDate = new Date(payment.createdAt);
       return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
     })
     .reduce((sum, payment) => sum + payment.amount, 0);
@@ -55,7 +55,7 @@ const Dashboard = () => {
     {
       title: 'Ingresos Totales',
       value: dataService.formatCurrency(totalRevenue, defaultCurrency),
-      icon: DollarSign,
+      icon: Coins,
       color: 'text-emerald-600',
       bgColor: 'bg-emerald-100',
     },
@@ -129,7 +129,7 @@ const Dashboard = () => {
             <div className="flex justify-between items-center">
               <span className={`text-gray-600 ${isMobile ? 'text-sm' : ''}`}>Clientes activos:</span>
               <span className={`font-semibold ${isMobile ? 'text-sm' : ''}`}>
-                {customers.filter(c => c.status === 'active').length}
+                {customers.filter(c => c.name && c.name.trim() !== '').length}
               </span>
             </div>
           </CardContent>

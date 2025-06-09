@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Users, Calendar, DollarSign, Settings, BarChart3 } from 'lucide-react';
+import { Home, Users, Calendar, Coins } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/contexts/AppConfigContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -10,9 +10,7 @@ const navigation = [
   { name: 'Dashboard', href: '/', icon: Home },
   { name: 'Clientes', href: '/customers', icon: Users },
   { name: 'Eventos', href: '/events', icon: Calendar },
-  { name: 'Pagos', href: '/payments', icon: DollarSign },
-  { name: 'Reportes', href: '/reports', icon: BarChart3 },
-  { name: 'Configuración', href: '/settings', icon: Settings },
+  { name: 'Pagos', href: '/payments', icon: Coins },
 ];
 
 interface SidebarProps {
@@ -43,20 +41,24 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center px-6 py-4 border-b border-gray-200">
-            {logoUrl ? (
-              <img 
-                src={logoUrl} 
-                alt="Logo" 
-                className="h-8 w-auto max-w-[150px]"
-                onError={(e) => {
+            <img 
+              src="./logo.png" 
+              alt="Bassline Logo" 
+              className="h-8 w-auto max-w-[150px]"
+              onError={(e) => {
+                // If the main logo fails, try the logoUrl from config
+                if (logoUrl) {
+                  (e.currentTarget as HTMLImageElement).src = logoUrl;
+                } else {
+                  // If both fail, hide the image and show text
                   (e.currentTarget as HTMLImageElement).style.display = 'none';
-                }}
-              />
-            ) : (
-              <div className="text-xl font-bold text-crm-primary">
-                BASSLINECRM
-              </div>
-            )}
+                  const textElement = document.createElement('div');
+                  textElement.className = 'text-xl font-bold text-crm-primary';
+                  textElement.textContent = 'BASSLINECRM';
+                  (e.currentTarget as HTMLImageElement).parentNode?.appendChild(textElement);
+                }
+              }}
+            />
           </div>
 
           {/* Navigation */}

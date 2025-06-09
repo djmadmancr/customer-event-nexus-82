@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Bell, Menu, Settings, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -73,25 +74,20 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
           </Button>
           
           <div className="flex items-center ml-2 md:ml-0">
-            {logoUrl ? (
-              <img 
-                src={logoUrl} 
-                alt="Logo" 
-                className="h-8 w-auto max-w-[200px] mr-3"
-                onError={(e) => {
+            <img 
+              src="./logo.png" 
+              alt="Bassline Logo" 
+              className="h-8 w-auto max-w-[200px] mr-3"
+              onError={(e) => {
+                // If the main logo fails, try the logoUrl from config
+                if (logoUrl) {
+                  (e.currentTarget as HTMLImageElement).src = logoUrl;
+                } else {
+                  // If both fail, hide the image
                   (e.currentTarget as HTMLImageElement).style.display = 'none';
-                }}
-              />
-            ) : (
-              <img 
-                src="/logo.png" 
-                alt="Bassline Logo" 
-                className="h-8 w-auto max-w-[200px] mr-3"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).style.display = 'none';
-                }}
-              />
-            )}
+                }
+              }}
+            />
           </div>
         </div>
 
