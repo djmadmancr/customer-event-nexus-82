@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, CreditCard, Calendar, CheckCircle, XCircle, Clock, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SubscriptionData {
   status: string;
@@ -20,14 +20,15 @@ const SubscriptionSettings = () => {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
   const { toast } = useToast();
+  const { currentUser } = useAuth();
 
   const checkSubscription = async () => {
     try {
       setLoading(true);
-      const { data: sessionData } = await supabase.auth.getSession();
       
-      if (!sessionData?.session) {
-        console.log('No session found');
+      // Check if user is authenticated
+      if (!currentUser) {
+        console.log('No current user found');
         setSubscriptionData({
           status: 'inactive',
           subscribed: false,
@@ -37,10 +38,56 @@ const SubscriptionSettings = () => {
         return;
       }
 
-      console.log('Checking subscription status...');
+      // Get fresh session
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        toast({
+          title: "Error de sesión",
+          description: "Error al obtener la sesión. Por favor, cierra sesión y vuelve a iniciar.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!sessionData?.session) {
+        console.log('No session found, attempting to refresh...');
+        
+        // Try to refresh the session
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        
+        if (refreshError || !refreshData?.session) {
+          console.log('Could not refresh session, user needs to re-authenticate');
+          setSubscriptionData({
+            status: 'inactive',
+            subscribed: false,
+            subscription_tier: null,
+            subscription_end: null
+          });
+          return;
+        }
+        
+        console.log('Session refreshed successfully');
+      }
+
+      const activeSession = sessionData?.session || (await supabase.auth.getSession()).data.session;
+      
+      if (!activeSession) {
+        console.log('No active session available');
+        setSubscriptionData({
+          status: 'inactive',
+          subscribed: false,
+          subscription_tier: null,
+          subscription_end: null
+        });
+        return;
+      }
+
+      console.log('Checking subscription status with valid session...');
       const { data, error } = await supabase.functions.invoke('check-subscription', {
         headers: {
-          Authorization: `Bearer ${sessionData.session.access_token}`,
+          Authorization: `Bearer ${activeSession.access_token}`,
         },
       });
 
@@ -73,24 +120,53 @@ const SubscriptionSettings = () => {
       setCheckoutLoading(true);
       console.log('Creating checkout session...');
       
-      const { data: sessionData } = await supabase.auth.getSession();
-      
-      if (!sessionData?.session) {
-        console.error('No session found when trying to subscribe');
+      if (!currentUser) {
         toast({
           title: "Error de autenticación",
-          description: "Debes iniciar sesión para suscribirte. Por favor, cierra sesión y vuelve a iniciar.",
+          description: "Debes iniciar sesión para suscribirte.",
           variant: "destructive",
         });
         return;
       }
 
-      console.log('Session found, user:', sessionData.session.user.email);
+      // Get fresh session before making the request
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !sessionData?.session) {
+        console.error('No valid session for checkout:', sessionError);
+        
+        // Try to refresh the session
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        
+        if (refreshError || !refreshData?.session) {
+          toast({
+            title: "Error de autenticación",
+            description: "Tu sesión ha expirado. Por favor, cierra sesión y vuelve a iniciar.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        console.log('Session refreshed for checkout');
+      }
+
+      const activeSession = sessionData?.session || (await supabase.auth.getSession()).data.session;
+      
+      if (!activeSession) {
+        toast({
+          title: "Error de autenticación",
+          description: "No se pudo obtener una sesión válida. Por favor, cierra sesión y vuelve a iniciar.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('Session found, user:', activeSession.user.email);
       console.log('Invoking create-checkout function...');
       
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         headers: {
-          Authorization: `Bearer ${sessionData.session.access_token}`,
+          Authorization: `Bearer ${activeSession.access_token}`,
         },
       });
 
@@ -136,12 +212,22 @@ const SubscriptionSettings = () => {
   const handleManageSubscription = async () => {
     try {
       setPortalLoading(true);
-      const { data: sessionData } = await supabase.auth.getSession();
       
-      if (!sessionData?.session) {
+      if (!currentUser) {
         toast({
           title: "Error",
           description: "Debes iniciar sesión para gestionar tu suscripción",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !sessionData?.session) {
+        toast({
+          title: "Error",
+          description: "Tu sesión ha expirado. Por favor, cierra sesión y vuelve a iniciar.",
           variant: "destructive",
         });
         return;
@@ -184,7 +270,7 @@ const SubscriptionSettings = () => {
     // Auto-refresh every 30 seconds
     const interval = setInterval(checkSubscription, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [currentUser]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
