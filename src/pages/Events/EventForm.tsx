@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -52,7 +51,13 @@ const eventSchema = z.object({
 
 type EventFormValues = z.infer<typeof eventSchema>;
 
-const EventForm = () => {
+interface EventFormProps {
+  event?: EventFormValues;
+  onSave?: (data: EventFormValues) => void;
+  onCancel?: () => void;
+}
+
+const EventForm: React.FC<EventFormProps> = ({ event, onSave, onCancel }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -103,6 +108,12 @@ const EventForm = () => {
       }
     }
   }, [id, form, searchParams, customers.length]);
+
+  const statusOptions = [
+    { value: 'quote', label: 'Cotización' },
+    { value: 'confirmed', label: 'Confirmado' },
+    { value: 'show_completed', label: 'Show Realizado' },
+  ];
 
   const onSubmit = (data: EventFormValues) => {
     setIsSubmitting(true);
@@ -308,10 +319,11 @@ const EventForm = () => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="prospect">Prospecto</SelectItem>
-                        <SelectItem value="confirmed">Confirmado</SelectItem>
-                        <SelectItem value="show_completed">Show Realizado</SelectItem>
-                        <SelectItem value="paid">Pagado</SelectItem>
+                        {statusOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />

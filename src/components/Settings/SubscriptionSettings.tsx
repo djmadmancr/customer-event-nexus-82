@@ -28,6 +28,12 @@ const SubscriptionSettings = () => {
       
       if (!sessionData?.session) {
         console.log('No session found');
+        setSubscriptionData({
+          status: 'inactive',
+          subscribed: false,
+          subscription_tier: null,
+          subscription_end: null
+        });
         return;
       }
 
@@ -96,13 +102,15 @@ const SubscriptionSettings = () => {
 
       if (data?.url) {
         console.log('Redirecting to checkout:', data.url);
-        // Open Stripe checkout in a new tab
-        window.open(data.url, '_blank');
+        // Redirect to Stripe checkout
+        window.location.href = data.url;
         
         toast({
           title: "Redirigiendo a Stripe",
-          description: "Se abrirá una nueva ventana para completar el pago",
+          description: "Serás redirigido a la página de pago segura de Stripe",
         });
+      } else {
+        throw new Error('No se recibió URL de checkout');
       }
     } catch (error) {
       console.error('Error in handleSubscribe:', error);
@@ -147,7 +155,7 @@ const SubscriptionSettings = () => {
       }
 
       if (data?.url) {
-        window.open(data.url, '_blank');
+        window.location.href = data.url;
       }
     } catch (error) {
       console.error('Error in handleManageSubscription:', error);

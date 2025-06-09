@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,9 +8,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useEmailConfig } from '@/contexts/EmailConfigContext';
 import { CheckCircle, Mail, Wifi, WifiOff, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const EmailSettings = () => {
-  const { emailConfig, updateEmailConfig, testEmailConnection, configureGmail, isConfigured } = useEmailConfig();
+  const { emailConfig, updateEmailConfig, configureGmail, isConfigured } = useEmailConfig();
   const { toast } = useToast();
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -21,17 +21,51 @@ const EmailSettings = () => {
     setConnectionStatus('idle');
     
     try {
-      const success = await testEmailConnection();
-      setConnectionStatus(success ? 'success' : 'error');
+      const { data: sessionData } = await supabase.auth.getSession();
       
-      toast({
-        title: success ? "Conexión exitosa" : "Error de conexión",
-        description: success 
-          ? "La configuración de email está funcionando correctamente" 
-          : "No se pudo conectar con el servidor de email",
-        variant: success ? "default" : "destructive",
+      if (!sessionData?.session) {
+        toast({
+          title: "Error",
+          description: "Debes iniciar sesión para probar la conexión",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('test-email', {
+        body: { emailConfig },
+        headers: {
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
       });
+
+      if (error) {
+        console.error('Error testing email connection:', error);
+        setConnectionStatus('error');
+        toast({
+          title: "Error de conexión",
+          description: "No se pudo probar la configuración de email",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data.success) {
+        setConnectionStatus('success');
+        toast({
+          title: "Conexión exitosa",
+          description: data.message,
+        });
+      } else {
+        setConnectionStatus('error');
+        toast({
+          title: "Error de configuración",
+          description: data.message,
+          variant: "destructive",
+        });
+      }
     } catch (error) {
+      console.error('Error in handleTestConnection:', error);
       setConnectionStatus('error');
       toast({
         title: "Error de conexión",
