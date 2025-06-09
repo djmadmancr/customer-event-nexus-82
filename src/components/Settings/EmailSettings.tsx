@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,17 +7,27 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useEmailConfig } from '@/contexts/EmailConfigContext';
-import { CheckCircle, Mail, Wifi, WifiOff, Save } from 'lucide-react';
+import { CheckCircle, Wifi, WifiOff, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 const EmailSettings = () => {
-  const { emailConfig, updateEmailConfig, configureGmail, isConfigured } = useEmailConfig();
+  const { emailConfig, updateEmailConfig, isConfigured } = useEmailConfig();
   const { toast } = useToast();
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleTestConnection = async () => {
+    if (!isConfigured) {
+      toast({
+        title: "Configuración incompleta",
+        description: "Por favor completa todos los campos requeridos antes de probar la conexión.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsTestingConnection(true);
     setConnectionStatus('idle');
     
@@ -77,15 +88,7 @@ const EmailSettings = () => {
     }
   };
 
-  const handleGmailSetup = () => {
-    configureGmail();
-    toast({
-      title: "Configuración de Gmail aplicada",
-      description: "Se han configurado los servidores de Gmail. Completa tu usuario y contraseña.",
-    });
-  };
-
-  const handleSaveConfiguration = () => {
+  const handleSaveConfiguration = async () => {
     if (!isConfigured) {
       toast({
         title: "Configuración incompleta",
@@ -95,10 +98,26 @@ const EmailSettings = () => {
       return;
     }
 
-    toast({
-      title: "Configuración guardada",
-      description: "La configuración de email ha sido guardada exitosamente.",
-    });
+    setIsSaving(true);
+    
+    try {
+      // Configuration is already saved automatically via context
+      // This is just for user feedback
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      toast({
+        title: "Configuración guardada",
+        description: "La configuración de email ha sido guardada exitosamente.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Error al guardar la configuración",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -106,71 +125,16 @@ const EmailSettings = () => {
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           Configuración de Email
-          <div className="flex items-center gap-2">
-            <Button onClick={handleGmailSetup} variant="outline" size="sm">
-              <Mail className="h-4 w-4 mr-2" />
-              Configurar Gmail
-            </Button>
-            
-            <Button 
-              onClick={handleTestConnection} 
-              variant="outline" 
-              size="sm"
-              disabled={isTestingConnection || !isConfigured}
-              className="bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700"
-            >
-              {isTestingConnection ? (
-                <div className="flex items-center gap-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                  Probando...
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Wifi className="h-4 w-4" />
-                  Probar Conexión
-                </div>
-              )}
-            </Button>
-
-            <Button 
-              onClick={handleSaveConfiguration}
-              disabled={!isConfigured}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              Guardar Configuración
-            </Button>
-
-            {isConfigured && (
-              <div className="flex items-center text-green-600">
-                <CheckCircle className="h-4 w-4 mr-1" />
-                <span className="text-sm">Configurado</span>
-              </div>
-            )}
-          </div>
+          {isConfigured && (
+            <div className="flex items-center text-green-600">
+              <CheckCircle className="h-4 w-4 mr-1" />
+              <span className="text-sm">Configurado</span>
+            </div>
+          )}
         </CardTitle>
       </CardHeader>
       
       <CardContent className="space-y-6">
-        {/* Connection Status Alert */}
-        {connectionStatus === 'success' && (
-          <Alert className="border-green-500 bg-green-50">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-800">
-              ¡Conexión exitosa! Tu configuración de email está funcionando correctamente.
-            </AlertDescription>
-          </Alert>
-        )}
-        
-        {connectionStatus === 'error' && (
-          <Alert className="border-red-500 bg-red-50">
-            <WifiOff className="h-4 w-4 text-red-600" />
-            <AlertDescription className="text-red-800">
-              Error de conexión. Verifica tus credenciales y configuración del servidor.
-            </AlertDescription>
-          </Alert>
-        )}
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Configuración SMTP (Envío)</h3>
@@ -308,6 +272,65 @@ const EmailSettings = () => {
             </div>
           </div>
         </div>
+
+        {/* Action Buttons - Moved to bottom */}
+        <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
+          <Button 
+            onClick={handleTestConnection} 
+            variant="outline" 
+            disabled={isTestingConnection || !isConfigured}
+            className="bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700"
+          >
+            {isTestingConnection ? (
+              <div className="flex items-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                Probando...
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Wifi className="h-4 w-4" />
+                Probar Conexión
+              </div>
+            )}
+          </Button>
+
+          <Button 
+            onClick={handleSaveConfiguration}
+            disabled={!isConfigured || isSaving}
+            className="bg-green-600 hover:bg-green-700 text-white"
+          >
+            {isSaving ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Guardando...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Guardar Configuración
+              </>
+            )}
+          </Button>
+        </div>
+
+        {/* Connection Status Alert - Moved to bottom */}
+        {connectionStatus === 'success' && (
+          <Alert className="border-green-500 bg-green-50">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-800">
+              ¡Conexión exitosa! Tu configuración de email está funcionando correctamente.
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {connectionStatus === 'error' && (
+          <Alert className="border-red-500 bg-red-50">
+            <WifiOff className="h-4 w-4 text-red-600" />
+            <AlertDescription className="text-red-800">
+              Error de conexión. Verifica tus credenciales y configuración del servidor.
+            </AlertDescription>
+          </Alert>
+        )}
       </CardContent>
     </Card>
   );

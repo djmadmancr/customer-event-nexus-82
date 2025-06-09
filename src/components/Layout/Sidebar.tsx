@@ -1,117 +1,88 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Users, Calendar, CreditCard, X, TrendingUp } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Home, Users, Calendar, DollarSign, Settings, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAppConfig } from '@/contexts/AppConfigContext';
 import { useIsMobile } from '@/hooks/use-mobile';
+
+const navigation = [
+  { name: 'Dashboard', href: '/', icon: Home },
+  { name: 'Clientes', href: '/customers', icon: Users },
+  { name: 'Eventos', href: '/events', icon: Calendar },
+  { name: 'Pagos', href: '/payments', icon: DollarSign },
+  { name: 'Reportes', href: '/reports', icon: BarChart3 },
+  { name: 'Configuración', href: '/settings', icon: Settings },
+];
 
 interface SidebarProps {
   isOpen: boolean;
-  mobileOpen: boolean;
-  toggleSidebar: () => void;
+  onClose: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, mobileOpen, toggleSidebar }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const location = useLocation();
+  const { logoUrl } = useAppConfig();
   const isMobile = useIsMobile();
-  
-  const menuItems = [
-    { 
-      name: 'Dashboard', 
-      path: '/', 
-      icon: <TrendingUp className="h-5 w-5" />,
-      exact: true 
-    },
-    { 
-      name: 'Clientes', 
-      path: '/customers', 
-      icon: <Users className="h-5 w-5" />,
-      exact: false 
-    },
-    { 
-      name: 'Eventos', 
-      path: '/events', 
-      icon: <Calendar className="h-5 w-5" />,
-      exact: false 
-    },
-    { 
-      name: 'Pagos', 
-      path: '/payments', 
-      icon: <CreditCard className="h-5 w-5" />,
-      exact: false 
-    },
-  ];
-  
+
   return (
     <>
       {/* Mobile overlay */}
-      {mobileOpen && (
+      {isMobile && isOpen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
-          onClick={toggleSidebar}
+          className="fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={onClose}
         />
       )}
-    
-      {/* Sidebar */}
-      <aside 
-        className={cn(
-          "bg-white border-r fixed top-0 left-0 z-50 h-full transition-all duration-300 ease-in-out",
-          !isMobile && isOpen ? "w-64" : !isMobile ? "w-16" : "w-64",
-          mobileOpen ? "translate-x-0" : isMobile ? "-translate-x-full" : "translate-x-0",
-          "pt-16"
-        )}
-      >
-        <div className="p-4 flex flex-col h-full">
-          <div className="flex justify-between items-center md:hidden mb-6">
-            <h2 className="text-lg font-semibold">Menú</h2>
-            <Button variant="ghost" size="icon" onClick={toggleSidebar}>
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
-          
-          <nav className="space-y-2">
-            {menuItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={cn(
-                  "flex items-center px-4 py-3 rounded-md transition-colors relative",
-                  location.pathname === item.path
-                    ? "bg-crm-accent text-crm-primary font-medium"
-                    : "text-gray-600 hover:bg-gray-100"
-                )}
-                onClick={() => {
-                  if (isMobile) toggleSidebar();
+      
+      <div className={cn(
+        "fixed top-0 left-0 h-full bg-white border-r border-gray-200 transition-transform duration-300 ease-in-out z-50",
+        isMobile ? "w-64" : "w-64",
+        isOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
+        <div className="flex flex-col h-full">
+          {/* Logo */}
+          <div className="flex items-center px-6 py-4 border-b border-gray-200">
+            {logoUrl ? (
+              <img 
+                src={logoUrl} 
+                alt="Logo" 
+                className="h-8 w-auto max-w-[150px]"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = 'none';
                 }}
-                title={!isMobile && !isOpen ? item.name : undefined}
-              >
-                <div className="flex items-center">
-                  {item.icon}
-                  <span className={cn(
-                    "ml-3 transition-opacity duration-300",
-                    (isMobile || isOpen) ? "opacity-100" : "opacity-0 hidden md:block md:absolute md:pointer-events-none"
-                  )}>
-                    {item.name}
-                  </span>
-                </div>
-              </Link>
-            ))}
-          </nav>
-          
-          <div className={cn(
-            "mt-auto pt-6",
-            !isMobile && !isOpen && "hidden"
-          )}>
-            <div className="bg-crm-accent rounded-md p-4">
-              <h3 className="font-medium text-crm-primary mb-2">Tip del día</h3>
-              <p className="text-sm text-gray-600">
-                Utiliza las propuestas en PDF para enviar cotizaciones profesionales por email.
-              </p>
-            </div>
+              />
+            ) : (
+              <div className="text-xl font-bold text-crm-primary">
+                BASSLINECRM
+              </div>
+            )}
           </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 px-4 py-6 space-y-2">
+            {navigation.map((item) => {
+              const isActive = location.pathname === item.href;
+              return (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  onClick={isMobile ? onClose : undefined}
+                  className={cn(
+                    "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                    isActive
+                      ? 'bg-crm-primary text-white'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  )}
+                >
+                  <item.icon className="mr-3 h-5 w-5" />
+                  {item.name}
+                </Link>
+              );
+            })}
+          </nav>
         </div>
-      </aside>
+      </div>
     </>
   );
 };

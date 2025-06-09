@@ -19,13 +19,14 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useCrm } from '@/contexts/CrmContext';
-import { Search, Plus, MoreVertical, Pencil, Trash2, Eye, Calendar as CalendarIcon, List } from 'lucide-react';
+import { Search, Plus, MoreVertical, Pencil, Trash2, Eye } from 'lucide-react';
 import dataService from '@/services/DataService';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import FinancialSummary from '@/components/Events/FinancialSummary';
 import { useAppConfig } from '@/contexts/AppConfigContext';
 import EventCalendar from '@/components/Events/EventCalendar';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface EventListProps {
   filterByCustomerId?: string;
@@ -39,10 +40,10 @@ const EventList: React.FC<EventListProps> = ({
   const navigate = useNavigate();
   const { customers, events, refreshEvents, setSelectedEvent } = useCrm();
   const { defaultCurrency } = useAppConfig();
+  const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [eventToDelete, setEventToDelete] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   
   // Filter events based on search query, status filter and customerId filter
   const filteredEvents = events
@@ -102,10 +103,10 @@ const EventList: React.FC<EventListProps> = ({
   };
   
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {!filterByCustomerId && <FinancialSummary />}
       
-      {/* Header with search, filter, view toggle and add button */}
+      {/* Header with search, filter and add button */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between">
         <div className="flex flex-col sm:flex-row gap-2 w-full">
           <div className="relative w-full sm:w-64">
@@ -130,26 +131,6 @@ const EventList: React.FC<EventListProps> = ({
               <SelectItem value="paid">Pagado</SelectItem>
             </SelectContent>
           </Select>
-
-          {/* View Mode Toggle */}
-          <div className="flex border rounded-md">
-            <Button
-              variant={viewMode === 'list' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('list')}
-              className="rounded-r-none"
-            >
-              <List className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'calendar' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('calendar')}
-              className="rounded-l-none"
-            >
-              <CalendarIcon className="h-4 w-4" />
-            </Button>
-          </div>
         </div>
         
         {showAddButton && (
@@ -163,103 +144,113 @@ const EventList: React.FC<EventListProps> = ({
         )}
       </div>
       
-      {/* Events Display */}
-      {viewMode === 'calendar' ? (
-        <EventCalendar 
-          events={filteredEvents}
-          customers={customers}
-          onEventClick={handleViewEvent}
-          onEventEdit={handleEditEvent}
-          onEventDelete={setEventToDelete}
-        />
-      ) : (
-        <div className="bg-white rounded-md shadow-sm border overflow-hidden">
-          {filteredEvents.length > 0 ? (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Título</TableHead>
-                    {!filterByCustomerId && (
-                      <TableHead className="hidden md:table-cell">Cliente</TableHead>
-                    )}
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Costo</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead className="w-[80px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredEvents.map((event) => {
-                    const eventTotal = event.totalWithTax || event.cost;
-                    return (
-                      <TableRow key={event.id}>
-                        <TableCell className="font-medium">{event.title}</TableCell>
-                        {!filterByCustomerId && (
-                          <TableCell className="hidden md:table-cell">
-                            <Link 
-                              to={`/customers/${event.customerId}`}
-                              className="text-blue-600 hover:underline"
-                            >
-                              {getCustomerName(event.customerId)}
-                            </Link>
-                          </TableCell>
-                        )}
-                        <TableCell>
-                          {format(event.date, "d 'de' MMMM, yyyy", { locale: es })}
-                        </TableCell>
-                        <TableCell>
-                          {dataService.formatCurrency(eventTotal, defaultCurrency)}
-                        </TableCell>
-                        <TableCell>{getStatusBadge(event.status)}</TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleViewEvent(event.id)}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                Ver detalle
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleEditEvent(event.id)}>
-                                <Pencil className="h-4 w-4 mr-2" />
-                                Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                className="text-red-600"
-                                onClick={() => setEventToDelete(event.id)}
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Eliminar
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            <div className="p-8 text-center">
-              <p className="text-gray-500 mb-4">No se encontraron eventos</p>
-              {showAddButton && (
-                <Button 
-                  variant="outline"
-                  onClick={() => navigate('/events/new')}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Crear nuevo evento
-                </Button>
-              )}
-            </div>
-          )}
+      {/* Calendar and Events Combined View */}
+      <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'grid-cols-4'}`}>
+        {/* Calendar - 3/4 width */}
+        <div className={`${isMobile ? 'col-span-1' : 'col-span-3'}`}>
+          <EventCalendar 
+            events={filteredEvents}
+            customers={customers}
+            onEventClick={handleViewEvent}
+            onEventEdit={handleEditEvent}
+            onEventDelete={setEventToDelete}
+          />
         </div>
-      )}
+        
+        {/* Events List - 1/4 width */}
+        <div className={`${isMobile ? 'col-span-1' : 'col-span-1'}`}>
+          <div className="bg-white rounded-md shadow-sm border overflow-hidden h-fit">
+            <div className="p-4 border-b">
+              <h3 className={`font-semibold ${isMobile ? 'text-base' : 'text-lg'}`}>
+                Lista de Eventos
+              </h3>
+            </div>
+            
+            {filteredEvents.length > 0 ? (
+              <div className={`max-h-96 overflow-y-auto ${isMobile ? 'max-h-80' : ''}`}>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className={`${isMobile ? 'text-xs' : 'text-sm'}`}>Evento</TableHead>
+                      <TableHead className={`${isMobile ? 'text-xs' : 'text-sm'}`}>Estado</TableHead>
+                      <TableHead className="w-[50px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredEvents.map((event) => {
+                      const eventTotal = event.totalWithTax || event.cost;
+                      return (
+                        <TableRow key={event.id}>
+                          <TableCell className="py-2">
+                            <div>
+                              <p className={`font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                                {event.title}
+                              </p>
+                              <p className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                                {format(event.date, "d/M", { locale: es })}
+                              </p>
+                              <p className={`text-green-600 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                                {dataService.formatCurrency(eventTotal, defaultCurrency)}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-2">
+                            <div className="scale-75 origin-left">
+                              {getStatusBadge(event.status)}
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-2">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-6 w-6">
+                                  <MoreVertical className="h-3 w-3" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleViewEvent(event.id)}>
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  Ver
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleEditEvent(event.id)}>
+                                  <Pencil className="h-4 w-4 mr-2" />
+                                  Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  className="text-red-600"
+                                  onClick={() => setEventToDelete(event.id)}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Eliminar
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="p-6 text-center">
+                <p className={`text-gray-500 mb-4 ${isMobile ? 'text-sm' : ''}`}>
+                  No se encontraron eventos
+                </p>
+                {showAddButton && (
+                  <Button 
+                    variant="outline"
+                    size={isMobile ? "sm" : "default"}
+                    onClick={() => navigate('/events/new')}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Crear evento
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
       
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!eventToDelete} onOpenChange={() => setEventToDelete(null)}>

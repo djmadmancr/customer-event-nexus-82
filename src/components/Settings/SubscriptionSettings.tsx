@@ -76,15 +76,18 @@ const SubscriptionSettings = () => {
       const { data: sessionData } = await supabase.auth.getSession();
       
       if (!sessionData?.session) {
+        console.error('No session found when trying to subscribe');
         toast({
-          title: "Error",
-          description: "Debes iniciar sesión para suscribirte",
+          title: "Error de autenticación",
+          description: "Debes iniciar sesión para suscribirte. Por favor, cierra sesión y vuelve a iniciar.",
           variant: "destructive",
         });
         return;
       }
 
+      console.log('Session found, user:', sessionData.session.user.email);
       console.log('Invoking create-checkout function...');
+      
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         headers: {
           Authorization: `Bearer ${sessionData.session.access_token}`,
@@ -95,7 +98,7 @@ const SubscriptionSettings = () => {
         console.error('Error creating checkout:', error);
         toast({
           title: "Error",
-          description: "No se pudo crear la sesión de pago",
+          description: `No se pudo crear la sesión de pago: ${error.message}`,
           variant: "destructive",
         });
         return;
@@ -111,14 +114,18 @@ const SubscriptionSettings = () => {
           description: "Serás redirigido a la página de pago segura de Stripe",
         });
       } else {
-        console.error('No URL received from checkout session');
-        throw new Error('No se recibió URL de checkout');
+        console.error('No URL received from checkout session:', data);
+        toast({
+          title: "Error",
+          description: "No se recibió URL de checkout válida",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error('Error in handleSubscribe:', error);
       toast({
         title: "Error",
-        description: "Error al procesar la suscripción",
+        description: `Error al procesar la suscripción: ${error.message}`,
         variant: "destructive",
       });
     } finally {
