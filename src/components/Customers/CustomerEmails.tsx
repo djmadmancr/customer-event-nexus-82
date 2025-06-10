@@ -4,9 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Mail, Send, Inbox, Plus } from 'lucide-react';
+import { Mail, Send, Paperclip, X } from 'lucide-react';
 import { useCrm } from '@/contexts/CrmContext';
 import { useEmailConfig } from '@/contexts/EmailConfigContext';
 import { format } from 'date-fns';
@@ -17,222 +16,194 @@ interface CustomerEmailsProps {
 }
 
 const CustomerEmails: React.FC<CustomerEmailsProps> = ({ customerId }) => {
-  const { events } = useCrm();
+  const { events, customers } = useCrm();
   const { isConfigured } = useEmailConfig();
-  const [activeView, setActiveView] = useState<'inbox' | 'compose'>('inbox');
   const [selectedEvent, setSelectedEvent] = useState<string>('');
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
+  const [attachPDF, setAttachPDF] = useState(false);
 
-  // Filter events for this customer
+  const customer = customers.find(c => c.id === customerId);
   const customerEvents = events.filter(event => event.customerId === customerId);
-
-  // Mock emails - in real implementation, these would come from IMAP
-  const mockEmails = [
-    {
-      id: '1',
-      subject: 'Consulta sobre cotización',
-      from: 'cliente@email.com',
-      date: new Date('2023-12-01'),
-      eventId: customerEvents[0]?.id,
-      preview: 'Hola, me gustaría saber más detalles sobre...',
-      read: true,
-    },
-    {
-      id: '2',
-      subject: 'Confirmación de evento',
-      from: 'cliente@email.com',
-      date: new Date('2023-12-02'),
-      eventId: customerEvents[0]?.id,
-      preview: 'Perfecto, confirmo que el evento será...',
-      read: false,
-    },
-  ];
 
   const handleSendEmail = () => {
     if (!isConfigured) {
-      alert('Por favor configura las credenciales de email primero');
+      alert('Por favor configura las credenciales SMTP primero en Configuración → Email');
       return;
     }
 
-    if (!selectedEvent || !emailSubject || !emailBody) {
-      alert('Por favor completa todos los campos');
+    if (!emailSubject || !emailBody) {
+      alert('Por favor completa el asunto y el mensaje');
       return;
     }
 
-    // Here would be the actual email sending logic
     console.log('Sending email:', {
+      to: customer?.email,
       eventId: selectedEvent,
       subject: emailSubject,
       body: emailBody,
+      attachPDF: attachPDF
     });
 
-    // Reset form
     setEmailSubject('');
     setEmailBody('');
     setSelectedEvent('');
-    setActiveView('inbox');
+    setAttachPDF(false);
 
     alert('Email enviado correctamente');
   };
 
+  const generateEmailTemplate = (eventId: string) => {
+    const event = customerEvents.find(e => e.id === eventId);
+    if (!event) return;
+
+    const subject = `Propuesta de evento: ${event.title}`;
+    const body = `Estimado/a ${customer?.name || 'Cliente'},
+
+Espero que se encuentre bien. Me complace enviarle la propuesta para el evento "${event.title}" programado para el ${format(event.date, 'dd/MM/yyyy', { locale: es })}.
+
+Detalles del evento:
+- Fecha: ${format(event.date, 'dd/MM/yyyy', { locale: es })}
+- Ubicación: ${event.location || 'Por definir'}
+- Costo: ${event.cost.toLocaleString()}
+
+${attachPDF ? 'Adjunto encontrará la propuesta detallada en formato PDF.' : ''}
+
+Quedo atento a sus comentarios y espero su confirmación.
+
+Saludos cordiales,
+${customer?.name || 'Su equipo'}`;
+
+    setEmailSubject(subject);
+    setEmailBody(body);
+  };
+
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5" />
-              Comunicación por Email
-            </CardTitle>
-            <div className="flex gap-2">
-              <Button
-                variant={activeView === 'inbox' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setActiveView('inbox')}
-              >
-                <Inbox className="h-4 w-4 mr-2" />
-                Bandeja
-              </Button>
-              <Button
-                variant={activeView === 'compose' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setActiveView('compose')}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Nuevo Email
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {activeView === 'inbox' ? (
-            <div className="space-y-4">
-              {!isConfigured && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <p className="text-sm text-yellow-800">
-                    Para recibir emails, configura las credenciales IMAP en Configuración → Email.
-                  </p>
-                </div>
-              )}
-              
-              {mockEmails.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  No hay emails para este cliente
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {mockEmails.map((email) => {
-                    const relatedEvent = customerEvents.find(e => e.id === email.eventId);
-                    return (
-                      <div
-                        key={email.id}
-                        className={`p-4 border rounded-lg hover:bg-gray-50 cursor-pointer ${
-                          !email.read ? 'bg-blue-50 border-blue-200' : ''
-                        }`}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-medium">{email.subject}</span>
-                              {!email.read && (
-                                <Badge variant="default" className="text-xs">Nuevo</Badge>
-                              )}
-                            </div>
-                            <div className="text-sm text-gray-600 mb-1">
-                              De: {email.from}
-                            </div>
-                            <div className="text-sm text-gray-500 mb-2">
-                              {relatedEvent && (
-                                <span className="text-blue-600">
-                                  Evento: {relatedEvent.title}
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-sm text-gray-700">{email.preview}</p>
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {format(email.date, 'dd/MM/yyyy HH:mm', { locale: es })}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {!isConfigured && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <p className="text-sm text-yellow-800">
-                    Para enviar emails, configura las credenciales SMTP en Configuración → Email.
-                  </p>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Evento Relacionado
-                </label>
-                <Select value={selectedEvent} onValueChange={setSelectedEvent}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona un evento" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {customerEvents.map((event) => (
-                      <SelectItem key={event.id} value={event.id}>
-                        {event.title} - {format(event.date, 'dd/MM/yyyy', { locale: es })}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Asunto
-                </label>
-                <Input
-                  value={emailSubject}
-                  onChange={(e) => setEmailSubject(e.target.value)}
-                  placeholder="Asunto del email"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Mensaje
-                </label>
-                <Textarea
-                  value={emailBody}
-                  onChange={(e) => setEmailBody(e.target.value)}
-                  placeholder="Escribe tu mensaje aquí..."
-                  className="min-h-[200px]"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setActiveView('inbox')}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={handleSendEmail}
-                  disabled={!isConfigured}
-                  className="bg-crm-primary hover:bg-crm-primary/90"
-                >
-                  <Send className="h-4 w-4 mr-2" />
-                  Enviar Email
-                </Button>
-              </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Mail className="h-5 w-5" />
+          Enviar Email
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {!isConfigured && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-sm text-yellow-800">
+                Para enviar emails, configura las credenciales SMTP en Configuración → Email.
+              </p>
             </div>
           )}
-        </CardContent>
-      </Card>
-    </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Para
+            </label>
+            <Input
+              value={customer?.email || ''}
+              readOnly
+              className="bg-gray-50"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Evento Relacionado (Opcional)
+            </label>
+            <Select 
+              value={selectedEvent} 
+              onValueChange={(value) => {
+                setSelectedEvent(value);
+                if (value) {
+                  generateEmailTemplate(value);
+                }
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona un evento para generar plantilla" />
+              </SelectTrigger>
+              <SelectContent>
+                {customerEvents.map((event) => (
+                  <SelectItem key={event.id} value={event.id}>
+                    {event.title} - {format(event.date, 'dd/MM/yyyy', { locale: es })}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Asunto
+            </label>
+            <Input
+              value={emailSubject}
+              onChange={(e) => setEmailSubject(e.target.value)}
+              placeholder="Asunto del email"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Mensaje
+            </label>
+            <Textarea
+              value={emailBody}
+              onChange={(e) => setEmailBody(e.target.value)}
+              placeholder="Escribe tu mensaje aquí..."
+              className="min-h-[200px]"
+            />
+          </div>
+
+          {selectedEvent && (
+            <div className="flex items-center space-x-2 p-3 bg-blue-50 rounded-lg">
+              <input
+                type="checkbox"
+                id="attachPDF"
+                checked={attachPDF}
+                onChange={(e) => setAttachPDF(e.target.checked)}
+                className="rounded"
+              />
+              <label htmlFor="attachPDF" className="text-sm cursor-pointer">
+                <div className="flex items-center gap-2">
+                  <Paperclip className="h-4 w-4" />
+                  Adjuntar propuesta del evento en PDF
+                </div>
+              </label>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              onClick={() => {
+                setEmailSubject('');
+                setEmailBody('');
+                setSelectedEvent('');
+                setAttachPDF(false);
+              }}
+              variant="outline"
+            >
+              Limpiar
+            </Button>
+            <Button
+              onClick={handleSendEmail}
+              disabled={!isConfigured}
+              className="bg-crm-primary hover:bg-crm-primary/90"
+            >
+              <Send className="h-4 w-4 mr-2" />
+              Enviar Email
+            </Button>
+          </div>
+
+          {selectedEvent && (
+            <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
+              <strong>Tip:</strong> Al seleccionar un evento se genera automáticamente una plantilla de email con los detalles del evento.
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

@@ -1,113 +1,167 @@
 
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { Toaster } from 'sonner';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-
-// Auth
-import { AuthProvider } from './contexts/AuthContext';
-import AuthPage from './pages/Auth/AuthPage';
-import ProtectedRoute from './components/Auth/ProtectedRoute';
-
-// Layout
-import Layout from './components/Layout/Layout';
-import NotFound from './pages/NotFound';
-
-// Pages
-import CustomerList from './pages/Customers/CustomerList';
-import CustomerForm from './pages/Customers/CustomerForm';
-import CustomerDetail from './pages/Customers/CustomerDetail';
-import EventList from './pages/Events/EventList';
-import EventForm from './pages/Events/EventForm';
-import EventDetail from './pages/Events/EventDetail';
-import PaymentPage from './pages/Payments/PaymentPage';
-import AdminDashboard from './pages/Admin/Dashboard';
-import UserManagement from './pages/Admin/UserManagement';
-import AppSettings from './pages/Settings/AppSettings';
-import BookingForm from './pages/Booking/BookingForm';
-
-// Contexts
-import { CrmProvider } from './contexts/CrmContext';
-import { AppConfigProvider } from './contexts/AppConfigContext';
-import { UserProfileProvider } from './contexts/UserProfileContext';
-import { EmailConfigProvider } from './contexts/EmailConfigContext';
-import { NotificationProvider } from './contexts/NotificationContext';
-import Dashboard from './pages/Dashboard/Dashboard';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { CrmProvider } from '@/contexts/CrmContext';
+import { UserProfileProvider } from '@/contexts/UserProfileContext';
+import { AppConfigProvider } from '@/contexts/AppConfigContext';
+import { EmailConfigProvider } from '@/contexts/EmailConfigContext';
+import { NotificationProvider } from '@/contexts/NotificationContext';
+import { Toaster } from '@/components/ui/toaster';
+import { Toaster as Sonner } from '@/components/ui/sonner';
+import ProtectedRoute from '@/components/Auth/ProtectedRoute';
+import Layout from '@/components/Layout/Layout';
+import AuthPage from '@/pages/Auth/AuthPage';
+import Home from '@/pages/Home';
+import CustomerList from '@/pages/Customers/CustomerList';
+import CustomerDetail from '@/pages/Customers/CustomerDetail';
+import CustomerForm from '@/pages/Customers/CustomerForm';
+import EventList from '@/pages/Events/EventList';
+import EventDetail from '@/pages/Events/EventDetail';
+import EventForm from '@/pages/Events/EventForm';
+import PaymentPage from '@/pages/Payments/PaymentPage';
+import PaymentForm from '@/pages/Payments/PaymentForm';
+import AppSettings from '@/pages/Settings/AppSettings';
+import Dashboard from '@/pages/Admin/Dashboard';
+import UserManagement from '@/pages/Admin/UserManagement';
+import AdminDashboard from '@/pages/Admin/AdminDashboard';
+import BookingForm from '@/pages/Booking/BookingForm';
+import NotFound from '@/pages/NotFound';
+import './App.css';
 
 const queryClient = new QueryClient();
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <Router>
         <AuthProvider>
-          <AppConfigProvider>
-            <UserProfileProvider>
+          <UserProfileProvider>
+            <AppConfigProvider>
               <EmailConfigProvider>
-                <NotificationProvider>
-                  <CrmProvider>
-                    <div className="min-h-screen bg-gray-50">
-                      <Routes>
-                        {/* Public booking form route */}
-                        <Route path="/booking/:userId" element={<BookingForm />} />
-                        
-                        {/* Auth routes */}
-                        <Route path="/login" element={<AuthPage />} />
-                        
-                        {/* Protected routes */}
-                        <Route path="/" element={
-                          <ProtectedRoute>
-                            <Layout />
-                          </ProtectedRoute>
-                        }>
-                          <Route index element={<Dashboard />} />
-                          
-                          {/* Customer routes */}
-                          <Route path="customers" element={<CustomerList />} />
-                          <Route path="customers/new" element={<CustomerForm />} />
-                          <Route path="customers/:id" element={<CustomerDetail />} />
-                          <Route path="customers/:id/edit" element={<CustomerForm />} />
-                          
-                          {/* Event routes */}
-                          <Route path="events" element={<EventList />} />
-                          <Route path="events/new" element={<EventForm />} />
-                          <Route path="events/:id" element={<EventDetail />} />
-                          <Route path="events/:id/edit" element={<EventForm />} />
-                          
-                          {/* Payment routes */}
-                          <Route path="payments" element={<PaymentPage />} />
-                          
-                          {/* Settings routes */}
-                          <Route path="settings" element={<AppSettings />} />
-                        </Route>
-                        
-                        {/* Admin routes */}
-                        <Route 
-                          path="/admin/*" 
-                          element={
-                            <ProtectedRoute requiredRole="admin">
-                              <Layout>
-                                <Routes>
-                                  <Route path="dashboard" element={<AdminDashboard />} />
-                                  <Route path="users" element={<UserManagement />} />
-                                </Routes>
-                              </Layout>
-                            </ProtectedRoute>
-                          } 
-                        />
-                        
-                        {/* 404 route */}
-                        <Route path="*" element={<NotFound />} />
-                      </Routes>
-                      <Toaster />
-                    </div>
-                  </CrmProvider>
-                </NotificationProvider>
+                <CrmProvider>
+                  <NotificationProvider>
+                    <Routes>
+                      <Route path="/auth" element={<AuthPage />} />
+                      <Route path="/admin-dashboard" element={<AdminDashboard />} />
+                      <Route path="/booking/:userId" element={<BookingForm />} />
+                      <Route path="/" element={
+                        <ProtectedRoute>
+                          <Layout>
+                            <Home />
+                          </Layout>
+                        </ProtectedRoute>
+                      } />
+                      <Route path="/dashboard" element={
+                        <ProtectedRoute>
+                          <Layout>
+                            <Dashboard />
+                          </Layout>
+                        </ProtectedRoute>
+                      } />
+                      <Route path="/customers" element={
+                        <ProtectedRoute>
+                          <Layout>
+                            <CustomerList />
+                          </Layout>
+                        </ProtectedRoute>
+                      } />
+                      <Route path="/customers/new" element={
+                        <ProtectedRoute>
+                          <Layout>
+                            <CustomerForm />
+                          </Layout>
+                        </ProtectedRoute>
+                      } />
+                      <Route path="/customers/:id" element={
+                        <ProtectedRoute>
+                          <Layout>
+                            <CustomerDetail />
+                          </Layout>
+                        </ProtectedRoute>
+                      } />
+                      <Route path="/customers/:id/edit" element={
+                        <ProtectedRoute>
+                          <Layout>
+                            <CustomerForm />
+                          </Layout>
+                        </ProtectedRoute>
+                      } />
+                      <Route path="/events" element={
+                        <ProtectedRoute>
+                          <Layout>
+                            <EventList />
+                          </Layout>
+                        </ProtectedRoute>
+                      } />
+                      <Route path="/events/new" element={
+                        <ProtectedRoute>
+                          <Layout>
+                            <EventForm />
+                          </Layout>
+                        </ProtectedRoute>
+                      } />
+                      <Route path="/events/:id" element={
+                        <ProtectedRoute>
+                          <Layout>
+                            <EventDetail />
+                          </Layout>
+                        </ProtectedRoute>
+                      } />
+                      <Route path="/events/:id/edit" element={
+                        <ProtectedRoute>
+                          <Layout>
+                            <EventForm />
+                          </Layout>
+                        </ProtectedRoute>
+                      } />
+                      <Route path="/payments" element={
+                        <ProtectedRoute>
+                          <Layout>
+                            <PaymentPage />
+                          </Layout>
+                        </ProtectedRoute>
+                      } />
+                      <Route path="/payments/new" element={
+                        <ProtectedRoute>
+                          <Layout>
+                            <PaymentForm />
+                          </Layout>
+                        </ProtectedRoute>
+                      } />
+                      <Route path="/payments/:eventId/new" element={
+                        <ProtectedRoute>
+                          <Layout>
+                            <PaymentForm />
+                          </Layout>
+                        </ProtectedRoute>
+                      } />
+                      <Route path="/settings" element={
+                        <ProtectedRoute>
+                          <Layout>
+                            <AppSettings />
+                          </Layout>
+                        </ProtectedRoute>
+                      } />
+                      <Route path="/admin/users" element={
+                        <ProtectedRoute requireAdmin>
+                          <Layout>
+                            <UserManagement />
+                          </Layout>
+                        </ProtectedRoute>
+                      } />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                    <Toaster />
+                    <Sonner />
+                  </NotificationProvider>
+                </CrmProvider>
               </EmailConfigProvider>
-            </UserProfileProvider>
-          </AppConfigProvider>
+            </AppConfigProvider>
+          </UserProfileProvider>
         </AuthProvider>
-      </BrowserRouter>
+      </Router>
     </QueryClientProvider>
   );
 }

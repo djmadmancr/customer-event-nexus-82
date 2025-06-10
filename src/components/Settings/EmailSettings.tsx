@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useEmailConfig } from '@/contexts/EmailConfigContext';
-import { CheckCircle, Wifi, WifiOff, Save } from 'lucide-react';
+import { CheckCircle, Wifi, WifiOff, Save, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -15,11 +15,12 @@ const EmailSettings = () => {
   const { emailConfig, updateEmailConfig, isConfigured } = useEmailConfig();
   const { toast } = useToast();
   const [isTestingConnection, setIsTestingConnection] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'success' | 'error' | 'not_connected'>('idle');
   const [isSaving, setIsSaving] = useState(false);
 
   const handleTestConnection = async () => {
     if (!isConfigured) {
+      setConnectionStatus('not_connected');
       toast({
         title: "Configuración incompleta",
         description: "Por favor completa todos los campos requeridos antes de probar la conexión.",
@@ -35,6 +36,7 @@ const EmailSettings = () => {
       const { data: sessionData } = await supabase.auth.getSession();
       
       if (!sessionData?.session) {
+        setConnectionStatus('error');
         toast({
           title: "Error",
           description: "Debes iniciar sesión para probar la conexión",
@@ -54,8 +56,8 @@ const EmailSettings = () => {
         console.error('Error testing email connection:', error);
         setConnectionStatus('error');
         toast({
-          title: "Error de conexión",
-          description: "No se pudo probar la configuración de email",
+          title: "Conexión fallida",
+          description: "No se pudo conectar al servidor SMTP",
           variant: "destructive",
         });
         return;
@@ -70,7 +72,7 @@ const EmailSettings = () => {
       } else {
         setConnectionStatus('error');
         toast({
-          title: "Error de configuración",
+          title: "Conexión fallida",
           description: data.message,
           variant: "destructive",
         });
@@ -79,8 +81,8 @@ const EmailSettings = () => {
       console.error('Error in handleTestConnection:', error);
       setConnectionStatus('error');
       toast({
-        title: "Error de conexión",
-        description: "No se pudo probar la conexión",
+        title: "Conexión fallida",
+        description: "No se pudo conectar al servidor SMTP",
         variant: "destructive",
       });
     } finally {
@@ -101,8 +103,6 @@ const EmailSettings = () => {
     setIsSaving(true);
     
     try {
-      // Configuration is already saved automatically via context
-      // This is just for user feedback
       await new Promise(resolve => setTimeout(resolve, 500));
       
       toast({
@@ -120,25 +120,62 @@ const EmailSettings = () => {
     }
   };
 
+  const getConnectionStatusDisplay = () => {
+    if (!isConfigured) {
+      return (
+        <div className="flex items-center text-red-600">
+          <WifiOff className="h-4 w-4 mr-1" />
+          <span className="text-sm">No configurado</span>
+        </div>
+      );
+    }
+
+    switch (connectionStatus) {
+      case 'success':
+        return (
+          <div className="flex items-center text-green-600">
+            <CheckCircle className="h-4 w-4 mr-1" />
+            <span className="text-sm">Conectado</span>
+          </div>
+        );
+      case 'error':
+        return (
+          <div className="flex items-center text-red-600">
+            <WifiOff className="h-4 w-4 mr-1" />
+            <span className="text-sm">Conexión fallida</span>
+          </div>
+        );
+      case 'not_connected':
+        return (
+          <div className="flex items-center text-red-600">
+            <WifiOff className="h-4 w-4 mr-1" />
+            <span className="text-sm">No conectado</span>
+          </div>
+        );
+      default:
+        return (
+          <div className="flex items-center text-gray-600">
+            <AlertTriangle className="h-4 w-4 mr-1" />
+            <span className="text-sm">Sin probar</span>
+          </div>
+        );
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          Configuración de Email
-          {isConfigured && (
-            <div className="flex items-center text-green-600">
-              <CheckCircle className="h-4 w-4 mr-1" />
-              <span className="text-sm">Configurado</span>
-            </div>
-          )}
+          Configuración de Email SMTP
+          {getConnectionStatusDisplay()}
         </CardTitle>
       </CardHeader>
       
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Configuración SMTP (Envío)</h3>
-            
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium">Configuración del Servidor SMTP</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="smtpHost">Servidor SMTP</Label>
               <Input
@@ -159,16 +196,18 @@ const EmailSettings = () => {
                 placeholder="587"
               />
             </div>
-            
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="smtpSecure"
-                checked={emailConfig.smtpSecure}
-                onCheckedChange={(checked) => updateEmailConfig({ smtpSecure: checked })}
-              />
-              <Label htmlFor="smtpSecure">Conexión Segura</Label>
-            </div>
-            
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="smtpSecure"
+              checked={emailConfig.smtpSecure}
+              onCheckedChange={(checked) => updateEmailConfig({ smtpSecure: checked })}
+            />
+            <Label htmlFor="smtpSecure">Conexión Segura (SSL/TLS)</Label>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="smtpUser">Usuario</Label>
               <Input
@@ -186,61 +225,6 @@ const EmailSettings = () => {
                 type="password"
                 value={emailConfig.smtpPassword}
                 onChange={(e) => updateEmailConfig({ smtpPassword: e.target.value })}
-                placeholder="Contraseña o App Password"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Configuración IMAP (Recepción)</h3>
-            
-            <div className="space-y-2">
-              <Label htmlFor="imapHost">Servidor IMAP</Label>
-              <Input
-                id="imapHost"
-                value={emailConfig.imapHost}
-                onChange={(e) => updateEmailConfig({ imapHost: e.target.value })}
-                placeholder="imap.gmail.com"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="imapPort">Puerto</Label>
-              <Input
-                id="imapPort"
-                type="number"
-                value={emailConfig.imapPort}
-                onChange={(e) => updateEmailConfig({ imapPort: parseInt(e.target.value) })}
-                placeholder="993"
-              />
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="imapSecure"
-                checked={emailConfig.imapSecure}
-                onCheckedChange={(checked) => updateEmailConfig({ imapSecure: checked })}
-              />
-              <Label htmlFor="imapSecure">Conexión Segura</Label>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="imapUser">Usuario</Label>
-              <Input
-                id="imapUser"
-                value={emailConfig.imapUser}
-                onChange={(e) => updateEmailConfig({ imapUser: e.target.value })}
-                placeholder="tu@gmail.com"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="imapPassword">Contraseña</Label>
-              <Input
-                id="imapPassword"
-                type="password"
-                value={emailConfig.imapPassword}
-                onChange={(e) => updateEmailConfig({ imapPassword: e.target.value })}
                 placeholder="Contraseña o App Password"
               />
             </div>
@@ -273,7 +257,6 @@ const EmailSettings = () => {
           </div>
         </div>
 
-        {/* Action Buttons - Moved to bottom */}
         <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
           <Button 
             onClick={handleTestConnection} 
@@ -284,12 +267,12 @@ const EmailSettings = () => {
             {isTestingConnection ? (
               <div className="flex items-center gap-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                Probando...
+                Probando conexión...
               </div>
             ) : (
               <div className="flex items-center gap-2">
                 <Wifi className="h-4 w-4" />
-                Probar Conexión
+                Probar Conexión SMTP
               </div>
             )}
           </Button>
@@ -313,24 +296,35 @@ const EmailSettings = () => {
           </Button>
         </div>
 
-        {/* Connection Status Alert - Moved to bottom */}
         {connectionStatus === 'success' && (
           <Alert className="border-green-500 bg-green-50">
             <CheckCircle className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-green-800">
-              ¡Conexión exitosa! Tu configuración de email está funcionando correctamente.
+              ¡Conexión exitosa! El servidor SMTP está funcionando correctamente.
             </AlertDescription>
           </Alert>
         )}
         
-        {connectionStatus === 'error' && (
+        {(connectionStatus === 'error' || connectionStatus === 'not_connected') && (
           <Alert className="border-red-500 bg-red-50">
             <WifiOff className="h-4 w-4 text-red-600" />
             <AlertDescription className="text-red-800">
-              Error de conexión. Verifica tus credenciales y configuración del servidor.
+              {connectionStatus === 'not_connected' 
+                ? 'No conectado. Completa la configuración y prueba la conexión.'
+                : 'Conexión fallida. Verifica tus credenciales y configuración del servidor.'}
             </AlertDescription>
           </Alert>
         )}
+
+        <div className="text-sm text-gray-600 bg-blue-50 p-4 rounded-lg">
+          <h4 className="font-semibold mb-2">Configuración común para proveedores:</h4>
+          <ul className="space-y-1 text-xs">
+            <li>• <strong>Gmail:</strong> smtp.gmail.com, Puerto 587, Usar contraseña de aplicación</li>
+            <li>• <strong>Outlook:</strong> smtp-mail.outlook.com, Puerto 587</li>
+            <li>• <strong>Yahoo:</strong> smtp.mail.yahoo.com, Puerto 587</li>
+            <li>• <strong>Hotmail:</strong> smtp.live.com, Puerto 587</li>
+          </ul>
+        </div>
       </CardContent>
     </Card>
   );

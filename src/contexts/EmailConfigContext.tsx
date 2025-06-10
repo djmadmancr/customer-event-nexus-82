@@ -8,11 +8,6 @@ interface EmailConfig {
   smtpSecure: boolean;
   smtpUser: string;
   smtpPassword: string;
-  imapHost: string;
-  imapPort: number;
-  imapSecure: boolean;
-  imapUser: string;
-  imapPassword: string;
   fromName: string;
   fromEmail: string;
 }
@@ -31,11 +26,6 @@ const defaultEmailConfig: EmailConfig = {
   smtpSecure: false,
   smtpUser: '',
   smtpPassword: '',
-  imapHost: '',
-  imapPort: 993,
-  imapSecure: true,
-  imapUser: '',
-  imapPassword: '',
   fromName: '',
   fromEmail: '',
 };
@@ -60,7 +50,6 @@ export const EmailConfigProvider: React.FC<EmailConfigProviderProps> = ({ childr
 
   useEffect(() => {
     if (currentUser) {
-      // Load from localStorage with user-specific key
       const configKey = `emailConfig_${currentUser.uid}`;
       const savedConfig = localStorage.getItem(configKey);
       
@@ -75,7 +64,6 @@ export const EmailConfigProvider: React.FC<EmailConfigProviderProps> = ({ childr
         setEmailConfig(defaultEmailConfig);
       }
     } else {
-      // No user logged in, reset to defaults
       setEmailConfig(defaultEmailConfig);
     }
   }, [currentUser?.uid]);
@@ -90,7 +78,6 @@ export const EmailConfigProvider: React.FC<EmailConfigProviderProps> = ({ childr
 
     setEmailConfig(updatedConfig);
     
-    // Save with user-specific key
     const configKey = `emailConfig_${currentUser.uid}`;
     localStorage.setItem(configKey, JSON.stringify(updatedConfig));
   };
@@ -103,14 +90,11 @@ export const EmailConfigProvider: React.FC<EmailConfigProviderProps> = ({ childr
   );
 
   const testEmailConnection = async (): Promise<boolean> => {
-    // In a real implementation, this would test the SMTP connection
-    // For this demo, we'll just validate that the config is complete
     try {
       if (!isConfigured) {
         throw new Error('Configuración de email incompleta');
       }
       
-      // Simulate connection test
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       return true;
@@ -121,14 +105,10 @@ export const EmailConfigProvider: React.FC<EmailConfigProviderProps> = ({ childr
   };
 
   const configureGmail = () => {
-    // Configure Gmail settings
     const gmailConfig = {
       smtpHost: 'smtp.gmail.com',
       smtpPort: 587,
       smtpSecure: false,
-      imapHost: 'imap.gmail.com',
-      imapPort: 993,
-      imapSecure: true,
     };
     
     updateEmailConfig(gmailConfig);

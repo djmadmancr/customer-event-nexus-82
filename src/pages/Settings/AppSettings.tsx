@@ -10,12 +10,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { useAppConfig } from '@/contexts/AppConfigContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { Copy, Upload, Save } from 'lucide-react';
+import { Copy, Upload, Save, KeyRound } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Currency } from '@/types/models';
 import EmailSettings from '@/components/Settings/EmailSettings';
 import SubscriptionSettings from '@/components/Settings/SubscriptionSettings';
+import { supabase } from '@/integrations/supabase/client';
 
 const profileSchema = z.object({
   name: z.string().optional(),
@@ -38,6 +39,7 @@ const AppSettings = () => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   // Form states for each tab
   const [profileData, setProfileData] = useState({
@@ -145,6 +147,45 @@ const AppSettings = () => {
     });
   };
 
+  const handlePasswordReset = async () => {
+    if (!currentUser?.email) {
+      toast({
+        title: "Error",
+        description: "No se encontró un email asociado a la cuenta",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsResettingPassword(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(currentUser.email, {
+        redirectTo: `${window.location.origin}/reset-password`
+      });
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: "No se pudo enviar el email de restablecimiento",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Email enviado",
+          description: "Se ha enviado un email con instrucciones para restablecer tu contraseña",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Error al procesar la solicitud",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Tabs defaultValue="profile" className="w-full">
@@ -215,6 +256,31 @@ const AppSettings = () => {
                   placeholder="+506 0000-0000"
                   className={`${isMobile ? 'text-sm' : ''}`}
                 />
+              </div>
+
+              <div className="border-t pt-4">
+                <Label className={`${isMobile ? 'text-sm' : ''} mb-3 block`}>Seguridad</Label>
+                <Button 
+                  onClick={handlePasswordReset}
+                  disabled={isResettingPassword}
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                >
+                  {isResettingPassword ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                      Enviando...
+                    </>
+                  ) : (
+                    <>
+                      <KeyRound className="h-4 w-4 mr-2" />
+                      Restablecer Contraseña
+                    </>
+                  )}
+                </Button>
+                <p className={`text-gray-500 mt-2 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                  Se enviará un email con instrucciones para cambiar tu contraseña
+                </p>
               </div>
 
               <div className="flex justify-end pt-4">
@@ -323,9 +389,22 @@ const AppSettings = () => {
                 >
                   <option value="USD">USD - Dólar Estadounidense</option>
                   <option value="EUR">EUR - Euro</option>
-                  <option value="CRC">CRC - Colón Costarricense</option>
                   <option value="MXN">MXN - Peso Mexicano</option>
+                  <option value="CRC">CRC - Colón Costarricense</option>
                   <option value="COP">COP - Peso Colombiano</option>
+                  <option value="ARS">ARS - Peso Argentino</option>
+                  <option value="PEN">PEN - Sol Peruano</option>
+                  <option value="CLP">CLP - Peso Chileno</option>
+                  <option value="UYU">UYU - Peso Uruguayo</option>
+                  <option value="BOB">BOB - Boliviano</option>
+                  <option value="PYG">PYG - Guaraní Paraguayo</option>
+                  <option value="VES">VES - Bolívar Venezolano</option>
+                  <option value="BRL">BRL - Real Brasileño</option>
+                  <option value="GTQ">GTQ - Quetzal Guatemalteco</option>
+                  <option value="HNL">HNL - Lempira Hondureño</option>
+                  <option value="NIO">NIO - Córdoba Nicaragüense</option>
+                  <option value="PAB">PAB - Balboa Panameño</option>
+                  <option value="DOP">DOP - Peso Dominicano</option>
                 </select>
               </div>
 

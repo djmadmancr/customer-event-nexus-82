@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import { Shield } from 'lucide-react';
 import Login from './Login';
 import Register from './Register';
 
@@ -11,9 +12,9 @@ const AuthPage: React.FC = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
+  const [showAdminLink, setShowAdminLink] = useState(false);
   const isMobile = useIsMobile();
 
-  // Redirect if already authenticated
   React.useEffect(() => {
     if (currentUser) {
       navigate('/');
@@ -29,7 +30,7 @@ const AuthPage: React.FC = () => {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
           <img 
-            src="/logo.png" 
+            src="./logo.png" 
             alt="Bassline Logo" 
             className={cn(
               "mx-auto mb-4",
@@ -86,6 +87,17 @@ const AuthPage: React.FC = () => {
           ) : (
             <Register onSwitchToLogin={() => setIsLogin(true)} />
           )}
+
+          {/* Admin Dashboard Link */}
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <button
+              onClick={() => navigate('/admin-dashboard')}
+              className="w-full flex items-center justify-center gap-2 text-sm text-gray-600 hover:text-blue-600 transition-colors"
+            >
+              <Shield className="h-4 w-4" />
+              Acceso Panel de Administración
+            </button>
+          </div>
         </div>
       </div>
     </div>

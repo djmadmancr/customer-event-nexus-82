@@ -7,7 +7,7 @@ import { Pencil, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import dataService from '@/services/DataService';
-import { useUserProfile } from '@/contexts/UserProfileContext';
+import { useAppConfig } from '@/contexts/AppConfigContext';
 import { Payment, PaymentMethod } from '@/types/models';
 
 interface PaymentListProps {
@@ -15,7 +15,7 @@ interface PaymentListProps {
 }
 
 const PaymentListWithCurrency: React.FC<PaymentListProps> = ({ eventId }) => {
-  const { userProfile } = useUserProfile();
+  const { defaultCurrency } = useAppConfig();
   const [payments, setPayments] = useState<Payment[]>([]);
 
   useEffect(() => {
@@ -35,7 +35,6 @@ const PaymentListWithCurrency: React.FC<PaymentListProps> = ({ eventId }) => {
   const handleDeletePayment = (paymentId: string) => {
     if (window.confirm('¿Estás seguro de que deseas eliminar este pago?')) {
       dataService.deletePayment(paymentId);
-      // Reload payments after deletion
       if (eventId) {
         const eventPayments = dataService.getPaymentsByEventId(eventId);
         setPayments(eventPayments);
@@ -72,20 +71,6 @@ const PaymentListWithCurrency: React.FC<PaymentListProps> = ({ eventId }) => {
     }
   };
 
-  // Get currency symbol based on user's configured currency
-  const getCurrencySymbol = (currency?: string) => {
-    const defaultCurrency = userProfile?.defaultCurrency || 'USD';
-    const currencyToUse = currency || defaultCurrency;
-    
-    switch (currencyToUse) {
-      case 'USD': return '$';
-      case 'EUR': return '€';
-      case 'CRC': return '₡';
-      case 'GBP': return '£';
-      default: return currencyToUse;
-    }
-  };
-
   return (
     <div className="space-y-4">
       {payments.length === 0 ? (
@@ -97,7 +82,7 @@ const PaymentListWithCurrency: React.FC<PaymentListProps> = ({ eventId }) => {
           <TableHeader>
             <TableRow>
               <TableHead>Fecha</TableHead>
-              <TableHead>Monto</TableHead>
+              <TableHead>Monto ({defaultCurrency})</TableHead>
               <TableHead>Método</TableHead>
               <TableHead>Notas</TableHead>
               <TableHead className="w-[100px]">Acciones</TableHead>
@@ -110,7 +95,7 @@ const PaymentListWithCurrency: React.FC<PaymentListProps> = ({ eventId }) => {
                   {format(payment.paymentDate, 'dd/MM/yyyy', { locale: es })}
                 </TableCell>
                 <TableCell className="font-medium">
-                  {getCurrencySymbol(payment.currency)}{payment.amount.toLocaleString()}
+                  {payment.amount.toLocaleString()}
                 </TableCell>
                 <TableCell>
                   {getPaymentMethodBadge(payment.method)}
@@ -142,7 +127,7 @@ const PaymentListWithCurrency: React.FC<PaymentListProps> = ({ eventId }) => {
             Total de pagos: {payments.length}
           </div>
           <div className="text-lg font-semibold">
-            Total: {getCurrencySymbol()}{payments.reduce((sum, payment) => sum + payment.amount, 0).toLocaleString()}
+            Total ({defaultCurrency}): {payments.reduce((sum, payment) => sum + payment.amount, 0).toLocaleString()}
           </div>
         </div>
       )}
