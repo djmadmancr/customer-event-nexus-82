@@ -17,7 +17,6 @@ interface SubscriptionData {
 const SubscriptionSettings = () => {
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
   const { toast } = useToast();
   const { currentUser } = useAuth();
@@ -115,98 +114,23 @@ const SubscriptionSettings = () => {
     }
   };
 
-  const handleSubscribe = async () => {
-    try {
-      setCheckoutLoading(true);
-      console.log('Creating checkout session...');
-      
-      if (!currentUser) {
-        toast({
-          title: "Error de autenticación",
-          description: "Debes iniciar sesión para suscribirte.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Get fresh session before making the request
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError || !sessionData?.session) {
-        console.error('No valid session for checkout:', sessionError);
-        
-        // Try to refresh the session
-        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-        
-        if (refreshError || !refreshData?.session) {
-          toast({
-            title: "Error de autenticación",
-            description: "Tu sesión ha expirado. Por favor, cierra sesión y vuelve a iniciar.",
-            variant: "destructive",
-          });
-          return;
-        }
-        
-        console.log('Session refreshed for checkout');
-      }
-
-      const activeSession = sessionData?.session || (await supabase.auth.getSession()).data.session;
-      
-      if (!activeSession) {
-        toast({
-          title: "Error de autenticación",
-          description: "No se pudo obtener una sesión válida. Por favor, cierra sesión y vuelve a iniciar.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      console.log('Session found, user:', activeSession.user.email);
-      console.log('Invoking create-checkout function...');
-      
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        headers: {
-          Authorization: `Bearer ${activeSession.access_token}`,
-        },
-      });
-
-      if (error) {
-        console.error('Error creating checkout:', error);
-        toast({
-          title: "Error",
-          description: `No se pudo crear la sesión de pago: ${error.message}`,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (data?.url) {
-        console.log('Redirecting to checkout:', data.url);
-        // Open Stripe checkout in the same window
-        window.location.href = data.url;
-        
-        toast({
-          title: "Redirigiendo a Stripe",
-          description: "Serás redirigido a la página de pago segura de Stripe",
-        });
-      } else {
-        console.error('No URL received from checkout session:', data);
-        toast({
-          title: "Error",
-          description: "No se recibió URL de checkout válida",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Error in handleSubscribe:', error);
+  const handleSubscribe = () => {
+    if (!currentUser) {
       toast({
-        title: "Error",
-        description: `Error al procesar la suscripción: ${error.message}`,
+        title: "Error de autenticación",
+        description: "Debes iniciar sesión para suscribirte.",
         variant: "destructive",
       });
-    } finally {
-      setCheckoutLoading(false);
+      return;
     }
+
+    // Direct redirect to Stripe payment link
+    window.open('https://buy.stripe.com/8x228t40WeTS7E7dAKcAo01', '_blank');
+    
+    toast({
+      title: "Redirigiendo a Stripe",
+      description: "Serás redirigido a la página de pago segura de Stripe",
+    });
   };
 
   const handleManageSubscription = async () => {
@@ -359,20 +283,10 @@ const SubscriptionSettings = () => {
               {!subscriptionData.subscribed ? (
                 <Button 
                   onClick={handleSubscribe}
-                  disabled={checkoutLoading}
                   className="w-full bg-crm-primary hover:bg-crm-primary/90"
                 >
-                  {checkoutLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Procesando...
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard className="mr-2 h-4 w-4" />
-                      Suscribirse - $7.99/mes
-                    </>
-                  )}
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Suscribirse - $7.99/mes
                 </Button>
               ) : (
                 <Button 
@@ -416,7 +330,6 @@ const SubscriptionSettings = () => {
                 <li>• Acceso completo a todas las funcionalidades</li>
                 <li>• Gestión ilimitada de clientes y eventos</li>
                 <li>• Reportes y análisis avanzados</li>
-                <li>• Soporte prioritario</li>
               </ul>
             </div>
           </>
@@ -432,20 +345,10 @@ const SubscriptionSettings = () => {
               </div>
               <Button 
                 onClick={handleSubscribe}
-                disabled={checkoutLoading}
                 className="bg-crm-primary hover:bg-crm-primary/90"
               >
-                {checkoutLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Procesando...
-                  </>
-                ) : (
-                  <>
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    Suscribirse - $7.99/mes
-                  </>
-                )}
+                <CreditCard className="mr-2 h-4 w-4" />
+                Suscribirse - $7.99/mes
               </Button>
             </div>
           </div>
