@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CalendarDays, Users, Calendar, Coins, TrendingUp, User } from 'lucide-react';
@@ -103,6 +104,14 @@ const Dashboard = () => {
     { name: 'Pagados', value: totalPaid, fill: '#7C3AED' },
   ];
 
+  // Format number without currency symbol
+  const formatNumber = (amount: number) => {
+    return new Intl.NumberFormat('es-ES', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  };
+
   useEffect(() => {
     // Calculate monthly data for the complete months
     const monthlyRevenue: { [key: string]: number } = {};
@@ -194,12 +203,12 @@ const Dashboard = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">Ingresos Totales</CardTitle>
+            <CardTitle className="text-xs md:text-sm font-medium">Ingresos Totales ({defaultCurrency})</CardTitle>
             <Coins className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-lg md:text-2xl font-bold">
-              {dataService.formatCurrency(totalRevenue, defaultCurrency)}
+              {formatNumber(totalRevenue)}
             </div>
             <p className="text-xs text-muted-foreground">
               Eventos pagados
@@ -213,7 +222,7 @@ const Dashboard = () => {
         {/* Monthly Revenue Chart */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm md:text-base">Ingresos Mensuales</CardTitle>
+            <CardTitle className="text-sm md:text-base">Ingresos Mensuales ({defaultCurrency})</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
@@ -227,7 +236,7 @@ const Dashboard = () => {
                 <YAxis fontSize={12} />
                 <Tooltip 
                   formatter={(value: number) => [
-                    dataService.formatCurrency(value, defaultCurrency), 
+                    formatNumber(value), 
                     'Ingresos'
                   ]}
                 />
@@ -272,7 +281,7 @@ const Dashboard = () => {
           <CardHeader>
             <CardTitle className="flex items-center text-sm md:text-base">
               <User className="mr-2 h-4 w-4 md:h-5 md:w-5" />
-              Top 5 Clientes por Ingresos
+              Top 5 Clientes por Ingresos ({defaultCurrency})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -291,7 +300,7 @@ const Dashboard = () => {
                     </div>
                     <div className="text-right">
                       <p className="font-bold text-green-600 text-sm md:text-base">
-                        {dataService.formatCurrency(customer.revenue, defaultCurrency)}
+                        {formatNumber(customer.revenue)}
                       </p>
                     </div>
                   </div>

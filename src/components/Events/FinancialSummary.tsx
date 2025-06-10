@@ -22,6 +22,14 @@ const FinancialSummary: React.FC = () => {
   const [paidTotal, setPaidTotal] = useState(0);
   const [pendingTotal, setPendingTotal] = useState(0);
 
+  // Format number without currency symbol
+  const formatNumber = (amount: number) => {
+    return new Intl.NumberFormat('es-ES', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  };
+
   useEffect(() => {
     const calculateTotals = () => {
       const paid = dataService.getEventsTotalByStatusAndDateRange('paid', startDate, endDate);
@@ -45,15 +53,15 @@ const FinancialSummary: React.FC = () => {
             <h3 className="text-sm font-medium text-gray-500">Resumen Financiero</h3>
             <div className="grid grid-cols-2 gap-6 mt-2">
               <div>
-                <p className="text-sm text-gray-500">Eventos Pagados</p>
+                <p className="text-sm text-gray-500">Eventos Pagados ({defaultCurrency})</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {dataService.formatCurrency(paidTotal, defaultCurrency)}
+                  {formatNumber(paidTotal)}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Eventos Pendientes</p>
+                <p className="text-sm text-gray-500">Eventos Pendientes ({defaultCurrency})</p>
                 <p className="text-2xl font-bold text-amber-600">
-                  {dataService.formatCurrency(pendingTotal, defaultCurrency)}
+                  {formatNumber(pendingTotal)}
                 </p>
               </div>
             </div>

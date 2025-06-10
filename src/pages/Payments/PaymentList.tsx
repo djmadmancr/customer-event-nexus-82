@@ -13,6 +13,7 @@ import dataService from '@/services/DataService';
 import { format } from 'date-fns';
 import { Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAppConfig } from '@/contexts/AppConfigContext';
 
 interface PaymentListProps {
   eventId: string;
@@ -21,6 +22,7 @@ interface PaymentListProps {
 const PaymentList: React.FC<PaymentListProps> = ({ eventId }) => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
+  const { defaultCurrency } = useAppConfig();
   
   // Load payments for this event
   useEffect(() => {
@@ -38,11 +40,11 @@ const PaymentList: React.FC<PaymentListProps> = ({ eventId }) => {
     }
   };
   
-  // Format currency
-  const formatCurrency = (amount: number) => {
+  // Format number without currency symbol
+  const formatNumber = (amount: number) => {
     return new Intl.NumberFormat('es-ES', {
-      style: 'currency',
-      currency: 'EUR'
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(amount);
   };
   
@@ -68,7 +70,7 @@ const PaymentList: React.FC<PaymentListProps> = ({ eventId }) => {
                 <TableRow>
                   <TableHead>Fecha</TableHead>
                   <TableHead>Método</TableHead>
-                  <TableHead className="text-right">Monto</TableHead>
+                  <TableHead className="text-right">Monto ({defaultCurrency})</TableHead>
                   <TableHead className="w-[60px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -82,7 +84,7 @@ const PaymentList: React.FC<PaymentListProps> = ({ eventId }) => {
                       {getPaymentMethodText(payment.method)}
                     </TableCell>
                     <TableCell className="text-right font-medium">
-                      {formatCurrency(payment.amount)}
+                      {formatNumber(payment.amount)}
                     </TableCell>
                     <TableCell>
                       <Button 
@@ -100,7 +102,7 @@ const PaymentList: React.FC<PaymentListProps> = ({ eventId }) => {
                     Total
                   </TableCell>
                   <TableCell className="text-right font-bold">
-                    {formatCurrency(totalAmount)}
+                    {formatNumber(totalAmount)}
                   </TableCell>
                   <TableCell></TableCell>
                 </TableRow>

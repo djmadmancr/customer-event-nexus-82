@@ -41,6 +41,14 @@ const EventDetail = () => {
   const [eventDetails, setEventDetails] = useState([]);
   const [payments, setPayments] = useState([]);
   
+  // Format number without currency symbol
+  const formatNumber = (amount: number) => {
+    return new Intl.NumberFormat('es-ES', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  };
+  
   // Function to refresh all data
   const refreshEventData = () => {
     if (id) {
@@ -159,7 +167,7 @@ const EventDetail = () => {
         <Alert className="border-yellow-500 bg-yellow-50">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Este evento tiene un saldo pendiente de <strong>{dataService.formatCurrency(pendingAmount, defaultCurrency)}</strong>. 
+            Este evento tiene un saldo pendiente de <strong>{formatNumber(pendingAmount)} ({defaultCurrency})</strong>. 
             Agregue los pagos correspondientes para marcar el evento como pagado automáticamente.
           </AlertDescription>
         </Alert>
@@ -254,13 +262,13 @@ const EventDetail = () => {
                 <div className="flex items-center space-x-3">
                   <Coins className="h-5 w-5 text-gray-400" />
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500">Costo</h3>
+                    <h3 className="text-sm font-medium text-gray-500">Costo ({defaultCurrency})</h3>
                     <div className="mt-1">
-                      <p className="font-medium">{dataService.formatCurrency(selectedEvent.cost, defaultCurrency)}</p>
+                      <p className="font-medium">{formatNumber(selectedEvent.cost)}</p>
                       {selectedEvent.taxPercentage && selectedEvent.taxAmount && (
                         <div className="text-xs text-gray-500">
-                          <p>+ Impuesto ({selectedEvent.taxPercentage}%): {dataService.formatCurrency(selectedEvent.taxAmount, defaultCurrency)}</p>
-                          <p className="font-semibold">Total: {dataService.formatCurrency(eventTotal, defaultCurrency)}</p>
+                          <p>+ Impuesto ({selectedEvent.taxPercentage}%): {formatNumber(selectedEvent.taxAmount)}</p>
+                          <p className="font-semibold">Total: {formatNumber(eventTotal)}</p>
                         </div>
                       )}
                     </div>
@@ -288,17 +296,17 @@ const EventDetail = () => {
                 <h3 className="text-sm font-medium text-gray-500 mb-3">Resumen de Pagos</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <p className="text-xs text-gray-500">Total del Evento</p>
-                    <p className="text-lg font-bold">{dataService.formatCurrency(eventTotal, defaultCurrency)}</p>
+                    <p className="text-xs text-gray-500">Total del Evento ({defaultCurrency})</p>
+                    <p className="text-lg font-bold">{formatNumber(eventTotal)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Pagado</p>
-                    <p className="text-lg font-bold text-green-600">{dataService.formatCurrency(totalPaid, defaultCurrency)}</p>
+                    <p className="text-xs text-gray-500">Pagado ({defaultCurrency})</p>
+                    <p className="text-lg font-bold text-green-600">{formatNumber(totalPaid)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Pendiente</p>
+                    <p className="text-xs text-gray-500">Pendiente ({defaultCurrency})</p>
                     <p className={`text-lg font-bold ${pendingAmount > 0 ? 'text-amber-600' : 'text-green-600'}`}>
-                      {dataService.formatCurrency(pendingAmount, defaultCurrency)}
+                      {formatNumber(pendingAmount)}
                     </p>
                   </div>
                 </div>

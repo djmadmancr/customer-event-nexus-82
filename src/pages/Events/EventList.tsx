@@ -45,6 +45,14 @@ const EventList: React.FC<EventListProps> = ({
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [eventToDelete, setEventToDelete] = useState<string | null>(null);
   
+  // Format number without currency symbol
+  const formatNumber = (amount: number) => {
+    return new Intl.NumberFormat('es-ES', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  };
+  
   // Filter events based on search query, status filter and customerId filter
   const filteredEvents = events
     .filter(event => 
@@ -144,111 +152,111 @@ const EventList: React.FC<EventListProps> = ({
         )}
       </div>
       
-      {/* Calendar and Events Combined View */}
-      <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'grid-cols-4'}`}>
-        {/* Calendar - 3/4 width */}
-        <div className={`${isMobile ? 'col-span-1' : 'col-span-3'}`}>
-          <EventCalendar 
-            events={filteredEvents}
-            customers={customers}
-            onEventClick={handleViewEvent}
-            onEventEdit={handleEditEvent}
-            onEventDelete={setEventToDelete}
-          />
-        </div>
-        
-        {/* Events List - 1/4 width */}
-        <div className={`${isMobile ? 'col-span-1' : 'col-span-1'}`}>
-          <div className="bg-white rounded-md shadow-sm border overflow-hidden h-fit">
-            <div className="p-4 border-b">
-              <h3 className={`font-semibold ${isMobile ? 'text-base' : 'text-lg'}`}>
-                Lista de Eventos
-              </h3>
-            </div>
-            
-            {filteredEvents.length > 0 ? (
-              <div className={`max-h-96 overflow-y-auto ${isMobile ? 'max-h-80' : ''}`}>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className={`${isMobile ? 'text-xs' : 'text-sm'}`}>Evento</TableHead>
-                      <TableHead className={`${isMobile ? 'text-xs' : 'text-sm'}`}>Estado</TableHead>
-                      <TableHead className="w-[50px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredEvents.map((event) => {
-                      const eventTotal = event.totalWithTax || event.cost;
-                      return (
-                        <TableRow key={event.id}>
-                          <TableCell className="py-2">
-                            <div>
-                              <p className={`font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                                {event.title}
-                              </p>
-                              <p className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                                {format(event.date, "d/M", { locale: es })}
-                              </p>
-                              <p className={`text-green-600 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                                {dataService.formatCurrency(eventTotal, defaultCurrency)}
-                              </p>
-                            </div>
-                          </TableCell>
-                          <TableCell className="py-2">
-                            <div className="scale-75 origin-left">
-                              {getStatusBadge(event.status)}
-                            </div>
-                          </TableCell>
-                          <TableCell className="py-2">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-6 w-6">
-                                  <MoreVertical className="h-3 w-3" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleViewEvent(event.id)}>
-                                  <Eye className="h-4 w-4 mr-2" />
-                                  Ver
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleEditEvent(event.id)}>
-                                  <Pencil className="h-4 w-4 mr-2" />
-                                  Editar
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  className="text-red-600"
-                                  onClick={() => setEventToDelete(event.id)}
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Eliminar
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            ) : (
-              <div className="p-6 text-center">
-                <p className={`text-gray-500 mb-4 ${isMobile ? 'text-sm' : ''}`}>
-                  No se encontraron eventos
-                </p>
-                {showAddButton && (
-                  <Button 
-                    variant="outline"
-                    size={isMobile ? "sm" : "default"}
-                    onClick={() => navigate('/events/new')}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Crear evento
-                  </Button>
-                )}
-              </div>
-            )}
+      {/* Calendar View - Full Width */}
+      <div className="w-full">
+        <EventCalendar 
+          events={filteredEvents}
+          customers={customers}
+          onEventClick={handleViewEvent}
+          onEventEdit={handleEditEvent}
+          onEventDelete={setEventToDelete}
+        />
+      </div>
+      
+      {/* Events List - Full Width at Bottom */}
+      <div className="w-full">
+        <div className="bg-white rounded-md shadow-sm border overflow-hidden">
+          <div className="p-4 border-b">
+            <h3 className="font-semibold text-lg">
+              Lista de Eventos
+            </h3>
           </div>
+          
+          {filteredEvents.length > 0 ? (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Evento</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Lugar</TableHead>
+                    <TableHead className="text-right">Monto ({defaultCurrency})</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead className="w-[100px]">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredEvents.map((event) => {
+                    const eventTotal = event.totalWithTax || event.cost;
+                    return (
+                      <TableRow key={event.id}>
+                        <TableCell className="font-medium">
+                          {event.title}
+                        </TableCell>
+                        <TableCell>
+                          {getCustomerName(event.customerId)}
+                        </TableCell>
+                        <TableCell>
+                          {format(event.date, "dd/MM/yyyy", { locale: es })}
+                        </TableCell>
+                        <TableCell>
+                          {event.venue}
+                        </TableCell>
+                        <TableCell className="text-right font-medium text-green-600">
+                          {formatNumber(eventTotal)}
+                        </TableCell>
+                        <TableCell>
+                          {getStatusBadge(event.status)}
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleViewEvent(event.id)}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                Ver
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEditEvent(event.id)}>
+                                <Pencil className="h-4 w-4 mr-2" />
+                                Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                className="text-red-600"
+                                onClick={() => setEventToDelete(event.id)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Eliminar
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="p-6 text-center">
+              <p className="text-gray-500 mb-4">
+                No se encontraron eventos
+              </p>
+              {showAddButton && (
+                <Button 
+                  variant="outline"
+                  onClick={() => navigate('/events/new')}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Crear evento
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </div>
       
