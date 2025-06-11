@@ -53,7 +53,7 @@ const paymentSchema = z.object({
 type PaymentFormValues = z.infer<typeof paymentSchema>;
 
 interface PaymentFormProps {
-  eventId: string;
+  eventId?: string; // Make eventId optional to fix TypeScript errors
   onComplete?: () => void;
 }
 
@@ -75,18 +75,24 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ eventId, onComplete }) => {
   // Form submission handler
   const onSubmit = (data: PaymentFormValues) => {
     try {
-      dataService.addPayment({
-        eventId,
-        amount: data.amount,
-        currency: defaultCurrency || 'CRC',
-        method: data.method,
-        paymentDate: data.paymentDate,
-        notes: data.notes || ''
-      });
-      
-      refreshEvents();
-      onComplete?.();
-      form.reset();
+      // Only proceed if eventId is provided
+      if (eventId) {
+        dataService.addPayment({
+          eventId,
+          amount: data.amount,
+          currency: defaultCurrency || 'CRC',
+          method: data.method,
+          paymentDate: data.paymentDate,
+          notes: data.notes || ''
+        });
+        
+        refreshEvents();
+        onComplete?.();
+        form.reset();
+      } else {
+        console.error("No eventId provided for payment");
+        alert("Error: No se pudo registrar el pago porque no se proporcionó un ID de evento.");
+      }
     } catch (error) {
       console.error('Error adding payment:', error);
     }
@@ -202,6 +208,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ eventId, onComplete }) => {
           <Button 
             type="submit"
             className="bg-crm-primary hover:bg-crm-primary/90"
+            disabled={!eventId}
           >
             Registrar Pago
           </Button>

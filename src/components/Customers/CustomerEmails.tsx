@@ -64,7 +64,7 @@ Espero que se encuentre bien. Me complace enviarle la propuesta para el evento "
 
 Detalles del evento:
 - Fecha: ${format(event.date, 'dd/MM/yyyy', { locale: es })}
-- Ubicación: ${event.location || 'Por definir'}
+- Ubicación: ${event.venue || 'Por definir'} 
 - Costo: ${event.cost.toLocaleString()}
 
 ${attachPDF ? 'Adjunto encontrará la propuesta detallada en formato PDF.' : ''}

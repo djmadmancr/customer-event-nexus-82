@@ -7,24 +7,29 @@ import { useToast } from '@/hooks/use-toast';
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRole?: 'admin' | 'user';
+  requireAdmin?: boolean; // Add this property to support legacy code
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
-  requiredRole 
+  requiredRole,
+  requireAdmin = false // Default to false
 }) => {
   const { currentUser, userRole, loading } = useAuth();
   const { toast } = useToast();
+  
+  // If requireAdmin is true, set requiredRole to 'admin' for backward compatibility
+  const effectiveRole = requireAdmin ? 'admin' : requiredRole;
 
   useEffect(() => {
-    if (!loading && currentUser && requiredRole && userRole !== requiredRole) {
+    if (!loading && currentUser && effectiveRole && userRole !== effectiveRole) {
       toast({
         title: "Acceso denegado",
         description: "No tienes permisos para acceder a esta sección.",
         variant: "destructive",
       });
     }
-  }, [currentUser, loading, requiredRole, userRole, toast]);
+  }, [currentUser, loading, effectiveRole, userRole, toast]);
 
   if (loading) {
     return (
@@ -39,7 +44,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // If a specific role is required and the user doesn't have it
-  if (requiredRole && userRole !== requiredRole) {
+  if (effectiveRole && userRole !== effectiveRole) {
     return <Navigate to="/" replace />;
   }
 
