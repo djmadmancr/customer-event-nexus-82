@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -35,9 +35,19 @@ interface LoginProps {
 const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
   const { signIn } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Check for any redirect param in the URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const redirectError = params.get('error');
+    if (redirectError) {
+      setLoginError(decodeURIComponent(redirectError));
+    }
+  }, [location]);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
