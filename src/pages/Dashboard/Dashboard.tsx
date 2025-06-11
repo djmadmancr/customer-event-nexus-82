@@ -1,55 +1,39 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CalendarDays, Users, Calendar, Coins, TrendingUp, User } from 'lucide-react';
+import { CalendarDays, Users, Calendar, Coins, TrendingUp, User, CalendarIcon } from 'lucide-react';
 import { useCrm } from '@/contexts/CrmContext';
 import { useAppConfig } from '@/contexts/AppConfigContext';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell } from 'recharts';
 import dataService from '@/services/DataService';
-import DashboardFilters from '@/components/Dashboard/DashboardFilters';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 const Dashboard = () => {
   const { customers, events } = useCrm();
   const { defaultCurrency } = useAppConfig();
-  const [monthlyData, setMonthlyData] = useState<any[]>([]);
   const [filteredEvents, setFilteredEvents] = useState(events);
-  const [filters, setFilters] = useState<any>({});
+  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
+  const [monthlyData, setMonthlyData] = useState<any[]>([]);
 
-  // Apply filters to events
+  // Apply date filter to events
   useEffect(() => {
     let filtered = [...events];
 
-    if (filters.dateRange?.from || filters.dateRange?.to) {
+    if (dateRange.from || dateRange.to) {
       filtered = filtered.filter(event => {
         const eventDate = new Date(event.date);
-        if (filters.dateRange.from && eventDate < filters.dateRange.from) return false;
-        if (filters.dateRange.to && eventDate > filters.dateRange.to) return false;
-        return true;
-      });
-    }
-
-    if (filters.status) {
-      filtered = filtered.filter(event => event.status === filters.status);
-    }
-
-    if (filters.minAmount !== undefined || filters.maxAmount !== undefined) {
-      filtered = filtered.filter(event => {
-        if (filters.minAmount !== undefined && event.cost < filters.minAmount) return false;
-        if (filters.maxAmount !== undefined && event.cost > filters.maxAmount) return false;
+        if (dateRange.from && eventDate < dateRange.from) return false;
+        if (dateRange.to && eventDate > dateRange.to) return false;
         return true;
       });
     }
 
     setFilteredEvents(filtered);
-  }, [events, filters]);
-
-  const handleFiltersChange = (newFilters: any) => {
-    setFilters(newFilters);
-  };
-
-  const handleClearFilters = () => {
-    setFilters({});
-  };
+  }, [events, dateRange]);
 
   // Calculate stats based on filtered events
   const totalCustomers = customers.length;
@@ -61,21 +45,13 @@ const Dashboard = () => {
   
   const totalRevenue = filteredEvents
     .filter(event => event.status === 'paid')
-    .reduce((sum, event) => sum + event.cost, 0);
+    .reduce((sum, event) => sum + (event.totalWithTax || event.cost), 0);
 
-  // Event status distribution with updated colors that match the app theme
-  const statusData = [
-    { name: 'Prospectos', value: filteredEvents.filter(e => e.status === 'prospect').length, color: '#A855F7' },
-    { name: 'Confirmados', value: filteredEvents.filter(e => e.status === 'confirmed').length, color: '#6366F1' },
-    { name: 'Show Realizado', value: filteredEvents.filter(e => e.status === 'show_completed').length, color: '#8B5CF6' },
-    { name: 'Pagados', value: filteredEvents.filter(e => e.status === 'paid').length, color: '#7C3AED' },
-  ];
-
-  // Top 5 customers by revenue (as a list instead of chart)
+  // Top 5 customers by revenue
   const topCustomers = customers
     .map(customer => {
       const customerEvents = filteredEvents.filter(e => e.customerId === customer.id && e.status === 'paid');
-      const revenue = customerEvents.reduce((sum, event) => sum + event.cost, 0);
+      const revenue = customerEvents.reduce((sum, event) => sum + (event.totalWithTax || event.cost), 0);
       return { name: customer.name, revenue, eventCount: customerEvents.length };
     })
     .filter(customer => customer.revenue > 0)
@@ -91,19 +67,6 @@ const Dashboard = () => {
     { name: 'Otros', value: filteredEvents.filter(e => e.category === 'other' || !e.category).length, color: '#9333EA' },
   ].filter(category => category.value > 0);
 
-  // Conversion funnel data
-  const totalProspects = events.filter(e => e.status === 'prospect').length;
-  const totalConfirmed = events.filter(e => e.status === 'confirmed').length;
-  const totalCompleted = events.filter(e => e.status === 'show_completed').length;
-  const totalPaid = events.filter(e => e.status === 'paid').length;
-
-  const funnelData = [
-    { name: 'Prospectos', value: totalProspects, fill: '#A855F7' },
-    { name: 'Confirmados', value: totalConfirmed, fill: '#6366F1' },
-    { name: 'Show Realizado', value: totalCompleted, fill: '#8B5CF6' },
-    { name: 'Pagados', value: totalPaid, fill: '#7C3AED' },
-  ];
-
   // Format number without currency symbol
   const formatNumber = (amount: number) => {
     return new Intl.NumberFormat('es-ES', {
@@ -112,44 +75,113 @@ const Dashboard = () => {
     }).format(amount);
   };
 
+  // Calculate monthly data for revenue comparison
   useEffect(() => {
-    // Calculate monthly data for the complete months
-    const monthlyRevenue: { [key: string]: number } = {};
-    const currentDate = new Date();
-    const currentYear = currentDate.getFullYear();
+    const monthlyRevenue: { [key: string]: { scheduled: number; collected: number } } = {};
     
-    // Get data for the last 12 complete months
-    for (let i = 11; i >= 0; i--) {
-      const date = new Date(currentYear, currentDate.getMonth() - i, 1);
-      const monthKey = date.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
-      monthlyRevenue[monthKey] = 0;
+    // Determine date range for complete months
+    const startDate = dateRange.from || new Date(new Date().getFullYear() - 1, 0, 1);
+    const endDate = dateRange.to || new Date();
+    
+    // Generate all complete months in the range
+    const current = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+    while (current <= endDate) {
+      const monthKey = current.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
+      monthlyRevenue[monthKey] = { scheduled: 0, collected: 0 };
+      current.setMonth(current.getMonth() + 1);
     }
 
     filteredEvents.forEach(event => {
-      if (event.status === 'paid') {
-        const eventDate = new Date(event.date);
-        const monthKey = eventDate.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
-        if (monthlyRevenue.hasOwnProperty(monthKey)) {
-          monthlyRevenue[monthKey] += event.cost;
+      const eventDate = new Date(event.date);
+      const monthKey = eventDate.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
+      
+      if (monthlyRevenue.hasOwnProperty(monthKey)) {
+        const eventTotal = event.totalWithTax || event.cost;
+        // All events are considered scheduled
+        monthlyRevenue[monthKey].scheduled += eventTotal;
+        
+        // Only paid events are considered collected
+        if (event.status === 'paid') {
+          monthlyRevenue[monthKey].collected += eventTotal;
         }
       }
     });
 
-    const chartData = Object.entries(monthlyRevenue).map(([month, revenue]) => ({
+    const chartData = Object.entries(monthlyRevenue).map(([month, data]) => ({
       month,
-      revenue,
+      programados: data.scheduled,
+      cobrados: data.collected,
     }));
 
     setMonthlyData(chartData);
-  }, [filteredEvents]);
+  }, [filteredEvents, dateRange]);
+
+  // Horizontal bar chart data (top customers)
+  const horizontalBarData = topCustomers.map((customer, index) => ({
+    name: customer.name,
+    revenue: customer.revenue,
+    rank: index + 1
+  }));
 
   return (
     <div className="space-y-4 md:space-y-6">
-      {/* Dashboard Filters */}
-      <DashboardFilters 
-        onFiltersChange={handleFiltersChange}
-        onClearFilters={handleClearFilters}
-      />
+      {/* Date Range Filter */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm md:text-base">Filtro de Fechas</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-4 items-center">
+            <div className="flex items-center space-x-2">
+              <label className="text-sm font-medium">Desde:</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateRange.from ? format(dateRange.from, "dd/MM/yyyy") : "Seleccionar fecha"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <CalendarComponent
+                    mode="single"
+                    selected={dateRange.from}
+                    onSelect={(date) => setDateRange(prev => ({ ...prev, from: date }))}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <label className="text-sm font-medium">Hasta:</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateRange.to ? format(dateRange.to, "dd/MM/yyyy") : "Seleccionar fecha"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <CalendarComponent
+                    mode="single"
+                    selected={dateRange.to}
+                    onSelect={(date) => setDateRange(prev => ({ ...prev, to: date }))}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            
+            <Button 
+              variant="outline" 
+              onClick={() => setDateRange({})}
+              className="text-sm"
+            >
+              Limpiar filtros
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
@@ -160,12 +192,6 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-lg md:text-2xl font-bold">{totalCustomers}</div>
-            <p className="text-xs text-muted-foreground">
-              +{customers.filter(c => {
-                const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-                return c.createdAt >= weekAgo;
-              }).length} esta semana
-            </p>
           </CardContent>
         </Card>
 
@@ -176,15 +202,6 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-lg md:text-2xl font-bold">{totalEvents}</div>
-            <p className="text-xs text-muted-foreground">
-              {filters.dateRange?.from || filters.dateRange?.to || filters.status || filters.minAmount || filters.maxAmount
-                ? 'Filtrados'
-                : `+${events.filter(e => {
-                    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-                    return e.createdAt >= weekAgo;
-                  }).length} esta semana`
-              }
-            </p>
           </CardContent>
         </Card>
 
@@ -195,9 +212,6 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-lg md:text-2xl font-bold">{upcomingEvents}</div>
-            <p className="text-xs text-muted-foreground">
-              En los próximos 30 días
-            </p>
           </CardContent>
         </Card>
 
@@ -210,22 +224,19 @@ const Dashboard = () => {
             <div className="text-lg md:text-2xl font-bold">
               {formatNumber(totalRevenue)}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Eventos pagados
-            </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-        {/* Monthly Revenue Chart */}
+        {/* Monthly Revenue Comparison Chart */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm md:text-base">Ingresos Mensuales ({defaultCurrency})</CardTitle>
+            <CardTitle className="text-sm md:text-base">Ingresos Mensuales - Programados vs Cobrados ({defaultCurrency})</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
+            <ResponsiveContainer width="100%" height={300}>
               <BarChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
@@ -235,48 +246,87 @@ const Dashboard = () => {
                 />
                 <YAxis fontSize={12} />
                 <Tooltip 
-                  formatter={(value: number) => [
+                  formatter={(value: number, name: string) => [
                     formatNumber(value), 
-                    'Ingresos'
+                    name === 'programados' ? 'Programados' : 'Cobrados'
                   ]}
                 />
-                <Bar dataKey="revenue" fill="#6E59A5" />
+                <Bar dataKey="programados" fill="#A855F7" name="programados" />
+                <Bar dataKey="cobrados" fill="#7C3AED" name="cobrados" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* Event Status Distribution */}
+        {/* Event Category Distribution */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm md:text-base">Estado de Eventos</CardTitle>
+            <CardTitle className="text-sm md:text-base">Distribución por Categoría de Eventos</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={statusData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={60}
-                  dataKey="value"
-                  label={({ name, value }) => `${name}: ${value}`}
-                  fontSize={10}
-                >
-                  {statusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            {categoryData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={categoryData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    dataKey="value"
+                    label={({ name, value, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
+                    fontSize={10}
+                  >
+                    {categoryData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-gray-500 text-sm">
+                No hay eventos categorizados
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* New Charts Section */}
+      {/* Horizontal Bar Chart and Top Customers */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-        {/* Top 5 Customers by Revenue - Mobile friendly list */}
+        {/* Top Customers Horizontal Bar Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm md:text-base">Top 5 Clientes por Ingresos - Gráfico de Barras</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {horizontalBarData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={horizontalBarData} layout="horizontal">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" fontSize={12} />
+                  <YAxis 
+                    dataKey="name" 
+                    type="category" 
+                    fontSize={10}
+                    width={100}
+                    tickFormatter={(value) => value.length > 15 ? value.substring(0, 15) + '...' : value}
+                  />
+                  <Tooltip 
+                    formatter={(value: number) => [formatNumber(value), 'Ingresos']}
+                  />
+                  <Bar dataKey="revenue" fill="#6E59A5" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-gray-500 text-sm">
+                No hay datos de ingresos disponibles
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Top 5 Customers List */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center text-sm md:text-base">
@@ -313,65 +363,7 @@ const Dashboard = () => {
             )}
           </CardContent>
         </Card>
-
-        {/* Event Category Distribution */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm md:text-base">Distribución de Tipos de Evento</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {categoryData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie
-                    data={categoryData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={60}
-                    dataKey="value"
-                    label={({ name, value }) => `${name}: ${value}`}
-                    fontSize={10}
-                  >
-                    {categoryData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-[250px] text-gray-500 text-sm">
-                No hay eventos categorizados
-              </div>
-            )}
-          </CardContent>
-        </Card>
       </div>
-
-      {/* Conversion Funnel */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center text-sm md:text-base">
-            <TrendingUp className="mr-2 h-4 w-4 md:h-5 md:w-5" />
-            Tasa de Conversión de Prospectos
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={funnelData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="name" 
-                fontSize={12}
-                tickMargin={5}
-              />
-              <YAxis fontSize={12} />
-              <Tooltip />
-              <Bar dataKey="value" fill="#6E59A5" />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
     </div>
   );
 };
