@@ -1,140 +1,377 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CalendarDays, Users, Calendar, Coins, TrendingUp, User } from 'lucide-react';
 import { useCrm } from '@/contexts/CrmContext';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { Users, Calendar, Coins, TrendingUp } from 'lucide-react';
 import { useAppConfig } from '@/contexts/AppConfigContext';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell } from 'recharts';
 import dataService from '@/services/DataService';
+import DashboardFilters from '@/components/Dashboard/DashboardFilters';
 
 const Dashboard = () => {
-  const { customers, events, payments } = useCrm();
+  const { customers, events } = useCrm();
   const { defaultCurrency } = useAppConfig();
-  const isMobile = useIsMobile();
+  const [monthlyData, setMonthlyData] = useState<any[]>([]);
+  const [filteredEvents, setFilteredEvents] = useState(events);
+  const [filters, setFilters] = useState<any>({});
 
-  // Calculate statistics
+  // Apply filters to events
+  useEffect(() => {
+    let filtered = [...events];
+
+    if (filters.dateRange?.from || filters.dateRange?.to) {
+      filtered = filtered.filter(event => {
+        const eventDate = new Date(event.date);
+        if (filters.dateRange.from && eventDate < filters.dateRange.from) return false;
+        if (filters.dateRange.to && eventDate > filters.dateRange.to) return false;
+        return true;
+      });
+    }
+
+    if (filters.status) {
+      filtered = filtered.filter(event => event.status === filters.status);
+    }
+
+    if (filters.minAmount !== undefined || filters.maxAmount !== undefined) {
+      filtered = filtered.filter(event => {
+        if (filters.minAmount !== undefined && event.cost < filters.minAmount) return false;
+        if (filters.maxAmount !== undefined && event.cost > filters.maxAmount) return false;
+        return true;
+      });
+    }
+
+    setFilteredEvents(filtered);
+  }, [events, filters]);
+
+  const handleFiltersChange = (newFilters: any) => {
+    setFilters(newFilters);
+  };
+
+  const handleClearFilters = () => {
+    setFilters({});
+  };
+
+  // Calculate stats based on filtered events
   const totalCustomers = customers.length;
-  const totalEvents = events.length;
-  const completedEvents = events.filter(event => event.status === 'show_completed').length;
+  const totalEvents = filteredEvents.length;
+  const upcomingEvents = filteredEvents.filter(event => 
+    event.date >= new Date() && 
+    event.date <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+  ).length;
   
-  // Calculate total revenue from payments
-  const totalRevenue = payments.reduce((sum, payment) => sum + payment.amount, 0);
-  
-  // Calculate this month's revenue
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
-  const thisMonthRevenue = payments
-    .filter(payment => {
-      const paymentDate = new Date(payment.createdAt);
-      return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
-    })
-    .reduce((sum, payment) => sum + payment.amount, 0);
+  const totalRevenue = filteredEvents
+    .filter(event => event.status === 'paid')
+    .reduce((sum, event) => sum + event.cost, 0);
 
-  const stats = [
-    {
-      title: 'Total Clientes',
-      value: totalCustomers,
-      icon: Users,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100',
-    },
-    {
-      title: 'Eventos Totales',
-      value: totalEvents,
-      icon: Calendar,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100',
-    },
-    {
-      title: 'Shows Completados',
-      value: completedEvents,
-      icon: TrendingUp,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100',
-    },
-    {
-      title: 'Ingresos Totales',
-      value: dataService.formatCurrency(totalRevenue, defaultCurrency),
-      icon: Coins,
-      color: 'text-emerald-600',
-      bgColor: 'bg-emerald-100',
-    },
+  // Event status distribution with updated colors that match the app theme
+  const statusData = [
+    { name: 'Prospectos', value: filteredEvents.filter(e => e.status === 'prospect').length, color: '#A855F7' },
+    { name: 'Confirmados', value: filteredEvents.filter(e => e.status === 'confirmed').length, color: '#6366F1' },
+    { name: 'Show Realizado', value: filteredEvents.filter(e => e.status === 'show_completed').length, color: '#8B5CF6' },
+    { name: 'Pagados', value: filteredEvents.filter(e => e.status === 'paid').length, color: '#7C3AED' },
   ];
 
+  // Top 5 customers by revenue (as a list instead of chart)
+  const topCustomers = customers
+    .map(customer => {
+      const customerEvents = filteredEvents.filter(e => e.customerId === customer.id && e.status === 'paid');
+      const revenue = customerEvents.reduce((sum, event) => sum + event.cost, 0);
+      return { name: customer.name, revenue, eventCount: customerEvents.length };
+    })
+    .filter(customer => customer.revenue > 0)
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 5);
+
+  // Event category distribution
+  const categoryData = [
+    { name: 'Bodas', value: filteredEvents.filter(e => e.category === 'wedding').length, color: '#7C3AED' },
+    { name: 'Cumpleaños', value: filteredEvents.filter(e => e.category === 'birthday').length, color: '#A855F7' },
+    { name: 'Corporativos', value: filteredEvents.filter(e => e.category === 'corporate').length, color: '#6366F1' },
+    { name: 'Club', value: filteredEvents.filter(e => e.category === 'club').length, color: '#8B5CF6' },
+    { name: 'Otros', value: filteredEvents.filter(e => e.category === 'other' || !e.category).length, color: '#9333EA' },
+  ].filter(category => category.value > 0);
+
+  // Conversion funnel data
+  const totalProspects = events.filter(e => e.status === 'prospect').length;
+  const totalConfirmed = events.filter(e => e.status === 'confirmed').length;
+  const totalCompleted = events.filter(e => e.status === 'show_completed').length;
+  const totalPaid = events.filter(e => e.status === 'paid').length;
+
+  const funnelData = [
+    { name: 'Prospectos', value: totalProspects, fill: '#A855F7' },
+    { name: 'Confirmados', value: totalConfirmed, fill: '#6366F1' },
+    { name: 'Show Realizado', value: totalCompleted, fill: '#8B5CF6' },
+    { name: 'Pagados', value: totalPaid, fill: '#7C3AED' },
+  ];
+
+  // Format number without currency symbol
+  const formatNumber = (amount: number) => {
+    return new Intl.NumberFormat('es-ES', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  };
+
+  useEffect(() => {
+    // Calculate monthly data for the complete months
+    const monthlyRevenue: { [key: string]: number } = {};
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    
+    // Get data for the last 12 complete months
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(currentYear, currentDate.getMonth() - i, 1);
+      const monthKey = date.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
+      monthlyRevenue[monthKey] = 0;
+    }
+
+    filteredEvents.forEach(event => {
+      if (event.status === 'paid') {
+        const eventDate = new Date(event.date);
+        const monthKey = eventDate.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
+        if (monthlyRevenue.hasOwnProperty(monthKey)) {
+          monthlyRevenue[monthKey] += event.cost;
+        }
+      }
+    });
+
+    const chartData = Object.entries(monthlyRevenue).map(([month, revenue]) => ({
+      month,
+      revenue,
+    }));
+
+    setMonthlyData(chartData);
+  }, [filteredEvents]);
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className={`font-bold text-gray-900 ${isMobile ? 'text-xl' : 'text-3xl'}`}>
-          Dashboard
-        </h1>
-      </div>
+    <div className="space-y-4 md:space-y-6">
+      {/* Dashboard Filters */}
+      <DashboardFilters 
+        onFiltersChange={handleFiltersChange}
+        onClearFilters={handleClearFilters}
+      />
 
-      <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-2 md:grid-cols-4'}`}>
-        {stats.map((stat, index) => (
-          <Card key={index}>
-            <CardHeader className={`flex flex-row items-center justify-between space-y-0 ${isMobile ? 'pb-2' : 'pb-2'}`}>
-              <CardTitle className={`font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                {stat.title}
-              </CardTitle>
-              <stat.icon className={`h-4 w-4 ${stat.color}`} />
-            </CardHeader>
-            <CardContent>
-              <div className={`font-bold ${stat.color} ${isMobile ? 'text-lg' : 'text-2xl'}`}>
-                {stat.value}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2'}`}>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         <Card>
-          <CardHeader>
-            <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'}`}>Eventos Recientes</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium">Total Clientes</CardTitle>
+            <Users className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {events.slice(0, 5).map((event) => (
-              <div key={event.id} className={`flex items-center justify-between ${isMobile ? 'py-2' : 'py-3'} border-b last:border-b-0`}>
-                <div>
-                  <p className={`font-medium ${isMobile ? 'text-sm' : ''}`}>{event.title}</p>
-                  <p className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                    {new Date(event.date).toLocaleDateString()}
-                  </p>
-                </div>
-                <span className={`text-green-600 font-medium ${isMobile ? 'text-sm' : ''}`}>
-                  {dataService.formatCurrency(event.cost, defaultCurrency)}
-                </span>
-              </div>
-            ))}
+            <div className="text-lg md:text-2xl font-bold">{totalCustomers}</div>
+            <p className="text-xs text-muted-foreground">
+              +{customers.filter(c => {
+                const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+                return c.createdAt >= weekAgo;
+              }).length} esta semana
+            </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'}`}>Resumen Financiero</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium">Total Eventos</CardTitle>
+            <Calendar className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className={`text-gray-600 ${isMobile ? 'text-sm' : ''}`}>Ingresos del mes:</span>
-              <span className={`font-semibold text-green-600 ${isMobile ? 'text-sm' : ''}`}>
-                {dataService.formatCurrency(thisMonthRevenue, defaultCurrency)}
-              </span>
+          <CardContent>
+            <div className="text-lg md:text-2xl font-bold">{totalEvents}</div>
+            <p className="text-xs text-muted-foreground">
+              {filters.dateRange?.from || filters.dateRange?.to || filters.status || filters.minAmount || filters.maxAmount
+                ? 'Filtrados'
+                : `+${events.filter(e => {
+                    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+                    return e.createdAt >= weekAgo;
+                  }).length} esta semana`
+              }
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium">Próximos Eventos</CardTitle>
+            <CalendarDays className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-lg md:text-2xl font-bold">{upcomingEvents}</div>
+            <p className="text-xs text-muted-foreground">
+              En los próximos 30 días
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium">Ingresos Totales ({defaultCurrency})</CardTitle>
+            <Coins className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-lg md:text-2xl font-bold">
+              {formatNumber(totalRevenue)}
             </div>
-            <div className="flex justify-between items-center">
-              <span className={`text-gray-600 ${isMobile ? 'text-sm' : ''}`}>Eventos pendientes:</span>
-              <span className={`font-semibold ${isMobile ? 'text-sm' : ''}`}>
-                {events.filter(e => e.status === 'confirmed').length}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className={`text-gray-600 ${isMobile ? 'text-sm' : ''}`}>Clientes activos:</span>
-              <span className={`font-semibold ${isMobile ? 'text-sm' : ''}`}>
-                {customers.filter(c => c.name && c.name.trim() !== '').length}
-              </span>
-            </div>
+            <p className="text-xs text-muted-foreground">
+              Eventos pagados
+            </p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+        {/* Monthly Revenue Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm md:text-base">Ingresos Mensuales ({defaultCurrency})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={monthlyData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="month" 
+                  fontSize={12}
+                  tickMargin={5}
+                />
+                <YAxis fontSize={12} />
+                <Tooltip 
+                  formatter={(value: number) => [
+                    formatNumber(value), 
+                    'Ingresos'
+                  ]}
+                />
+                <Bar dataKey="revenue" fill="#6E59A5" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Event Status Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm md:text-base">Estado de Eventos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={statusData}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={60}
+                  dataKey="value"
+                  label={({ name, value }) => `${name}: ${value}`}
+                  fontSize={10}
+                >
+                  {statusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* New Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+        {/* Top 5 Customers by Revenue - Mobile friendly list */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center text-sm md:text-base">
+              <User className="mr-2 h-4 w-4 md:h-5 md:w-5" />
+              Top 5 Clientes por Ingresos ({defaultCurrency})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {topCustomers.length > 0 ? (
+              <div className="space-y-3">
+                {topCustomers.map((customer, index) => (
+                  <div key={customer.name} className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-2 md:space-x-3">
+                      <div className="flex items-center justify-center w-6 h-6 md:w-8 md:h-8 bg-crm-primary text-white rounded-full text-xs md:text-sm font-bold">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900 text-sm md:text-base">{customer.name}</p>
+                        <p className="text-xs text-gray-500">{customer.eventCount} evento(s)</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-green-600 text-sm md:text-base">
+                        {formatNumber(customer.revenue)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-[200px] text-gray-500 text-sm">
+                No hay datos de ingresos disponibles
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Event Category Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm md:text-base">Distribución de Tipos de Evento</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {categoryData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie
+                    data={categoryData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={60}
+                    dataKey="value"
+                    label={({ name, value }) => `${name}: ${value}`}
+                    fontSize={10}
+                  >
+                    {categoryData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[250px] text-gray-500 text-sm">
+                No hay eventos categorizados
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Conversion Funnel */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center text-sm md:text-base">
+            <TrendingUp className="mr-2 h-4 w-4 md:h-5 md:w-5" />
+            Tasa de Conversión de Prospectos
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={funnelData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis 
+                dataKey="name" 
+                fontSize={12}
+                tickMargin={5}
+              />
+              <YAxis fontSize={12} />
+              <Tooltip />
+              <Bar dataKey="value" fill="#6E59A5" />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
     </div>
   );
 };
