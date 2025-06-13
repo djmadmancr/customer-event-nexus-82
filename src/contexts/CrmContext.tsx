@@ -16,6 +16,7 @@ interface CrmContextType {
   selectedEvent: Event | null;
   setSelectedEvent: (event: Event | null) => void;
   refreshEvents: () => void;
+  removeEvent: (eventId: string) => Promise<void>;
   
   // Payments
   payments: Payment[];
@@ -54,6 +55,16 @@ export const CrmProvider: React.FC<CrmProviderProps> = ({ children }) => {
   const refreshEvents = () => {
     console.log('Refreshing events for user:', currentUser?.uid);
     setEvents(dataService.getAllEvents());
+  };
+  
+  const removeEvent = async (eventId: string): Promise<void> => {
+    try {
+      dataService.deleteEvent(eventId);
+      refreshEvents();
+    } catch (error) {
+      console.error('Error removing event:', error);
+      throw error;
+    }
   };
   
   const refreshPayments = () => {
@@ -104,6 +115,7 @@ export const CrmProvider: React.FC<CrmProviderProps> = ({ children }) => {
     selectedEvent,
     setSelectedEvent,
     refreshEvents,
+    removeEvent,
     
     payments,
     refreshPayments,

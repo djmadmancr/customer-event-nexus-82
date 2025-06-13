@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Pencil, Plus, ArrowLeft } from 'lucide-react';
 import { useCrm } from '@/contexts/CrmContext';
 import dataService from '@/services/DataService';
-import EventList from '../Events/EventList';
+import CustomerEventList from '@/components/Events/CustomerEventList';
 import CustomerEmails from '@/components/Customers/CustomerEmails';
 
 const CustomerDetail = () => {
@@ -118,10 +118,7 @@ const CustomerDetail = () => {
               <CardTitle className="text-lg">Eventos del cliente</CardTitle>
             </CardHeader>
             <CardContent>
-              <EventList 
-                filterByCustomerId={selectedCustomer.id} 
-                showAddButton={false}
-              />
+              <CustomerEventList customerId={selectedCustomer.id} />
             </CardContent>
           </Card>
         </TabsContent>

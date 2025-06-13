@@ -14,7 +14,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { LogOut, Settings, User } from 'lucide-react';
 
-const Header = () => {
+interface HeaderProps {
+  toggleSidebar?: () => void;
+}
+
+const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
   const { currentUser, signOut, userData } = useAuth();
   const { logoUrl } = useAppConfig();
   const { userProfile } = useUserProfile();

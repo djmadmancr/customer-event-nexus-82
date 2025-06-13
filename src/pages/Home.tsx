@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -20,6 +21,13 @@ import {
 } from 'recharts';
 
 const CATEGORY_COLORS = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd'];
+
+interface EventSummary {
+  prospect?: number;
+  confirmed?: number;
+  show_completed?: number;
+  paid?: number;
+}
 
 const Home = () => {
   const { events, customers, payments } = useCrm();
@@ -48,8 +56,9 @@ const Home = () => {
     }
   };
 
-  const eventSummary = filteredEvents.reduce((acc, event) => {
-    acc[event.status] = (acc[event.status] || 0) + 1;
+  const eventSummary: EventSummary = filteredEvents.reduce((acc: EventSummary, event) => {
+    const status = event.status as keyof EventSummary;
+    acc[status] = (acc[status] || 0) + 1;
     return acc;
   }, {});
 
@@ -64,7 +73,7 @@ const Home = () => {
     }
   
     return acc;
-  }, []);
+  }, [] as Array<{ name: string; value: number }>);
 
   const totalRevenue = filteredEvents.reduce((acc, event) => acc + (event.totalWithTax || event.cost), 0);
   const totalPaid = payments.reduce((acc, payment) => acc + payment.amount, 0);
@@ -86,7 +95,7 @@ const Home = () => {
     }
 
     return acc;
-  }, []);
+  }, [] as Array<{ month: string; programados: number; cobrados: number }>);
 
   payments.forEach(payment => {
     const month = new Date(payment.paymentDate).toLocaleString('default', { month: 'short' });
@@ -146,28 +155,28 @@ const Home = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card>
               <CardContent className="flex flex-col items-center justify-center p-6">
-                <div className="text-2xl font-bold text-yellow-600">{eventSummary.prospect}</div>
+                <div className="text-2xl font-bold text-yellow-600">{eventSummary.prospect || 0}</div>
                 <div className="text-sm text-gray-600 text-center">Cotizaciones</div>
               </CardContent>
             </Card>
             
             <Card>
               <CardContent className="flex flex-col items-center justify-center p-6">
-                <div className="text-2xl font-bold text-blue-600">{eventSummary.confirmed}</div>
+                <div className="text-2xl font-bold text-blue-600">{eventSummary.confirmed || 0}</div>
                 <div className="text-sm text-gray-600 text-center">Confirmados</div>
               </CardContent>
             </Card>
             
             <Card>
               <CardContent className="flex flex-col items-center justify-center p-6">
-                <div className="text-2xl font-bold text-purple-600">{eventSummary.show_completed}</div>
+                <div className="text-2xl font-bold text-purple-600">{eventSummary.show_completed || 0}</div>
                 <div className="text-sm text-gray-600 text-center">Show Realizado</div>
               </CardContent>
             </Card>
             
             <Card>
               <CardContent className="flex flex-col items-center justify-center p-6">
-                <div className="text-2xl font-bold text-green-600">{eventSummary.paid}</div>
+                <div className="text-2xl font-bold text-green-600">{eventSummary.paid || 0}</div>
                 <div className="text-sm text-gray-600 text-center">Pagados</div>
               </CardContent>
             </Card>
