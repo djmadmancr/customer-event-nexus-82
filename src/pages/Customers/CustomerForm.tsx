@@ -1,45 +1,46 @@
-import React, { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { z } from 'zod';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCrm } from '@/contexts/CrmContext';
-import dataService from '@/services/DataService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  Form, 
-  FormControl, 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormMessage 
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
 } from '@/components/ui/form';
-import { Card, CardContent } from '@/components/ui/card';
+import { ArrowLeft } from 'lucide-react';
+import dataService from '@/services/DataService';
+import { Customer } from '@/types/models';
+import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
-// Form schema
 const customerSchema = z.object({
-  name: z.string()
-    .min(2, { message: 'El nombre debe tener al menos 2 caracteres' })
-    .max(100, { message: 'El nombre no debe exceder 100 caracteres' }),
-  email: z.string()
-    .email({ message: 'Dirección de correo electrónico inválida' }),
-  phone: z.string()
-    .min(9, { message: 'El teléfono debe tener al menos 9 caracteres' })
-    .max(20, { message: 'El teléfono no debe exceder 20 caracteres' }),
+  name: z.string().min(2, { message: 'El nombre debe tener al menos 2 caracteres' }),
+  email: z.string().email({ message: 'Email inválido' }),
+  phone: z.string().min(8, { message: 'El teléfono debe tener al menos 8 dígitos' }),
   notes: z.string().optional(),
 });
 
 type CustomerFormValues = z.infer<typeof customerSchema>;
 
-const CustomerForm = () => {
-  const { id } = useParams();
+const CustomerForm: React.FC = () => {
   const navigate = useNavigate();
-  const { refreshCustomers } = useCrm();
-  const isEditMode = !!id;
-  
-  // Initialize form
+  const { id } = useParams<{ id: string }>();
+  const { currentUser } = useAuth();
+  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(!!id);
+
+  const isEditing = !!id;
+
   const form = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema),
     defaultValues: {
@@ -49,53 +50,82 @@ const CustomerForm = () => {
       notes: '',
     },
   });
-  
-  // Load customer data if in edit mode
+
   useEffect(() => {
-    if (isEditMode) {
-      const customer = dataService.getCustomerById(id);
-      if (customer) {
+    if (isEditing && id) {
+      const customerData = dataService.getCustomerById(id);
+      if (customerData) {
+        setCustomer(customerData);
         form.reset({
-          name: customer.name,
-          email: customer.email,
-          phone: customer.phone,
-          notes: customer.notes,
+          name: customerData.name,
+          email: customerData.email,
+          phone: customerData.phone,
+          notes: customerData.notes,
         });
-      } else {
-        // Customer not found, redirect to list
-        navigate('/customers');
       }
+      setLoading(false);
     }
-  }, [id, isEditMode, navigate]);
-  
-  // Form submission handler
-  const onSubmit = (data: CustomerFormValues) => {
-    if (isEditMode) {
-      dataService.updateCustomer(id, {
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-        notes: data.notes || '',
-      });
-    } else {
-      dataService.addCustomer({
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-        notes: data.notes || '',
-      });
+  }, [id, isEditing, form]);
+
+  const onSubmit = async (data: CustomerFormValues) => {
+    if (!currentUser) {
+      toast.error('Usuario no autenticado');
+      return;
     }
-    
-    refreshCustomers();
-    navigate('/customers');
+
+    setIsSubmitting(true);
+
+    try {
+      if (isEditing && customer) {
+        dataService.updateCustomer(customer.id, data);
+        toast.success('Cliente actualizado correctamente');
+      } else {
+        dataService.addCustomer({
+          ...data,
+          userId: currentUser.uid,
+        });
+        toast.success('Cliente creado correctamente');
+      }
+      
+      navigate('/customers');
+    } catch (error) {
+      console.error('Error saving customer:', error);
+      toast.error('Error al guardar el cliente');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
-  
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-crm-primary"></div>
+      </div>
+    );
+  }
+
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="max-w-2xl mx-auto">
+      <div className="mb-6">
+        <Button
+          variant="ghost"
+          onClick={() => navigate('/customers')}
+          className="mb-4"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Volver a clientes
+        </Button>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            {isEditing ? 'Editar Cliente' : 'Nuevo Cliente'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="name"
@@ -109,7 +139,7 @@ const CustomerForm = () => {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="email"
@@ -117,13 +147,13 @@ const CustomerForm = () => {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="correo@ejemplo.com" {...field} />
+                      <Input type="email" placeholder="email@ejemplo.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="phone"
@@ -131,51 +161,48 @@ const CustomerForm = () => {
                   <FormItem>
                     <FormLabel>Teléfono</FormLabel>
                     <FormControl>
-                      <Input placeholder="+34 612 345 678" {...field} />
+                      <Input placeholder="+506 0000-0000" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
-            
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Notas</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Información adicional sobre el cliente..." 
-                      rows={5}
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <div className="flex justify-end space-x-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => navigate('/customers')}
-              >
-                Cancelar
-              </Button>
-              <Button 
-                type="submit"
-                className="bg-crm-primary hover:bg-crm-primary/90"
-              >
-                {isEditMode ? 'Actualizar' : 'Crear'} Cliente
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notas</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Notas adicionales..." rows={4} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate('/customers')}
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="bg-crm-primary hover:bg-crm-primary/90"
+                >
+                  {isSubmitting ? 'Guardando...' : (isEditing ? 'Actualizar' : 'Crear')}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

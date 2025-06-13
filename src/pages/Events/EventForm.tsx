@@ -1,14 +1,16 @@
+
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useNavigate, useParams } from 'react-router-dom';
 import { z } from 'zod';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
-import { ArrowLeft } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Form,
   FormControl,
@@ -17,61 +19,44 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { CalendarIcon, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { useCrm } from '@/contexts/CrmContext';
-import { useAppConfig } from '@/contexts/AppConfigContext';
 import dataService from '@/services/DataService';
-import NoCustomerDialog from '@/components/Events/NoCustomerDialog';
+import { Event, Customer, SelectableEventStatus, EventCategory } from '@/types/models';
+import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 const eventSchema = z.object({
-  customerId: z.string().min(1, { message: 'Debes seleccionar un cliente' }),
+  customerId: z.string().min(1, { message: 'Debe seleccionar un cliente' }),
   title: z.string().min(2, { message: 'El título debe tener al menos 2 caracteres' }),
-  date: z.date({ required_error: "Por favor selecciona una fecha" }),
+  date: z.date({ required_error: 'La fecha es requerida' }),
   venue: z.string().min(2, { message: 'El lugar debe tener al menos 2 caracteres' }),
   cost: z.coerce.number().min(0, { message: 'El costo debe ser mayor o igual a 0' }),
-  status: z.enum(['prospect', 'confirmed', 'show_completed', 'paid']),
-  category: z.enum(['wedding', 'birthday', 'corporate', 'club', 'other']).optional(),
+  status: z.enum(['prospect', 'confirmed', 'show_completed']),
+  category: z.enum(['wedding', 'birthday', 'corporate', 'club', 'other']),
   comments: z.string().optional(),
 });
 
 type EventFormValues = z.infer<typeof eventSchema>;
 
-interface EventFormProps {
-  event?: EventFormValues;
-  onSave?: (data: EventFormValues) => void;
-  onCancel?: () => void;
-}
-
-const EventForm: React.FC<EventFormProps> = ({ event, onSave, onCancel }) => {
-  const { id } = useParams();
+const EventForm: React.FC = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { customers, refreshEvents } = useCrm();
-  const { defaultCurrency } = useAppConfig();
+  const { id } = useParams<{ id: string }>();
+  const { currentUser } = useAuth();
+  const [event, setEvent] = useState<Event | null>(null);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showNoCustomerDialog, setShowNoCustomerDialog] = useState(false);
+  const [loading, setLoading] = useState(!!id);
+
+  const isEditing = !!id;
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventSchema),
     defaultValues: {
       customerId: '',
       title: '',
-      date: new Date(),
       venue: '',
       cost: 0,
       status: 'prospect',
@@ -81,93 +66,107 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSave, onCancel }) => {
   });
 
   useEffect(() => {
-    // Check if there are no customers when trying to create a new event
-    if (!id && customers.length === 0) {
-      setShowNoCustomerDialog(true);
+    // Load customers
+    setCustomers(dataService.getAllCustomers());
+
+    if (isEditing && id) {
+      const eventData = dataService.getEventById(id);
+      if (eventData) {
+        setEvent(eventData);
+        form.reset({
+          customerId: eventData.customerId,
+          title: eventData.title,
+          date: eventData.date,
+          venue: eventData.venue,
+          cost: eventData.cost,
+          status: eventData.status as SelectableEventStatus,
+          category: eventData.category || 'other',
+          comments: eventData.comments || '',
+        });
+      }
+      setLoading(false);
+    }
+  }, [id, isEditing, form]);
+
+  const onSubmit = async (data: EventFormValues) => {
+    if (!currentUser) {
+      toast.error('Usuario no autenticado');
       return;
     }
 
-    if (id) {
-      const event = dataService.getEventById(id);
-      if (event) {
-        form.reset({
-          customerId: event.customerId,
-          title: event.title,
-          date: event.date,
-          venue: event.venue,
-          cost: event.cost,
-          status: event.status,
-          category: event.category || 'other',
-          comments: event.comments || '',
-        });
-      }
-    } else {
-      const customerId = searchParams.get('customerId');
-      if (customerId) {
-        form.setValue('customerId', customerId);
-      }
-    }
-  }, [id, form, searchParams, customers.length]);
-
-  const statusOptions = [
-    { value: 'quote', label: 'Cotización' },
-    { value: 'confirmed', label: 'Confirmado' },
-    { value: 'show_completed', label: 'Show Realizado' },
-  ];
-
-  const onSubmit = (data: EventFormValues) => {
     setIsSubmitting(true);
 
     try {
-      if (id) {
-        dataService.updateEvent(id, data);
+      if (isEditing && event) {
+        dataService.updateEvent(event.id, data);
+        toast.success('Evento actualizado correctamente');
       } else {
-        // Ensure all required fields are present for new events
-        const eventData = {
-          customerId: data.customerId,
-          title: data.title,
-          date: data.date,
-          venue: data.venue,
-          cost: data.cost,
-          status: data.status,
-          category: data.category || 'other',
-          comments: data.comments || '',
-        };
-        dataService.addEvent(eventData);
+        dataService.addEvent({
+          ...data,
+          userId: currentUser.uid,
+        });
+        toast.success('Evento creado correctamente');
       }
       
-      refreshEvents();
       navigate('/events');
     } catch (error) {
       console.error('Error saving event:', error);
+      toast.error('Error al guardar el evento');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleCreateCustomer = () => {
-    setShowNoCustomerDialog(false);
-    navigate('/customers/new');
+  const getStatusText = (status: SelectableEventStatus) => {
+    switch(status) {
+      case 'prospect': return 'Prospecto';
+      case 'confirmed': return 'Confirmado';
+      case 'show_completed': return 'Show Completado';
+      default: return status;
+    }
   };
 
+  const getCategoryText = (category: EventCategory) => {
+    switch(category) {
+      case 'wedding': return 'Boda';
+      case 'birthday': return 'Cumpleaños';
+      case 'corporate': return 'Corporativo';
+      case 'club': return 'Club/Discoteca';
+      case 'other': return 'Otro';
+      default: return category;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-crm-primary"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/events')}>
-          <ArrowLeft className="h-5 w-5" />
+    <div className="max-w-2xl mx-auto">
+      <div className="mb-6">
+        <Button
+          variant="ghost"
+          onClick={() => navigate('/events')}
+          className="mb-4"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Volver a eventos
         </Button>
-        <h1 className="text-2xl font-bold">
-          {id ? 'Editar Evento' : 'Nuevo Evento'}
-        </h1>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>{id ? 'Editar Evento' : 'Crear Nuevo Evento'}</CardTitle>
+          <CardTitle>
+            {isEditing ? 'Editar Evento' : 'Nuevo Evento'}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="customerId"
@@ -183,7 +182,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSave, onCancel }) => {
                       <SelectContent>
                         {customers.map((customer) => (
                           <SelectItem key={customer.id} value={customer.id}>
-                            {customer.name}
+                            {customer.name} ({customer.email})
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -198,35 +197,10 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSave, onCancel }) => {
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Título del Evento</FormLabel>
+                    <FormLabel>Título del evento</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ej. Boda de Juan y María" {...field} />
+                      <Input placeholder="Ej. Boda de María y Juan" {...field} />
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Categoría del Evento</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona una categoría" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="wedding">Bodas</SelectItem>
-                        <SelectItem value="birthday">Cumpleaños</SelectItem>
-                        <SelectItem value="corporate">Eventos Corporativos</SelectItem>
-                        <SelectItem value="club">Club</SelectItem>
-                        <SelectItem value="other">Otros</SelectItem>
-                      </SelectContent>
-                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -237,7 +211,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSave, onCancel }) => {
                 name="date"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel>Fecha del Evento</FormLabel>
+                    <FormLabel>Fecha del evento</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -262,7 +236,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSave, onCancel }) => {
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          locale={es}
+                          disabled={(date) => date < new Date()}
                           initialFocus
                         />
                       </PopoverContent>
@@ -277,10 +251,35 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSave, onCancel }) => {
                 name="venue"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Lugar del Evento</FormLabel>
+                    <FormLabel>Lugar del evento</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ej. Hotel Real Intercontinental" {...field} />
+                      <Input placeholder="Ej. Hotel Presidente, San José" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Categoría</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona una categoría" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="wedding">{getCategoryText('wedding')}</SelectItem>
+                        <SelectItem value="birthday">{getCategoryText('birthday')}</SelectItem>
+                        <SelectItem value="corporate">{getCategoryText('corporate')}</SelectItem>
+                        <SelectItem value="club">{getCategoryText('club')}</SelectItem>
+                        <SelectItem value="other">{getCategoryText('other')}</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -291,13 +290,13 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSave, onCancel }) => {
                 name="cost"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Monto ({defaultCurrency})</FormLabel>
+                    <FormLabel>Costo</FormLabel>
                     <FormControl>
                       <Input 
                         type="number" 
-                        min={0} 
-                        step="0.01"
-                        placeholder="0.00"
+                        step="0.01" 
+                        min="0"
+                        placeholder="0.00" 
                         {...field} 
                       />
                     </FormControl>
@@ -319,11 +318,9 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSave, onCancel }) => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {statusOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="prospect">{getStatusText('prospect')}</SelectItem>
+                        <SelectItem value="confirmed">{getStatusText('confirmed')}</SelectItem>
+                        <SelectItem value="show_completed">{getStatusText('show_completed')}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -338,19 +335,19 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSave, onCancel }) => {
                   <FormItem>
                     <FormLabel>Comentarios</FormLabel>
                     <FormControl>
-                      <Textarea 
-                        placeholder="Comentarios adicionales sobre el evento..."
-                        className="min-h-[100px]"
-                        {...field} 
-                      />
+                      <Textarea placeholder="Comentarios adicionales..." rows={4} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => navigate('/events')}>
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate('/events')}
+                >
                   Cancelar
                 </Button>
                 <Button 
@@ -358,19 +355,13 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSave, onCancel }) => {
                   disabled={isSubmitting}
                   className="bg-crm-primary hover:bg-crm-primary/90"
                 >
-                  {id ? 'Actualizar' : 'Crear'} Evento
+                  {isSubmitting ? 'Guardando...' : (isEditing ? 'Actualizar' : 'Crear')}
                 </Button>
               </div>
             </form>
           </Form>
         </CardContent>
       </Card>
-
-      <NoCustomerDialog
-        open={showNoCustomerDialog}
-        onOpenChange={setShowNoCustomerDialog}
-        onCreateCustomer={handleCreateCustomer}
-      />
     </div>
   );
 };

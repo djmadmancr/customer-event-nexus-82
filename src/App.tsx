@@ -44,7 +44,6 @@ function App() {
                   <NotificationProvider>
                     <Routes>
                       <Route path="/auth" element={<AuthPage />} />
-                      {/* Add a redirect from /login to /auth for compatibility */}
                       <Route path="/login" element={<Navigate to="/auth" replace />} />
                       <Route path="/admin-dashboard" element={<AdminDashboard />} />
                       <Route path="/booking/:userId" element={<BookingForm />} />

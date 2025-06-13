@@ -1,4 +1,5 @@
-import { Customer, Event, Payment } from '../types/models';
+
+import { Customer, Event, Payment, EventDetail } from '../types/models';
 
 class DataService {
   private currentUserId: string | null = null;
@@ -26,10 +27,29 @@ class DataService {
   }
 
   createUserProfile(userId: string): void {
-    // Initialize empty data for new user
     localStorage.setItem(`customers_${userId}`, JSON.stringify([]));
     localStorage.setItem(`events_${userId}`, JSON.stringify([]));
     localStorage.setItem(`payments_${userId}`, JSON.stringify([]));
+    localStorage.setItem(`eventDetails_${userId}`, JSON.stringify([]));
+  }
+
+  // Currency formatting methods
+  getCurrencySymbol(currency: string): string {
+    const symbols: { [key: string]: string } = {
+      USD: '$',
+      CRC: '₡',
+      EUR: '€',
+      MXN: '$',
+      COP: '$'
+    };
+    return symbols[currency] || '$';
+  }
+
+  formatCurrency(amount: number, currency: string = 'USD'): string {
+    return new Intl.NumberFormat('es-ES', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
   }
 
   // Customer methods
@@ -42,6 +62,7 @@ class DataService {
     const customers = this.getAllCustomers();
     const newCustomer: Customer = {
       ...customer,
+      userId: customer.userId || this.getCurrentUserId(),
       id: Date.now().toString(),
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -89,6 +110,7 @@ class DataService {
     const events = this.getAllEvents();
     const newEvent: Event = {
       ...event,
+      userId: event.userId || this.getCurrentUserId(),
       id: Date.now().toString(),
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -124,6 +146,93 @@ class DataService {
   getEventsByCustomerId(customerId: string): Event[] {
     const events = this.getAllEvents();
     return events.filter(e => e.customerId === customerId);
+  }
+
+  // Event Tax methods
+  addTaxToEvent(eventId: string, taxPercentage: number): Event | null {
+    const event = this.getEventById(eventId);
+    if (event) {
+      const taxAmount = (event.cost * taxPercentage) / 100;
+      const totalWithTax = event.cost + taxAmount;
+      
+      return this.updateEvent(eventId, {
+        taxPercentage,
+        taxAmount,
+        totalWithTax
+      });
+    }
+    return null;
+  }
+
+  removeTaxFromEvent(eventId: string): Event | null {
+    return this.updateEvent(eventId, {
+      taxPercentage: undefined,
+      taxAmount: undefined,
+      totalWithTax: undefined
+    });
+  }
+
+  // Financial analysis methods
+  getEventsTotalByStatusAndDateRange(status: string, startDate: Date, endDate: Date): number {
+    const events = this.getAllEvents();
+    return events
+      .filter(event => 
+        event.status === status && 
+        event.date >= startDate && 
+        event.date <= endDate
+      )
+      .reduce((total, event) => total + event.cost, 0);
+  }
+
+  // Event Details methods
+  getAllEventDetails(): EventDetail[] {
+    const details = localStorage.getItem(this.getUserKey('eventDetails'));
+    return details ? JSON.parse(details).map((detail: any) => ({
+      ...detail,
+      createdAt: new Date(detail.createdAt),
+      updatedAt: new Date(detail.updatedAt),
+    })) : [];
+  }
+
+  getEventDetailsByEventId(eventId: string): EventDetail[] {
+    const details = this.getAllEventDetails();
+    return details.filter(d => d.eventId === eventId);
+  }
+
+  getEventDetailById(id: string): EventDetail | null {
+    const details = this.getAllEventDetails();
+    return details.find(d => d.id === id) || null;
+  }
+
+  addEventDetail(detail: Omit<EventDetail, 'id' | 'createdAt' | 'updatedAt'>): EventDetail {
+    const details = this.getAllEventDetails();
+    const newDetail: EventDetail = {
+      ...detail,
+      id: Date.now().toString(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    details.push(newDetail);
+    localStorage.setItem(this.getUserKey('eventDetails'), JSON.stringify(details));
+    return newDetail;
+  }
+
+  updateEventDetail(id: string, updates: Partial<EventDetail>): EventDetail | null {
+    const details = this.getAllEventDetails();
+    const index = details.findIndex(d => d.id === id);
+    if (index !== -1) {
+      details[index] = { ...details[index], ...updates, updatedAt: new Date() };
+      localStorage.setItem(this.getUserKey('eventDetails'), JSON.stringify(details));
+      return details[index];
+    }
+    return null;
+  }
+
+  deleteEventDetail(id: string): boolean {
+    const details = this.getAllEventDetails();
+    const filteredDetails = details.filter(d => d.id !== id);
+    localStorage.setItem(this.getUserKey('eventDetails'), JSON.stringify(filteredDetails));
+    return filteredDetails.length !== details.length;
   }
 
   // Payment methods

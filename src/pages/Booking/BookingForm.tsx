@@ -1,55 +1,47 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { 
-  Form, 
-  FormControl, 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormMessage 
-} from '@/components/ui/form';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import dataService from '@/services/DataService';
+import { EventCategory } from '@/types/models';
+import { toast } from 'sonner';
 
 const bookingSchema = z.object({
+  // Customer fields
   customerName: z.string().min(2, { message: 'El nombre debe tener al menos 2 caracteres' }),
-  customerEmail: z.string().email({ message: 'Debe ser un email válido' }),
-  customerPhone: z.string().min(8, { message: 'El teléfono debe tener al menos 8 caracteres' }),
+  customerEmail: z.string().email({ message: 'Email inválido' }),
+  customerPhone: z.string().min(8, { message: 'El teléfono debe tener al menos 8 dígitos' }),
+  customerNotes: z.string().optional(),
+  
+  // Event fields
   eventTitle: z.string().min(2, { message: 'El título debe tener al menos 2 caracteres' }),
-  eventDate: z.date({ required_error: "Por favor selecciona una fecha" }),
-  eventVenue: z.string().min(2, { message: 'El lugar debe tener al menos 2 caracteres' }),
-  eventCategory: z.enum(['wedding', 'birthday', 'corporate', 'club', 'other'], { 
-    required_error: "Por favor selecciona una categoría" 
-  }),
-  eventDescription: z.string().optional(),
+  eventDate: z.date({ required_error: 'La fecha es requerida' }),
+  venue: z.string().min(2, { message: 'El lugar debe tener al menos 2 caracteres' }),
+  category: z.enum(['wedding', 'birthday', 'corporate', 'club', 'other']),
+  cost: z.coerce.number().min(0, { message: 'El costo debe ser mayor o igual a 0' }),
+  comments: z.string().optional(),
 });
 
 type BookingFormValues = z.infer<typeof bookingSchema>;
 
-const BookingForm = () => {
-  const { userId } = useParams();
+const BookingForm: React.FC = () => {
+  const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
-  const [userProfile, setUserProfile] = useState<any>(null);
-  const [logoUrl, setLogoUrl] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
@@ -57,162 +49,96 @@ const BookingForm = () => {
       customerName: '',
       customerEmail: '',
       customerPhone: '',
+      customerNotes: '',
       eventTitle: '',
-      eventDate: new Date(),
-      eventVenue: '',
-      eventCategory: 'other',
-      eventDescription: '',
+      venue: '',
+      category: 'wedding',
+      cost: 0,
+      comments: '',
     },
   });
 
-  useEffect(() => {
-    if (userId) {
-      // Load user profile and logo for this booking form
-      const profileKey = `userProfile_${userId}`;
-      const logoKey = `appLogo_${userId}`;
-      
-      const savedProfile = localStorage.getItem(profileKey);
-      const savedLogo = localStorage.getItem(logoKey);
-      
-      if (savedProfile) {
-        try {
-          setUserProfile(JSON.parse(savedProfile));
-        } catch (error) {
-          console.error('Error loading user profile:', error);
-        }
-      }
-      
-      if (savedLogo) {
-        setLogoUrl(savedLogo);
-      }
-    }
-  }, [userId]);
-
-  const getCategoryLabel = (category: string) => {
-    const categoryLabels = {
-      wedding: 'Boda',
-      birthday: 'Cumpleaños',
-      corporate: 'Corporativo',
-      club: 'Club',
-      other: 'Otro'
-    };
-    return categoryLabels[category as keyof typeof categoryLabels] || 'Otro';
-  };
-
   const onSubmit = async (data: BookingFormValues) => {
-    if (!userId) return;
-    
+    if (!userId) {
+      toast.error('ID de usuario inválido');
+      return;
+    }
+
     setIsSubmitting(true);
+
     try {
-      // Switch to user context for this booking form to save data
-      const originalUserId = localStorage.getItem('demo-auth-user');
-      
-      // Temporarily switch to the target user's context
-      const tempUser = { uid: userId, email: 'booking@form.com' };
-      localStorage.setItem('demo-auth-user', JSON.stringify(tempUser));
-      
-      // Initialize data service for this user
+      // Set the user context for the booking
       dataService.setCurrentUserId(userId);
-      
-      // Create new customer with correct structure
-      const newCustomer = {
+
+      // Create customer first
+      const customer = dataService.addCustomer({
         name: data.customerName,
         email: data.customerEmail,
         phone: data.customerPhone,
-        notes: data.eventDescription || '',
-      };
+        notes: data.customerNotes || '',
+        userId: userId,
+      });
 
-      const customer = dataService.addCustomer(newCustomer);
-
-      // Create new event as prospect with correct structure
-      const newEvent = {
+      // Create event as prospect
+      const event = dataService.addEvent({
         customerId: customer.id,
         title: data.eventTitle,
         date: data.eventDate,
-        venue: data.eventVenue,
-        category: data.eventCategory,
-        cost: 0,
-        status: 'prospect' as const,
-        comments: data.eventDescription || '',
-      };
+        venue: data.venue,
+        category: data.category,
+        cost: data.cost,
+        status: 'prospect',
+        comments: data.comments || '',
+        userId: userId,
+      });
 
-      dataService.addEvent(newEvent);
-
-      // Restore original user context
-      if (originalUserId) {
-        localStorage.setItem('demo-auth-user', originalUserId);
-      } else {
-        localStorage.removeItem('demo-auth-user');
-      }
-
-      setIsSubmitted(true);
+      toast.success('Cotización enviada exitosamente');
+      
+      // Reset form
+      form.reset();
+      
     } catch (error) {
-      console.error('Error submitting booking:', error);
+      console.error('Error creating booking:', error);
+      toast.error('Error al enviar la cotización');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (isSubmitted) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 px-4">
-        <div className="max-w-md mx-auto">
-          <Card>
-            <CardContent className="pt-6 text-center">
-              <div className="mb-4">
-                {logoUrl && (
-                  <img 
-                    src={logoUrl} 
-                    alt="Logo" 
-                    className="h-16 w-auto max-w-[200px] mx-auto mb-4"
-                  />
-                )}
-                <h1 className="text-2xl font-bold text-green-600 mb-2">
-                  ¡Gracias por tu solicitud!
-                </h1>
-                <p className="text-gray-600">
-                  Hemos recibido tu solicitud de cotización. Nos pondremos en contacto contigo muy pronto.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
+  const getCategoryText = (category: EventCategory) => {
+    switch(category) {
+      case 'wedding': return 'Boda';
+      case 'birthday': return 'Cumpleaños';
+      case 'corporate': return 'Corporativo';
+      case 'club': return 'Club/Discoteca';
+      case 'other': return 'Otro';
+      default: return category;
+    }
+  };
 
-  // Show form even if no userProfile to make it public
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
+    <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-2xl mx-auto">
         <Card>
-          <CardHeader className="text-center">
-            {logoUrl && (
-              <img 
-                src={logoUrl} 
-                alt="Logo" 
-                className="h-16 w-auto max-w-[200px] mx-auto mb-4"
-              />
-            )}
-            <CardTitle className="text-2xl">
-              Contrataciones {userProfile?.artistName || userProfile?.name || 'Formulario de Booking'}
-            </CardTitle>
-            <p className="text-gray-600 mt-2">
-              Completa el formulario para solicitar una cotización
+          <CardHeader>
+            <CardTitle className="text-center text-2xl">Solicitar Cotización</CardTitle>
+            <p className="text-center text-gray-600">
+              Completa el formulario para solicitar una cotización personalizada
             </p>
           </CardHeader>
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                {/* Customer Information Section */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Información del Cliente</h3>
+                  <h3 className="text-lg font-semibold border-b pb-2">Información de Contacto</h3>
                   
                   <FormField
                     control={form.control}
                     name="customerName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Nombre Completo</FormLabel>
+                        <FormLabel>Nombre completo *</FormLabel>
                         <FormControl>
                           <Input placeholder="Tu nombre completo" {...field} />
                         </FormControl>
@@ -226,7 +152,7 @@ const BookingForm = () => {
                     name="customerEmail"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email</FormLabel>
+                        <FormLabel>Email *</FormLabel>
                         <FormControl>
                           <Input type="email" placeholder="tu@email.com" {...field} />
                         </FormControl>
@@ -240,7 +166,7 @@ const BookingForm = () => {
                     name="customerPhone"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Teléfono</FormLabel>
+                        <FormLabel>Teléfono *</FormLabel>
                         <FormControl>
                           <Input placeholder="+506 0000-0000" {...field} />
                         </FormControl>
@@ -248,45 +174,35 @@ const BookingForm = () => {
                       </FormItem>
                     )}
                   />
+
+                  <FormField
+                    control={form.control}
+                    name="customerNotes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Notas adicionales</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="Información adicional de contacto..." rows={2} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
 
+                {/* Event Information Section */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Información del Evento</h3>
+                  <h3 className="text-lg font-semibold border-b pb-2">Información del Evento</h3>
                   
                   <FormField
                     control={form.control}
                     name="eventTitle"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Tipo de Evento</FormLabel>
+                        <FormLabel>Título del evento *</FormLabel>
                         <FormControl>
-                          <Input placeholder="Ej: Boda, Cumpleaños, Evento Corporativo" {...field} />
+                          <Input placeholder="Ej. Boda de María y Juan" {...field} />
                         </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="eventCategory"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Categoría del Evento</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona una categoría" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="wedding">Boda</SelectItem>
-                            <SelectItem value="birthday">Cumpleaños</SelectItem>
-                            <SelectItem value="corporate">Corporativo</SelectItem>
-                            <SelectItem value="club">Club</SelectItem>
-                            <SelectItem value="other">Otro</SelectItem>
-                          </SelectContent>
-                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -297,7 +213,7 @@ const BookingForm = () => {
                     name="eventDate"
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
-                        <FormLabel>Fecha del Evento</FormLabel>
+                        <FormLabel>Fecha del evento *</FormLabel>
                         <Popover>
                           <PopoverTrigger asChild>
                             <FormControl>
@@ -322,7 +238,7 @@ const BookingForm = () => {
                               mode="single"
                               selected={field.value}
                               onSelect={field.onChange}
-                              locale={es}
+                              disabled={(date) => date < new Date()}
                               initialFocus
                             />
                           </PopoverContent>
@@ -334,12 +250,12 @@ const BookingForm = () => {
 
                   <FormField
                     control={form.control}
-                    name="eventVenue"
+                    name="venue"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Lugar del Evento</FormLabel>
+                        <FormLabel>Lugar del evento *</FormLabel>
                         <FormControl>
-                          <Input placeholder="Nombre del lugar o dirección" {...field} />
+                          <Input placeholder="Ej. Hotel Presidente, San José" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -348,14 +264,59 @@ const BookingForm = () => {
 
                   <FormField
                     control={form.control}
-                    name="eventDescription"
+                    name="category"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Descripción Adicional (Opcional)</FormLabel>
+                        <FormLabel>Categoría del evento *</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecciona una categoría" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="wedding">{getCategoryText('wedding')}</SelectItem>
+                            <SelectItem value="birthday">{getCategoryText('birthday')}</SelectItem>
+                            <SelectItem value="corporate">{getCategoryText('corporate')}</SelectItem>
+                            <SelectItem value="club">{getCategoryText('club')}</SelectItem>
+                            <SelectItem value="other">{getCategoryText('other')}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="cost"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Presupuesto estimado</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            step="0.01" 
+                            min="0"
+                            placeholder="0.00" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="comments"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Comentarios adicionales</FormLabel>
                         <FormControl>
                           <Textarea 
-                            placeholder="Cuéntanos más detalles sobre tu evento..."
-                            className="min-h-[100px]"
+                            placeholder="Describe detalles específicos, requerimientos especiales, etc." 
+                            rows={4} 
                             {...field} 
                           />
                         </FormControl>
@@ -367,10 +328,10 @@ const BookingForm = () => {
 
                 <Button 
                   type="submit" 
-                  className="w-full bg-crm-primary hover:bg-crm-primary/90"
+                  className="w-full" 
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? 'Enviando...' : 'Solicitar Cotización'}
+                  {isSubmitting ? 'Enviando...' : 'Enviar Cotización'}
                 </Button>
               </form>
             </Form>
