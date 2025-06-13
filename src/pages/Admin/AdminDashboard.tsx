@@ -19,6 +19,7 @@ import { UserRole } from '@/types/models';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { addDays } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 
 interface ExtendedUser {
   id: string;
@@ -43,6 +44,7 @@ type CreateUserFormValues = z.infer<typeof createUserSchema>;
 const AdminDashboard = () => {
   const { getAllUsers, updateUserRole, updateUserStatus, signOut, currentUser } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [users, setUsers] = useState<ExtendedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -99,10 +101,20 @@ const AdminDashboard = () => {
 
   const handleCreateUser = async (data: CreateUserFormValues) => {
     try {
-      // Calculate subscription expiry
       const subscriptionExpiry = addDays(new Date(), data.subscriptionMonths * 30);
       
-      // Create new user (this would need to be implemented in the auth context)
+      // Get current demo users from localStorage to persist the addition
+      const currentDemoUsers = localStorage.getItem('demo-users');
+      let demoUsers = [];
+      
+      if (currentDemoUsers) {
+        try {
+          demoUsers = JSON.parse(currentDemoUsers);
+        } catch (e) {
+          demoUsers = [];
+        }
+      }
+
       const newUser = {
         id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         email: data.email,
@@ -114,7 +126,12 @@ const AdminDashboard = () => {
         subscriptionExpiry,
       };
 
-      // In a real implementation, this would call a service to create the user
+      // Add new user to the array
+      demoUsers.push(newUser);
+      
+      // Save updated array to localStorage
+      localStorage.setItem('demo-users', JSON.stringify(demoUsers));
+
       toast({
         title: "Usuario creado",
         description: `Usuario ${data.name} creado exitosamente con ${data.subscriptionMonths} mes(es) de suscripción`,
@@ -136,7 +153,7 @@ const AdminDashboard = () => {
     try {
       const newExpiry = addDays(new Date(), months * 30);
       
-      // Update user subscription (this would need to be implemented)
+      // Update subscription logic would need to be implemented in AuthContext
       toast({
         title: "Suscripción actualizada",
         description: `Suscripción actualizada con ${months} mes(es) adicional(es)`,
@@ -184,6 +201,7 @@ const AdminDashboard = () => {
   const handleSignOut = async () => {
     try {
       await signOut();
+      navigate('/auth');
     } catch (error) {
       console.error('Error signing out:', error);
     }

@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { User, UserRole } from '@/types/models';
@@ -80,6 +81,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Function to get all users including those created by admin
+  const getAllDemoUsers = () => {
+    const storedUsers = localStorage.getItem('demo-users');
+    let additionalUsers = [];
+    
+    if (storedUsers) {
+      try {
+        additionalUsers = JSON.parse(storedUsers);
+      } catch (e) {
+        additionalUsers = [];
+      }
+    }
+    
+    return [...DEMO_USERS, ...additionalUsers];
+  };
+
   // Function to sync user name from personal data configuration
   const syncUserName = () => {
     if (currentUser) {
@@ -105,7 +122,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (savedUser) {
       try {
         const user = JSON.parse(savedUser);
-        const demoUser = DEMO_USERS.find(u => u.email === user.email);
+        const allUsers = getAllDemoUsers();
+        const demoUser = allUsers.find(u => u.email === user.email);
+        
         if (demoUser) {
           const subscriptionStatus = checkSubscriptionStatus(demoUser);
           
@@ -168,8 +187,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       console.log(`🔑 Attempting sign in with: ${email}`);
       
-      // Find demo user
-      const demoUser = DEMO_USERS.find(
+      // Find demo user in all available users
+      const allUsers = getAllDemoUsers();
+      const demoUser = allUsers.find(
         u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
       );
       
@@ -269,7 +289,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       
       // Check if user already exists
-      const existingUser = DEMO_USERS.find(u => u.email.toLowerCase() === sanitizedEmail);
+      const allUsers = getAllDemoUsers();
+      const existingUser = allUsers.find(u => u.email.toLowerCase() === sanitizedEmail);
       if (existingUser) {
         throw new Error('Ya existe una cuenta con este email');
       }
@@ -286,8 +307,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         subscriptionExpiry: addDays(new Date(), -10) // Expired by default
       };
       
-      // Add to demo users array
-      DEMO_USERS.push(newUser);
+      // Add to additional users in localStorage
+      const storedUsers = localStorage.getItem('demo-users');
+      let additionalUsers = [];
+      
+      if (storedUsers) {
+        try {
+          additionalUsers = JSON.parse(storedUsers);
+        } catch (e) {
+          additionalUsers = [];
+        }
+      }
+      
+      additionalUsers.push(newUser);
+      localStorage.setItem('demo-users', JSON.stringify(additionalUsers));
       
       // Create user profile space in data service
       dataService.createUserProfile(newUser.id);
@@ -295,7 +328,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Create user profile with the name from registration
       const defaultProfile = {
         id: newUser.id,
-        name: sanitizedName, // Use the name from registration
+        name: sanitizedName,
         artistName: '',
         email: sanitizedEmail,
         phone: '+506 0000-0000',
@@ -357,13 +390,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const getAllUsers = async (): Promise<ExtendedUser[]> => {
-    return DEMO_USERS;
+    return getAllDemoUsers();
   };
 
   const updateUserRole = async (userId: string, newRole: UserRole) => {
-    const user = DEMO_USERS.find(u => u.id === userId);
-    if (user) {
-      user.role = newRole;
+    const allUsers = getAllDemoUsers();
+    const userIndex = allUsers.findIndex(u => u.id === userId);
+    
+    if (userIndex !== -1) {
+      allUsers[userIndex].role = newRole;
+      
+      // Update in appropriate storage
+      if (userIndex === 0) {
+        // This is the default admin user, update in DEMO_USERS
+        DEMO_USERS[0].role = newRole;
+      } else {
+        // This is a user created by admin, update in localStorage
+        const additionalUsers = allUsers.slice(1);
+        localStorage.setItem('demo-users', JSON.stringify(additionalUsers));
+      }
+      
       toast({
         title: "Rol actualizado",
         description: "El rol del usuario ha sido actualizado",
@@ -372,9 +418,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const updateUserStatus = async (userId: string, active: boolean) => {
-    const user = DEMO_USERS.find(u => u.id === userId);
-    if (user) {
-      user.active = active;
+    const allUsers = getAllDemoUsers();
+    const userIndex = allUsers.findIndex(u => u.id === userId);
+    
+    if (userIndex !== -1) {
+      allUsers[userIndex].active = active;
+      
+      // Update in appropriate storage
+      if (userIndex === 0) {
+        // This is the default admin user, update in DEMO_USERS
+        DEMO_USERS[0].active = active;
+      } else {
+        // This is a user created by admin, update in localStorage
+        const additionalUsers = allUsers.slice(1);
+        localStorage.setItem('demo-users', JSON.stringify(additionalUsers));
+      }
+      
       toast({
         title: "Estado actualizado",
         description: `Usuario ${active ? 'activado' : 'desactivado'}`,

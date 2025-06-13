@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -105,6 +104,16 @@ const BookingForm = () => {
     
     setIsSubmitting(true);
     try {
+      // Switch to user context for this booking form to save data
+      const originalUserId = localStorage.getItem('demo-auth-user');
+      
+      // Temporarily switch to the target user's context
+      const tempUser = { uid: userId, email: 'booking@form.com' };
+      localStorage.setItem('demo-auth-user', JSON.stringify(tempUser));
+      
+      // Initialize data service for this user
+      dataService.setCurrentUserId(userId);
+      
       // Create new customer with correct structure
       const newCustomer = {
         name: data.customerName,
@@ -115,7 +124,7 @@ const BookingForm = () => {
 
       const customer = dataService.addCustomer(newCustomer);
 
-      // Create new event as prospect with correct structure - ensure customerId is string
+      // Create new event as prospect with correct structure
       const newEvent = {
         customerId: customer.id,
         title: data.eventTitle,
@@ -128,6 +137,13 @@ const BookingForm = () => {
       };
 
       dataService.addEvent(newEvent);
+
+      // Restore original user context
+      if (originalUserId) {
+        localStorage.setItem('demo-auth-user', originalUserId);
+      } else {
+        localStorage.removeItem('demo-auth-user');
+      }
 
       setIsSubmitted(true);
     } catch (error) {

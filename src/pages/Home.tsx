@@ -23,10 +23,10 @@ import {
 const CATEGORY_COLORS = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd'];
 
 interface EventSummary {
-  prospect?: number;
-  confirmed?: number;
-  show_completed?: number;
-  paid?: number;
+  prospect: number;
+  confirmed: number;
+  show_completed: number;
+  paid: number;
 }
 
 const Home = () => {
@@ -60,7 +60,7 @@ const Home = () => {
     const status = event.status as keyof EventSummary;
     acc[status] = (acc[status] || 0) + 1;
     return acc;
-  }, {});
+  }, { prospect: 0, confirmed: 0, show_completed: 0, paid: 0 });
 
   const categoryData = filteredEvents.reduce((acc, event) => {
     const category = event.category || 'Sin categoría';
@@ -84,6 +84,7 @@ const Home = () => {
     { name: 'Pendiente', value: pendingCollection > 0 ? pendingCollection : 0 },
   ];
 
+  // Fix monthly data to properly include payments by month
   const monthlyData = filteredEvents.reduce((acc, event) => {
     const month = new Date(event.date).toLocaleString('default', { month: 'short' });
     const existingMonth = acc.find(item => item.month === month);
@@ -97,12 +98,17 @@ const Home = () => {
     return acc;
   }, [] as Array<{ month: string; programados: number; cobrados: number }>);
 
+  // Properly aggregate payments by month
   payments.forEach(payment => {
-    const month = new Date(payment.paymentDate).toLocaleString('default', { month: 'short' });
-    const existingMonth = monthlyData.find(item => item.month === month);
-    if (existingMonth) {
-      existingMonth.cobrados += payment.amount;
+    const paymentDate = new Date(payment.paymentDate);
+    const month = paymentDate.toLocaleString('default', { month: 'short' });
+    
+    let existingMonth = monthlyData.find(item => item.month === month);
+    if (!existingMonth) {
+      existingMonth = { month, programados: 0, cobrados: 0 };
+      monthlyData.push(existingMonth);
     }
+    existingMonth.cobrados += payment.amount;
   });
 
   const topClients = customers.map(customer => {
@@ -149,37 +155,6 @@ const Home = () => {
             <Button onClick={applyDateFilter} className="bg-crm-primary hover:bg-crm-primary/90">
               Aplicar Filtro
             </Button>
-          </div>
-
-          {/* Event Status Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center p-6">
-                <div className="text-2xl font-bold text-yellow-600">{eventSummary.prospect || 0}</div>
-                <div className="text-sm text-gray-600 text-center">Cotizaciones</div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center p-6">
-                <div className="text-2xl font-bold text-blue-600">{eventSummary.confirmed || 0}</div>
-                <div className="text-sm text-gray-600 text-center">Confirmados</div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center p-6">
-                <div className="text-2xl font-bold text-purple-600">{eventSummary.show_completed || 0}</div>
-                <div className="text-sm text-gray-600 text-center">Show Realizado</div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center p-6">
-                <div className="text-2xl font-bold text-green-600">{eventSummary.paid || 0}</div>
-                <div className="text-sm text-gray-600 text-center">Pagados</div>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Pie Charts Row */}
@@ -243,6 +218,37 @@ const Home = () => {
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Event Status Summary */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center p-6">
+                <div className="text-2xl font-bold text-yellow-600">{eventSummary.prospect}</div>
+                <div className="text-sm text-gray-600 text-center">Cotizaciones</div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center p-6">
+                <div className="text-2xl font-bold text-blue-600">{eventSummary.confirmed}</div>
+                <div className="text-sm text-gray-600 text-center">Confirmados</div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center p-6">
+                <div className="text-2xl font-bold text-purple-600">{eventSummary.show_completed}</div>
+                <div className="text-sm text-gray-600 text-center">Show Realizado</div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center p-6">
+                <div className="text-2xl font-bold text-green-600">{eventSummary.paid}</div>
+                <div className="text-sm text-gray-600 text-center">Pagados</div>
               </CardContent>
             </Card>
           </div>

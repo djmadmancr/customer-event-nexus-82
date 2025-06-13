@@ -50,7 +50,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   
   return (
     <div className="min-h-screen bg-crm-background">
-      <Header toggleSidebar={toggleSidebar} />
+      {/* Header with fixed position and full width */}
+      <div className="fixed top-0 left-0 right-0 z-50">
+        <Header toggleSidebar={toggleSidebar} />
+      </div>
+      
       <Sidebar 
         isOpen={isMobile ? mobileSidebarOpen : sidebarOpen}
         onClose={() => isMobile ? setMobileSidebarOpen(false) : setSidebarOpen(false)}
@@ -58,7 +62,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       
       <main 
         className={cn(
-          "pt-16 transition-all duration-300 ease-in-out",
+          "pt-16 transition-all duration-300 ease-in-out min-h-screen",
           !isMobile && sidebarOpen ? "md:ml-64" : !isMobile ? "md:ml-16" : ""
         )}
       >
