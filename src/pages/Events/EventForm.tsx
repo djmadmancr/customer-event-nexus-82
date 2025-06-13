@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { z } from 'zod';
@@ -101,8 +100,16 @@ const EventForm: React.FC = () => {
         dataService.updateEvent(event.id, data);
         toast.success('Evento actualizado correctamente');
       } else {
+        // Ensure all required fields are present
         dataService.addEvent({
-          ...data,
+          customerId: data.customerId,
+          title: data.title,
+          date: data.date,
+          venue: data.venue,
+          cost: data.cost,
+          status: data.status,
+          category: data.category,
+          comments: data.comments || '',
           userId: currentUser.uid,
         });
         toast.success('Evento creado correctamente');

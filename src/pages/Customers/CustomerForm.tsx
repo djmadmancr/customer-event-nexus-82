@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { z } from 'zod';
@@ -80,8 +79,12 @@ const CustomerForm: React.FC = () => {
         dataService.updateCustomer(customer.id, data);
         toast.success('Cliente actualizado correctamente');
       } else {
+        // Ensure all required fields are present
         dataService.addCustomer({
-          ...data,
+          name: data.name,
+          email: data.email,
+          phone: data.phone,
+          notes: data.notes || '',
           userId: currentUser.uid,
         });
         toast.success('Cliente creado correctamente');
