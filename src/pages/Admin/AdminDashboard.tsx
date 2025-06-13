@@ -25,18 +25,33 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { User, UserRole } from '@/types/models';
-import { format } from 'date-fns';
+import { format, addDays, isAfter } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Users, Shield, UserCheck, UserX, Key, LogOut } from 'lucide-react';
+import { Users, Shield, UserCheck, UserX, Key, LogOut, Plus, Calendar } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
+interface ExtendedUser extends User {
+  subscriptionExpiry?: Date;
+  subscriptionActive?: boolean;
+}
+
 const AdminDashboard: React.FC = () => {
-  const { getAllUsers, updateUserStatus, userData, signOut } = useAuth();
-  const [users, setUsers] = useState<User[]>([]);
+  const { getAllUsers, updateUserStatus, userData, signOut, signUp } = useAuth();
+  const [users, setUsers] = useState<ExtendedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [resetPasswordUserId, setResetPasswordUserId] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [showCreateUser, setShowCreateUser] = useState(false);
+  const [showSubscriptionDialog, setShowSubscriptionDialog] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [subscriptionExpiry, setSubscriptionExpiry] = useState('');
+  const [newUserData, setNewUserData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'user' as UserRole
+  });
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -45,7 +60,13 @@ const AdminDashboard: React.FC = () => {
       try {
         setLoading(true);
         const usersData = await getAllUsers();
-        setUsers(usersData);
+        // Add subscription data (this would normally come from backend)
+        const usersWithSubscription = usersData.map(user => ({
+          ...user,
+          subscriptionExpiry: user.id === 'demo-admin' ? addDays(new Date(), 30) : addDays(new Date(), -10),
+          subscriptionActive: user.id === 'demo-admin' ? true : false
+        }));
+        setUsers(usersWithSubscription);
       } catch (error) {
         console.error('Error fetching users:', error);
       } finally {
@@ -71,13 +92,79 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  const handleCreateUser = async () => {
+    try {
+      if (!newUserData.name || !newUserData.email || !newUserData.password) {
+        toast({
+          title: "Error",
+          description: "Todos los campos son requeridos",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await signUp(newUserData.email, newUserData.password, newUserData.name);
+      
+      // Reset form and close dialog
+      setNewUserData({ name: '', email: '', password: '', role: 'user' });
+      setShowCreateUser(false);
+      
+      // Refresh users list
+      const usersData = await getAllUsers();
+      const usersWithSubscription = usersData.map(user => ({
+        ...user,
+        subscriptionExpiry: user.id === 'demo-admin' ? addDays(new Date(), 30) : addDays(new Date(), -10),
+        subscriptionActive: user.id === 'demo-admin' ? true : false
+      }));
+      setUsers(usersWithSubscription);
+
+      toast({
+        title: "Usuario creado",
+        description: "El usuario ha sido creado exitosamente",
+      });
+    } catch (error) {
+      console.error("Error creating user:", error);
+    }
+  };
+
+  const handleUpdateSubscription = () => {
+    if (!selectedUserId || !subscriptionExpiry) {
+      toast({
+        title: "Error",
+        description: "Selecciona un usuario y fecha de expiración",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const expiryDate = new Date(subscriptionExpiry);
+    setUsers(prevUsers => 
+      prevUsers.map(user => 
+        user.id === selectedUserId 
+          ? { 
+              ...user, 
+              subscriptionExpiry: expiryDate,
+              subscriptionActive: isAfter(expiryDate, new Date())
+            }
+          : user
+      )
+    );
+
+    setShowSubscriptionDialog(false);
+    setSelectedUserId('');
+    setSubscriptionExpiry('');
+    
+    toast({
+      title: "Suscripción actualizada",
+      description: "La fecha de expiración ha sido actualizada",
+    });
+  };
+
   const handleResetPassword = async () => {
     if (!resetPasswordUserId || !newPassword) return;
     
     try {
       setIsResettingPassword(true);
-      // In a real app, this would call a backend API to reset the password
-      // For demo purposes, we'll just show a success message
       toast({
         title: "Contraseña actualizada",
         description: "La contraseña del usuario ha sido actualizada exitosamente",
@@ -117,25 +204,25 @@ const AdminDashboard: React.FC = () => {
       : <Badge className="bg-red-100 text-red-800">Bloqueado</Badge>;
   };
 
-  const getSubscriptionBadge = (userId: string) => {
-    // In a real app, this would check actual subscription status
-    // For demo purposes, we'll show random statuses
-    const statuses = ['active', 'inactive', 'trial'];
-    const status = statuses[userId.length % 3];
-    
-    switch (status) {
-      case 'active':
-        return <Badge className="bg-green-100 text-green-800">Activa</Badge>;
-      case 'trial':
-        return <Badge className="bg-yellow-100 text-yellow-800">Prueba</Badge>;
-      default:
-        return <Badge className="bg-red-100 text-red-800">Inactiva</Badge>;
+  const getSubscriptionBadge = (user: ExtendedUser) => {
+    if (!user.subscriptionExpiry) {
+      return <Badge className="bg-gray-100 text-gray-800">Sin suscripción</Badge>;
+    }
+
+    const now = new Date();
+    const expiry = user.subscriptionExpiry;
+    const graceEnd = addDays(expiry, 14); // 2 weeks grace period
+
+    if (isAfter(now, graceEnd)) {
+      return <Badge className="bg-red-100 text-red-800">Suspendida</Badge>;
+    } else if (isAfter(now, expiry)) {
+      return <Badge className="bg-yellow-100 text-yellow-800">Período de gracia</Badge>;
+    } else {
+      return <Badge className="bg-green-100 text-green-800">Activa</Badge>;
     }
   };
 
   const getLastChange = (user: User) => {
-    // In a real app, this would track actual last changes
-    // For demo purposes, we'll use creation date
     return format(user.createdAt instanceof Date ? user.createdAt : new Date(user.createdAt), 'dd/MM/yyyy HH:mm', { locale: es });
   };
 
@@ -153,14 +240,23 @@ const AdminDashboard: React.FC = () => {
             <span className="text-lg font-semibold text-blue-600">Administrador</span>
           </div>
         </div>
-        <Button
-          onClick={handleLogout}
-          variant="outline"
-          className="flex items-center gap-2"
-        >
-          <LogOut className="h-4 w-4" />
-          Cerrar Sesión
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => setShowCreateUser(true)}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Crear Usuario
+          </Button>
+          <Button
+            onClick={handleLogout}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <LogOut className="h-4 w-4" />
+            Cerrar Sesión
+          </Button>
+        </div>
       </div>
 
       {/* Statistics Cards */}
@@ -228,7 +324,7 @@ const AdminDashboard: React.FC = () => {
                     <TableHead>Estado</TableHead>
                     <TableHead>Suscripción</TableHead>
                     <TableHead>Último Cambio</TableHead>
-                    <TableHead className="w-[200px]">Acciones</TableHead>
+                    <TableHead className="w-[250px]">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -238,10 +334,10 @@ const AdminDashboard: React.FC = () => {
                       <TableCell>{user.email}</TableCell>
                       <TableCell>{getRoleBadge(user.role)}</TableCell>
                       <TableCell>{getStatusBadge(user.active)}</TableCell>
-                      <TableCell>{getSubscriptionBadge(user.id)}</TableCell>
+                      <TableCell>{getSubscriptionBadge(user)}</TableCell>
                       <TableCell>{getLastChange(user)}</TableCell>
                       <TableCell>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
                           <Button
                             onClick={() => handleToggleUserStatus(user.id, !user.active)}
                             disabled={user.id === userData?.id}
@@ -249,6 +345,17 @@ const AdminDashboard: React.FC = () => {
                             variant={user.active ? "destructive" : "default"}
                           >
                             {user.active ? 'Bloquear' : 'Activar'}
+                          </Button>
+                          
+                          <Button
+                            onClick={() => {
+                              setSelectedUserId(user.id);
+                              setShowSubscriptionDialog(true);
+                            }}
+                            size="sm"
+                            variant="outline"
+                          >
+                            <Calendar className="h-4 w-4" />
                           </Button>
                           
                           <Dialog>
@@ -304,6 +411,93 @@ const AdminDashboard: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Create User Dialog */}
+      <Dialog open={showCreateUser} onOpenChange={setShowCreateUser}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Crear Nuevo Usuario</DialogTitle>
+            <DialogDescription>
+              Ingresa los datos del nuevo usuario
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="userName">Nombre</Label>
+              <Input
+                id="userName"
+                value={newUserData.name}
+                onChange={(e) => setNewUserData({...newUserData, name: e.target.value})}
+                placeholder="Nombre completo"
+              />
+            </div>
+            <div>
+              <Label htmlFor="userEmail">Email</Label>
+              <Input
+                id="userEmail"
+                type="email"
+                value={newUserData.email}
+                onChange={(e) => setNewUserData({...newUserData, email: e.target.value})}
+                placeholder="email@ejemplo.com"
+              />
+            </div>
+            <div>
+              <Label htmlFor="userPassword">Contraseña</Label>
+              <Input
+                id="userPassword"
+                type="password"
+                value={newUserData.password}
+                onChange={(e) => setNewUserData({...newUserData, password: e.target.value})}
+                placeholder="Contraseña"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateUser(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleCreateUser}>
+              Crear Usuario
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Subscription Dialog */}
+      <Dialog open={showSubscriptionDialog} onOpenChange={setShowSubscriptionDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Gestionar Suscripción</DialogTitle>
+            <DialogDescription>
+              Establece la fecha de expiración de la suscripción
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="subscriptionExpiry">Fecha de Expiración</Label>
+              <Input
+                id="subscriptionExpiry"
+                type="date"
+                value={subscriptionExpiry}
+                onChange={(e) => setSubscriptionExpiry(e.target.value)}
+              />
+            </div>
+            <div className="text-sm text-gray-600">
+              <p>• La suscripción expirará en la fecha seleccionada</p>
+              <p>• Después de la expiración, el usuario tendrá 2 semanas de período de gracia</p>
+              <p>• Luego del período de gracia, la cuenta será suspendida automáticamente</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSubscriptionDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdateSubscription}>
+              Actualizar Suscripción
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

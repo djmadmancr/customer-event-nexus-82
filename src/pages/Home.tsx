@@ -59,6 +59,17 @@ const Home = () => {
     { name: 'Otros', value: filteredEvents.filter(e => e.category === 'other' || !e.category).length, color: '#9333EA' },
   ].filter(category => category.value > 0);
 
+  // Calculate pending collection percentage
+  const totalRevenue = filteredEvents.reduce((sum, event) => sum + (event.totalWithTax || event.cost), 0);
+  const collectedRevenue = filteredEvents.filter(e => e.status === 'paid').reduce((sum, event) => sum + (event.totalWithTax || event.cost), 0);
+  const pendingRevenue = totalRevenue - collectedRevenue;
+  const pendingPercentage = totalRevenue > 0 ? (pendingRevenue / totalRevenue) * 100 : 0;
+
+  const pendingCollectionData = [
+    { name: 'Cobrado', value: collectedRevenue, color: '#22C55E' },
+    { name: 'Pendiente', value: pendingRevenue, color: '#EF4444' },
+  ].filter(item => item.value > 0);
+
   // Format number without currency symbol
   const formatNumber = (amount: number) => {
     return new Intl.NumberFormat('es-ES', {
@@ -107,13 +118,6 @@ const Home = () => {
 
     setMonthlyData(chartData);
   }, [filteredEvents, dateRange]);
-
-  // Horizontal bar chart data (top customers)
-  const horizontalBarData = topCustomers.map((customer, index) => ({
-    name: customer.name,
-    revenue: customer.revenue,
-    rank: index + 1
-  }));
   
   return (
     <div className="space-y-4 md:space-y-6">
@@ -205,36 +209,36 @@ const Home = () => {
         </CardContent>
       </Card>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-        {/* Monthly Revenue Comparison Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm md:text-base">Ingresos Mensuales - Programados vs Cobrados ({defaultCurrency})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="month" 
-                  fontSize={12}
-                  tickMargin={5}
-                />
-                <YAxis fontSize={12} />
-                <Tooltip 
-                  formatter={(value: number, name: string) => [
-                    formatNumber(value), 
-                    name === 'programados' ? 'Programados' : 'Cobrados'
-                  ]}
-                />
-                <Bar dataKey="programados" fill="#A855F7" name="programados" />
-                <Bar dataKey="cobrados" fill="#7C3AED" name="cobrados" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+      {/* Monthly Revenue Chart - Full Width */}
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle className="text-sm md:text-base">Ingresos Mensuales - Programados vs Cobrados ({defaultCurrency})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={400}>
+            <BarChart data={monthlyData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis 
+                dataKey="month" 
+                fontSize={12}
+                tickMargin={5}
+              />
+              <YAxis fontSize={12} />
+              <Tooltip 
+                formatter={(value: number, name: string) => [
+                  formatNumber(value), 
+                  name === 'programados' ? 'Programados' : 'Cobrados'
+                ]}
+              />
+              <Bar dataKey="programados" fill="#C4B5FD" name="programados" />
+              <Bar dataKey="cobrados" fill="#7C3AED" name="cobrados" />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
 
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         {/* Event Category Distribution */}
         <Card>
           <CardHeader>
@@ -267,80 +271,92 @@ const Home = () => {
             )}
           </CardContent>
         </Card>
-      </div>
 
-      {/* Horizontal Bar Chart and Top Customers */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-        {/* Top Customers Horizontal Bar Chart */}
+        {/* Pending Collection Percentage */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm md:text-base">Top 5 Clientes por Ingresos - Gráfico de Barras</CardTitle>
+            <CardTitle className="text-sm md:text-base">% Pendiente de Cobrar</CardTitle>
           </CardHeader>
           <CardContent>
-            {horizontalBarData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={horizontalBarData} layout="horizontal">
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" fontSize={12} />
-                  <YAxis 
-                    dataKey="name" 
-                    type="category" 
-                    fontSize={10}
-                    width={100}
-                    tickFormatter={(value) => value.length > 15 ? value.substring(0, 15) + '...' : value}
-                  />
-                  <Tooltip 
-                    formatter={(value: number) => [formatNumber(value), 'Ingresos']}
-                  />
-                  <Bar dataKey="revenue" fill="#6E59A5" />
-                </BarChart>
-              </ResponsiveContainer>
+            {pendingCollectionData.length > 0 ? (
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-red-600">
+                    {pendingPercentage.toFixed(1)}%
+                  </div>
+                  <div className="text-sm text-gray-600">Pendiente de cobrar</div>
+                </div>
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie
+                      data={pendingCollectionData}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={60}
+                      dataKey="value"
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
+                      fontSize={10}
+                    >
+                      {pendingCollectionData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value: number) => [formatNumber(value), 'Monto']}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="text-center text-sm text-gray-600">
+                  <div>Total: {formatNumber(totalRevenue)} {defaultCurrency}</div>
+                  <div>Pendiente: {formatNumber(pendingRevenue)} {defaultCurrency}</div>
+                </div>
+              </div>
             ) : (
               <div className="flex items-center justify-center h-[300px] text-gray-500 text-sm">
-                No hay datos de ingresos disponibles
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Top 5 Customers List */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center text-sm md:text-base">
-              <User className="mr-2 h-4 w-4 md:h-5 md:w-5" />
-              Top 5 Clientes por Ingresos ({defaultCurrency})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {topCustomers.length > 0 ? (
-              <div className="space-y-3">
-                {topCustomers.map((customer, index) => (
-                  <div key={customer.name} className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center space-x-2 md:space-x-3">
-                      <div className="flex items-center justify-center w-6 h-6 md:w-8 md:h-8 bg-crm-primary text-white rounded-full text-xs md:text-sm font-bold">
-                        {index + 1}
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900 text-sm md:text-base">{customer.name}</p>
-                        <p className="text-xs text-gray-500">{customer.eventCount} evento(s)</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-green-600 text-sm md:text-base">
-                        {formatNumber(customer.revenue)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex items-center justify-center h-[200px] text-gray-500 text-sm">
-                No hay datos de ingresos disponibles
+                No hay datos de cobros disponibles
               </div>
             )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Top 5 Customers List */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center text-sm md:text-base">
+            <User className="mr-2 h-4 w-4 md:h-5 md:w-5" />
+            Top 5 Clientes por Ingresos ({defaultCurrency})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {topCustomers.length > 0 ? (
+            <div className="space-y-3">
+              {topCustomers.map((customer, index) => (
+                <div key={customer.name} className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-2 md:space-x-3">
+                    <div className="flex items-center justify-center w-6 h-6 md:w-8 md:h-8 bg-crm-primary text-white rounded-full text-xs md:text-sm font-bold">
+                      {index + 1}
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900 text-sm md:text-base">{customer.name}</p>
+                      <p className="text-xs text-gray-500">{customer.eventCount} evento(s)</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-green-600 text-sm md:text-base">
+                      {formatNumber(customer.revenue)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-[200px] text-gray-500 text-sm">
+              No hay datos de ingresos disponibles
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

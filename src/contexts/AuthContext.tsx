@@ -1,9 +1,9 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { User, UserRole } from '@/types/models';
 import { sanitizeInput, validateEmail, validatePassword } from '@/utils/securityUtils';
 import dataService from '@/services/DataService';
+import { addDays, isAfter } from 'date-fns';
 
 // Demo users - stored in memory for guaranteed functionality
 const DEMO_USERS = [
@@ -14,7 +14,8 @@ const DEMO_USERS = [
     name: 'Demo Admin',
     role: 'admin' as UserRole,
     active: true,
-    createdAt: new Date()
+    createdAt: new Date(),
+    subscriptionExpiry: addDays(new Date(), 30) // 30 days from now
   }
 ];
 
@@ -23,18 +24,23 @@ interface AuthUser {
   email: string | null;
 }
 
+interface ExtendedUser extends User {
+  subscriptionExpiry?: Date;
+}
+
 interface AuthContextType {
   currentUser: AuthUser | null;
   userRole: UserRole | null;
-  userData: User | null;
+  userData: ExtendedUser | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name: string) => Promise<void>;
   signOut: () => Promise<void>;
-  getAllUsers: () => Promise<User[]>;
+  getAllUsers: () => Promise<ExtendedUser[]>;
   updateUserRole: (userId: string, newRole: UserRole) => Promise<void>;
   updateUserStatus: (userId: string, active: boolean) => Promise<void>;
   syncUserName: () => void;
+  checkSubscriptionStatus: (user: ExtendedUser) => 'active' | 'grace' | 'suspended';
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -54,9 +60,25 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
-  const [userData, setUserData] = useState<User | null>(null);
+  const [userData, setUserData] = useState<ExtendedUser | null>(null);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+
+  const checkSubscriptionStatus = (user: ExtendedUser): 'active' | 'grace' | 'suspended' => {
+    if (!user.subscriptionExpiry) return 'suspended';
+    
+    const now = new Date();
+    const expiry = user.subscriptionExpiry;
+    const graceEnd = addDays(expiry, 14); // 2 weeks grace period
+
+    if (isAfter(now, graceEnd)) {
+      return 'suspended';
+    } else if (isAfter(now, expiry)) {
+      return 'grace';
+    } else {
+      return 'active';
+    }
+  };
 
   // Function to sync user name from personal data configuration
   const syncUserName = () => {
@@ -85,9 +107,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const user = JSON.parse(savedUser);
         const demoUser = DEMO_USERS.find(u => u.email === user.email);
         if (demoUser) {
+          const subscriptionStatus = checkSubscriptionStatus(demoUser);
+          
+          if (subscriptionStatus === 'suspended' && demoUser.role !== 'admin') {
+            toast({
+              title: "Cuenta suspendida",
+              description: "Tu suscripción ha expirado. Contacta a servicio al cliente.",
+              variant: "destructive",
+            });
+            localStorage.removeItem('demo-auth-user');
+            return;
+          }
+
           setCurrentUser({ uid: user.uid, email: user.email });
           setUserRole(demoUser.role);
           setUserData(demoUser);
+          
+          if (subscriptionStatus === 'grace' && demoUser.role !== 'admin') {
+            toast({
+              title: "Período de gracia",
+              description: "Tu suscripción ha expirado. Tienes acceso limitado por 2 semanas más.",
+              variant: "destructive",
+            });
+          }
+          
           console.log('✅ User session restored:', user.email);
         }
       } catch (error) {
@@ -138,6 +181,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (!demoUser.active) {
         throw new Error('Usuario desactivado. Contacte al administrador');
       }
+
+      // Check subscription status for non-admin users
+      if (demoUser.role !== 'admin') {
+        const subscriptionStatus = checkSubscriptionStatus(demoUser);
+        
+        if (subscriptionStatus === 'suspended') {
+          throw new Error('Cuenta suspendida. Tu suscripción ha expirado. Contacta a servicio al cliente.');
+        }
+      }
       
       // Create auth user object
       const authUser = {
@@ -154,6 +206,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUserData(demoUser);
       
       console.log('✅ Login successful for:', email);
+      
+      // Show grace period warning if applicable
+      if (demoUser.role !== 'admin') {
+        const subscriptionStatus = checkSubscriptionStatus(demoUser);
+        if (subscriptionStatus === 'grace') {
+          toast({
+            title: "Período de gracia",
+            description: "Tu suscripción ha expirado. Tienes acceso limitado por 2 semanas más.",
+            variant: "destructive",
+          });
+        }
+      }
       
       toast({
         title: "Inicio de sesión exitoso",
@@ -218,7 +282,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         name: sanitizedName,
         role: 'user' as UserRole,
         active: true,
-        createdAt: new Date()
+        createdAt: new Date(),
+        subscriptionExpiry: addDays(new Date(), -10) // Expired by default
       };
       
       // Add to demo users array
@@ -291,7 +356,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const getAllUsers = async (): Promise<User[]> => {
+  const getAllUsers = async (): Promise<ExtendedUser[]> => {
     return DEMO_USERS;
   };
 
@@ -329,6 +394,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     updateUserRole,
     updateUserStatus,
     syncUserName,
+    checkSubscriptionStatus,
   };
 
   return (

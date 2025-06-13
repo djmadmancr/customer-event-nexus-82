@@ -1,287 +1,238 @@
 
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { 
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
-} from '@/components/ui/table';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
-import { 
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-  DialogDescription
-} from '@/components/ui/dialog';
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { useCrm } from '@/contexts/CrmContext';
-import { Search, Plus, MoreVertical, Pencil, Trash2, Eye } from 'lucide-react';
-import dataService from '@/services/DataService';
+import { useAppConfig } from '@/contexts/AppConfigContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Calendar, Plus, Search, Eye, Edit, Trash2 } from 'lucide-react';
 import FinancialSummary from '@/components/Events/FinancialSummary';
-import { useAppConfig } from '@/contexts/AppConfigContext';
-import EventCalendar from '@/components/Events/EventCalendar';
-import { useIsMobile } from '@/hooks/use-mobile';
 
-interface EventListProps {
-  filterByCustomerId?: string;
-  showAddButton?: boolean;
-}
-
-const EventList: React.FC<EventListProps> = ({ 
-  filterByCustomerId,
-  showAddButton = true
-}) => {
-  const navigate = useNavigate();
-  const { customers, events, refreshEvents, setSelectedEvent } = useCrm();
+const EventList = () => {
+  const { events, customers, deleteEvent } = useCrm();
   const { defaultCurrency } = useAppConfig();
-  const isMobile = useIsMobile();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [eventToDelete, setEventToDelete] = useState<string | null>(null);
-  
-  // Format number without currency symbol
-  const formatNumber = (amount: number) => {
+  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+
+  const getCustomerName = (customerId: string) => {
+    const customer = customers.find(c => c.id === customerId);
+    return customer ? customer.name : 'Cliente no encontrado';
+  };
+
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      prospect: { label: 'Cotización', className: 'bg-yellow-100 text-yellow-800' },
+      confirmed: { label: 'Confirmado', className: 'bg-blue-100 text-blue-800' },
+      show_completed: { label: 'Show Realizado', className: 'bg-purple-100 text-purple-800' },
+      paid: { label: 'Pagado', className: 'bg-green-100 text-green-800' },
+    };
+    
+    const config = statusConfig[status as keyof typeof statusConfig] || 
+      { label: status, className: 'bg-gray-100 text-gray-800' };
+    
+    return <Badge className={config.className}>{config.label}</Badge>;
+  };
+
+  const getCategoryBadge = (category: string) => {
+    const categoryConfig = {
+      wedding: { label: 'Boda', className: 'bg-pink-100 text-pink-800' },
+      birthday: { label: 'Cumpleaños', className: 'bg-orange-100 text-orange-800' },
+      corporate: { label: 'Corporativo', className: 'bg-blue-100 text-blue-800' },
+      club: { label: 'Club', className: 'bg-purple-100 text-purple-800' },
+      other: { label: 'Otro', className: 'bg-gray-100 text-gray-800' },
+    };
+    
+    const config = categoryConfig[category as keyof typeof categoryConfig] || 
+      { label: category || 'Sin categoría', className: 'bg-gray-100 text-gray-800' };
+    
+    return <Badge variant="outline" className={config.className}>{config.label}</Badge>;
+  };
+
+  const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-ES', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(amount);
   };
-  
-  // Filter events based on search query, status filter and customerId filter
-  const filteredEvents = events
-    .filter(event => 
-      filterByCustomerId ? event.customerId === filterByCustomerId : true
-    )
-    .filter(event => 
-      event.title.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    .filter(event => 
-      statusFilter === 'all' ? true : event.status === statusFilter
-    );
-  
-  // Get status badge color and text
-  const getStatusBadge = (status: string) => {
-    switch(status) {
-      case 'prospect':
-        return <Badge className="bg-purple-200 text-purple-800">Prospecto</Badge>;
-      case 'confirmed':
-        return <Badge className="bg-blue-200 text-blue-800">Confirmado</Badge>;
-      case 'show_completed':
-        return <Badge className="bg-indigo-200 text-indigo-800">Show Realizado</Badge>;
-      case 'paid':
-        return <Badge className="bg-purple-300 text-purple-900">Pagado</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
+
+  const filteredEvents = events.filter(event => {
+    const customerName = getCustomerName(event.customerId).toLowerCase();
+    const eventName = event.eventName.toLowerCase();
+    const searchLower = searchTerm.toLowerCase();
+    
+    const matchesSearch = customerName.includes(searchLower) || 
+                         eventName.includes(searchLower);
+    const matchesStatus = statusFilter === 'all' || event.status === statusFilter;
+    const matchesCategory = categoryFilter === 'all' || event.category === categoryFilter;
+    
+    return matchesSearch && matchesStatus && matchesCategory;
+  });
+
+  const handleDeleteEvent = async (eventId: string) => {
+    if (window.confirm('¿Estás seguro de que quieres eliminar este evento?')) {
+      try {
+        await deleteEvent(eventId);
+      } catch (error) {
+        console.error('Error deleting event:', error);
+      }
     }
   };
-  
-  const handleViewEvent = (eventId: string) => {
-    console.log('Navigating to event:', eventId);
-    const event = dataService.getEventById(eventId);
-    if (event) {
-      console.log('Event found:', event);
-      setSelectedEvent(event);
-      navigate(`/events/${eventId}`);
-    } else {
-      console.error('Event not found:', eventId);
-    }
-  };
-  
-  const handleEditEvent = (eventId: string) => {
-    navigate(`/events/${eventId}/edit`);
-  };
-  
-  const handleDeleteEvent = () => {
-    if (eventToDelete) {
-      dataService.deleteEvent(eventToDelete);
-      refreshEvents();
-      setEventToDelete(null);
-    }
-  };
-  
-  const getCustomerName = (customerId: string) => {
-    const customer = customers.find(c => c.id === customerId);
-    return customer ? customer.name : 'Cliente desconocido';
-  };
-  
+
+  const currentDate = new Date().toLocaleDateString('es-ES', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
   return (
     <div className="space-y-6">
-      {!filterByCustomerId && <FinancialSummary />}
+      <FinancialSummary />
       
-      {/* Header with search, filter and add button */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between">
-        <div className="flex flex-col sm:flex-row gap-2 w-full">
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute top-2.5 left-3 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Buscar eventos..."
-              className="pl-9"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center">
+              <Calendar className="mr-2 h-5 w-5" />
+              Detalle de Eventos: {currentDate}
+            </CardTitle>
+            <Button onClick={() => navigate('/events/new')}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nuevo Evento
+            </Button>
           </div>
-          
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Filtrar por estado" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los estados</SelectItem>
-              <SelectItem value="prospect">Prospecto</SelectItem>
-              <SelectItem value="confirmed">Confirmado</SelectItem>
-              <SelectItem value="show_completed">Show Realizado</SelectItem>
-              <SelectItem value="paid">Pagado</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        {showAddButton && (
-          <Button 
-            className="bg-crm-primary hover:bg-crm-primary/90"
-            onClick={() => navigate('/events/new')}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Nuevo Evento
-          </Button>
-        )}
-      </div>
-      
-      {/* Calendar View - Full Width */}
-      <div className="w-full">
-        <EventCalendar 
-          events={filteredEvents}
-          customers={customers}
-          onEventClick={handleViewEvent}
-          onEventEdit={handleEditEvent}
-          onEventDelete={setEventToDelete}
-        />
-      </div>
-      
-      {/* Events List - Full Width at Bottom */}
-      <div className="w-full">
-        <div className="bg-white rounded-md shadow-sm border overflow-hidden">
-          <div className="p-4 border-b">
-            <h3 className="font-semibold text-lg">
-              Lista de Eventos
-            </h3>
-          </div>
-          
-          {filteredEvents.length > 0 ? (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Evento</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Lugar</TableHead>
-                    <TableHead className="text-right">Monto ({defaultCurrency})</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead className="w-[100px]">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredEvents.map((event) => {
-                    const eventTotal = event.totalWithTax || event.cost;
-                    return (
-                      <TableRow key={event.id}>
-                        <TableCell className="font-medium">
-                          {event.title}
-                        </TableCell>
-                        <TableCell>
-                          {getCustomerName(event.customerId)}
-                        </TableCell>
-                        <TableCell>
-                          {format(event.date, "dd/MM/yyyy", { locale: es })}
-                        </TableCell>
-                        <TableCell>
-                          {event.venue}
-                        </TableCell>
-                        <TableCell className="text-right font-medium text-green-600">
-                          {formatNumber(eventTotal)}
-                        </TableCell>
-                        <TableCell>
-                          {getStatusBadge(event.status)}
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleViewEvent(event.id)}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                Ver
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleEditEvent(event.id)}>
-                                <Pencil className="h-4 w-4 mr-2" />
-                                Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                className="text-red-600"
-                                onClick={() => setEventToDelete(event.id)}
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Eliminar
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Buscar por cliente o evento..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
             </div>
-          ) : (
-            <div className="p-6 text-center">
-              <p className="text-gray-500 mb-4">
-                No se encontraron eventos
-              </p>
-              {showAddButton && (
-                <Button 
-                  variant="outline"
-                  onClick={() => navigate('/events/new')}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Crear evento
-                </Button>
-              )}
+            <div className="flex gap-2">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="prospect">Cotización</SelectItem>
+                  <SelectItem value="confirmed">Confirmado</SelectItem>
+                  <SelectItem value="show_completed">Show Realizado</SelectItem>
+                  <SelectItem value="paid">Pagado</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  <SelectItem value="wedding">Boda</SelectItem>
+                  <SelectItem value="birthday">Cumpleaños</SelectItem>
+                  <SelectItem value="corporate">Corporativo</SelectItem>
+                  <SelectItem value="club">Club</SelectItem>
+                  <SelectItem value="other">Otro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Evento</TableHead>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead>Categoría</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead>Total ({defaultCurrency})</TableHead>
+                  <TableHead>Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredEvents.map((event) => (
+                  <TableRow key={event.id}>
+                    <TableCell className="font-medium">
+                      {getCustomerName(event.customerId)}
+                    </TableCell>
+                    <TableCell>{event.eventName}</TableCell>
+                    <TableCell>
+                      {format(new Date(event.date), 'dd/MM/yyyy', { locale: es })}
+                    </TableCell>
+                    <TableCell>{getCategoryBadge(event.category)}</TableCell>
+                    <TableCell>{getStatusBadge(event.status)}</TableCell>
+                    <TableCell className="font-semibold">
+                      {formatCurrency(event.totalWithTax || event.cost)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => navigate(`/events/${event.id}`)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => navigate(`/events/${event.id}/edit`)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDeleteEvent(event.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {filteredEvents.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              {events.length === 0 ? 
+                'No hay eventos registrados.' : 
+                'No se encontraron eventos con los filtros aplicados.'
+              }
             </div>
           )}
-        </div>
-      </div>
-      
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={!!eventToDelete} onOpenChange={() => setEventToDelete(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmar eliminación</DialogTitle>
-            <DialogDescription>
-              ¿Estás seguro de que deseas eliminar este evento? Esta acción no se puede deshacer.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEventToDelete(null)}>
-              Cancelar
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleDeleteEvent}
-            >
-              Eliminar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </CardContent>
+      </Card>
     </div>
   );
 };
