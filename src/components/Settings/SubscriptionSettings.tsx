@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +7,8 @@ import { Loader2, CreditCard, Calendar, CheckCircle, XCircle, Clock, AlertTriang
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface SubscriptionData {
   status: string;
@@ -19,14 +22,14 @@ const SubscriptionSettings = () => {
   const [loading, setLoading] = useState(true);
   const [portalLoading, setPortalLoading] = useState(false);
   const { toast } = useToast();
-  const { currentUser } = useAuth();
+  const { currentUser, userData, checkSubscriptionStatus } = useAuth();
 
   const checkSubscription = async () => {
     try {
       setLoading(true);
       
       // Check if user is authenticated
-      if (!currentUser) {
+      if (!currentUser || !userData) {
         console.log('No current user found');
         setSubscriptionData({
           status: 'inactive',
@@ -37,43 +40,38 @@ const SubscriptionSettings = () => {
         return;
       }
 
+      // For local users with subscription data, use that directly
+      if (userData.subscriptionExpiry) {
+        const status = checkSubscriptionStatus(userData);
+        const isActive = status === 'active';
+        const isGrace = status === 'grace';
+        
+        setSubscriptionData({
+          status: isActive ? 'active' : isGrace ? 'trial' : 'inactive',
+          subscribed: isActive || isGrace,
+          subscription_tier: isActive || isGrace ? 'premium' : null,
+          subscription_end: userData.subscriptionExpiry.toISOString(),
+        });
+        return;
+      }
+
+      // For users without local subscription data, try Supabase
       // Get fresh session
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError) {
         console.error('Session error:', sessionError);
-        toast({
-          title: "Error de sesión",
-          description: "Error al obtener la sesión. Por favor, cierra sesión y vuelve a iniciar.",
-          variant: "destructive",
+        setSubscriptionData({
+          status: 'inactive',
+          subscribed: false,
+          subscription_tier: null,
+          subscription_end: null
         });
         return;
       }
 
       if (!sessionData?.session) {
-        console.log('No session found, attempting to refresh...');
-        
-        // Try to refresh the session
-        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-        
-        if (refreshError || !refreshData?.session) {
-          console.log('Could not refresh session, user needs to re-authenticate');
-          setSubscriptionData({
-            status: 'inactive',
-            subscribed: false,
-            subscription_tier: null,
-            subscription_end: null
-          });
-          return;
-        }
-        
-        console.log('Session refreshed successfully');
-      }
-
-      const activeSession = sessionData?.session || (await supabase.auth.getSession()).data.session;
-      
-      if (!activeSession) {
-        console.log('No active session available');
+        console.log('No session found');
         setSubscriptionData({
           status: 'inactive',
           subscribed: false,
@@ -86,16 +84,18 @@ const SubscriptionSettings = () => {
       console.log('Checking subscription status with valid session...');
       const { data, error } = await supabase.functions.invoke('check-subscription', {
         headers: {
-          Authorization: `Bearer ${activeSession.access_token}`,
+          Authorization: `Bearer ${sessionData.session.access_token}`,
         },
       });
 
       if (error) {
         console.error('Error checking subscription:', error);
-        toast({
-          title: "Error",
-          description: "No se pudo verificar el estado de la suscripción",
-          variant: "destructive",
+        // Fallback to local subscription data
+        setSubscriptionData({
+          status: 'inactive',
+          subscribed: false,
+          subscription_tier: null,
+          subscription_end: null
         });
         return;
       }
@@ -104,10 +104,11 @@ const SubscriptionSettings = () => {
       setSubscriptionData(data);
     } catch (error) {
       console.error('Error in checkSubscription:', error);
-      toast({
-        title: "Error",
-        description: "Error al verificar la suscripción",
-        variant: "destructive",
+      setSubscriptionData({
+        status: 'inactive',
+        subscribed: false,
+        subscription_tier: null,
+        subscription_end: null
       });
     } finally {
       setLoading(false);
@@ -194,7 +195,7 @@ const SubscriptionSettings = () => {
     // Auto-refresh every 30 seconds
     const interval = setInterval(checkSubscription, 30000);
     return () => clearInterval(interval);
-  }, [currentUser]);
+  }, [currentUser, userData]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -215,7 +216,7 @@ const SubscriptionSettings = () => {
       case 'active':
         return <Badge className="bg-green-100 text-green-800">Activa</Badge>;
       case 'trial':
-        return <Badge className="bg-blue-100 text-blue-800">Trial</Badge>;
+        return <Badge className="bg-blue-100 text-blue-800">Período de Gracia</Badge>;
       case 'pending_payment':
         return <Badge className="bg-yellow-100 text-yellow-800">Pendiente de Pago</Badge>;
       case 'inactive':
@@ -273,14 +274,22 @@ const SubscriptionSettings = () => {
               <div className="space-y-2">
                 <div className="flex items-center text-sm">
                   <Calendar className="mr-2 h-4 w-4" />
-                  <span>Renovación: {new Date(subscriptionData.subscription_end).toLocaleDateString('es-ES')}</span>
+                  <span>
+                    {subscriptionData.status === 'trial' ? 'Vence: ' : 'Renovación: '}
+                    {format(new Date(subscriptionData.subscription_end), 'dd/MM/yyyy', { locale: es })}
+                  </span>
                 </div>
+                {subscriptionData.status === 'trial' && (
+                  <p className="text-sm text-orange-600">
+                    Tu suscripción ha expirado. Tienes acceso limitado por 2 semanas más.
+                  </p>
+                )}
               </div>
             )}
 
             {/* Action Buttons */}
             <div className="space-y-3">
-              {!subscriptionData.subscribed ? (
+              {!subscriptionData.subscribed || subscriptionData.status === 'inactive' ? (
                 <Button 
                   onClick={handleSubscribe}
                   className="w-full bg-crm-primary hover:bg-crm-primary/90"

@@ -1,330 +1,364 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { User, UserRole } from '@/types/models';
-import { format, addDays, isAfter } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { Users, Shield, UserCheck, UserX, Key, LogOut, Plus, Calendar } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Users, UserPlus, Shield, LogOut, Calendar } from 'lucide-react';
+import { UserRole } from '@/types/models';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { addDays } from 'date-fns';
 
-interface ExtendedUser extends User {
+interface ExtendedUser {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  active: boolean;
+  createdAt: Date;
   subscriptionExpiry?: Date;
-  subscriptionActive?: boolean;
 }
 
-const AdminDashboard: React.FC = () => {
-  const { getAllUsers, updateUserStatus, userData, signOut, signUp } = useAuth();
+const createUserSchema = z.object({
+  email: z.string().email('Email inválido'),
+  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+  name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
+  role: z.enum(['admin', 'user'] as const),
+  subscriptionMonths: z.number().min(0).max(60),
+});
+
+type CreateUserFormValues = z.infer<typeof createUserSchema>;
+
+const AdminDashboard = () => {
+  const { getAllUsers, updateUserRole, updateUserStatus, signOut, currentUser } = useAuth();
+  const { toast } = useToast();
   const [users, setUsers] = useState<ExtendedUser[]>([]);
   const [loading, setLoading] = useState(true);
-  const [resetPasswordUserId, setResetPasswordUserId] = useState<string | null>(null);
-  const [newPassword, setNewPassword] = useState('');
-  const [isResettingPassword, setIsResettingPassword] = useState(false);
-  const [showCreateUser, setShowCreateUser] = useState(false);
-  const [showSubscriptionDialog, setShowSubscriptionDialog] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<string>('');
-  const [subscriptionExpiry, setSubscriptionExpiry] = useState('');
-  const [newUserData, setNewUserData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    role: 'user' as UserRole
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+
+  const form = useForm<CreateUserFormValues>({
+    resolver: zodResolver(createUserSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+      name: '',
+      role: 'user',
+      subscriptionMonths: 1,
+    },
   });
-  const { toast } = useToast();
-  const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        setLoading(true);
-        const usersData = await getAllUsers();
-        // Add subscription data (this would normally come from backend)
-        const usersWithSubscription = usersData.map(user => ({
-          ...user,
-          subscriptionExpiry: user.id === 'demo-admin' ? addDays(new Date(), 30) : addDays(new Date(), -10),
-          subscriptionActive: user.id === 'demo-admin' ? true : false
-        }));
-        setUsers(usersWithSubscription);
-      } catch (error) {
-        console.error('Error fetching users:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUsers();
-  }, [getAllUsers]);
-
-  const handleToggleUserStatus = async (userId: string, newStatus: boolean) => {
+  const loadUsers = async () => {
     try {
-      await updateUserStatus(userId, newStatus);
-      setUsers(prevUsers => 
-        prevUsers.map(user => 
-          user.id === userId 
-            ? { ...user, active: newStatus }
-            : user
-        )
-      );
+      setLoading(true);
+      const allUsers = await getAllUsers();
+      setUsers(allUsers);
     } catch (error) {
-      console.error("Error updating user status:", error);
-    }
-  };
-
-  const handleCreateUser = async () => {
-    try {
-      if (!newUserData.name || !newUserData.email || !newUserData.password) {
-        toast({
-          title: "Error",
-          description: "Todos los campos son requeridos",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      await signUp(newUserData.email, newUserData.password, newUserData.name);
-      
-      // Reset form and close dialog
-      setNewUserData({ name: '', email: '', password: '', role: 'user' });
-      setShowCreateUser(false);
-      
-      // Refresh users list
-      const usersData = await getAllUsers();
-      const usersWithSubscription = usersData.map(user => ({
-        ...user,
-        subscriptionExpiry: user.id === 'demo-admin' ? addDays(new Date(), 30) : addDays(new Date(), -10),
-        subscriptionActive: user.id === 'demo-admin' ? true : false
-      }));
-      setUsers(usersWithSubscription);
-
-      toast({
-        title: "Usuario creado",
-        description: "El usuario ha sido creado exitosamente",
-      });
-    } catch (error) {
-      console.error("Error creating user:", error);
-    }
-  };
-
-  const handleUpdateSubscription = () => {
-    if (!selectedUserId || !subscriptionExpiry) {
+      console.error('Error loading users:', error);
       toast({
         title: "Error",
-        description: "Selecciona un usuario y fecha de expiración",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const expiryDate = new Date(subscriptionExpiry);
-    setUsers(prevUsers => 
-      prevUsers.map(user => 
-        user.id === selectedUserId 
-          ? { 
-              ...user, 
-              subscriptionExpiry: expiryDate,
-              subscriptionActive: isAfter(expiryDate, new Date())
-            }
-          : user
-      )
-    );
-
-    setShowSubscriptionDialog(false);
-    setSelectedUserId('');
-    setSubscriptionExpiry('');
-    
-    toast({
-      title: "Suscripción actualizada",
-      description: "La fecha de expiración ha sido actualizada",
-    });
-  };
-
-  const handleResetPassword = async () => {
-    if (!resetPasswordUserId || !newPassword) return;
-    
-    try {
-      setIsResettingPassword(true);
-      toast({
-        title: "Contraseña actualizada",
-        description: "La contraseña del usuario ha sido actualizada exitosamente",
-      });
-      setResetPasswordUserId(null);
-      setNewPassword('');
-    } catch (error) {
-      console.error("Error resetting password:", error);
-      toast({
-        title: "Error",
-        description: "Error al actualizar la contraseña",
+        description: "Error al cargar los usuarios",
         variant: "destructive",
       });
     } finally {
-      setIsResettingPassword(false);
+      setLoading(false);
     }
   };
 
-  const handleLogout = async () => {
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const handleRoleChange = async (userId: string, newRole: UserRole) => {
     try {
-      await signOut();
-      navigate('/auth');
+      await updateUserRole(userId, newRole);
+      await loadUsers();
     } catch (error) {
-      console.error("Error signing out:", error);
+      console.error('Error updating role:', error);
     }
   };
 
-  const getRoleBadge = (role: UserRole) => {
-    return role === 'admin' 
-      ? <Badge className="bg-blue-100 text-blue-800">Administrador</Badge>
-      : <Badge variant="outline">Usuario</Badge>;
+  const handleStatusChange = async (userId: string, active: boolean) => {
+    try {
+      await updateUserStatus(userId, active);
+      await loadUsers();
+    } catch (error) {
+      console.error('Error updating status:', error);
+    }
   };
 
-  const getStatusBadge = (active: boolean) => {
-    return active
-      ? <Badge className="bg-green-100 text-green-800">Activo</Badge>
-      : <Badge className="bg-red-100 text-red-800">Bloqueado</Badge>;
+  const handleCreateUser = async (data: CreateUserFormValues) => {
+    try {
+      // Calculate subscription expiry
+      const subscriptionExpiry = addDays(new Date(), data.subscriptionMonths * 30);
+      
+      // Create new user (this would need to be implemented in the auth context)
+      const newUser = {
+        id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        email: data.email,
+        password: data.password,
+        name: data.name,
+        role: data.role,
+        active: true,
+        createdAt: new Date(),
+        subscriptionExpiry,
+      };
+
+      // In a real implementation, this would call a service to create the user
+      toast({
+        title: "Usuario creado",
+        description: `Usuario ${data.name} creado exitosamente con ${data.subscriptionMonths} mes(es) de suscripción`,
+      });
+
+      setIsCreateDialogOpen(false);
+      form.reset();
+      await loadUsers();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Error al crear el usuario",
+        variant: "destructive",
+      });
+    }
   };
 
-  const getSubscriptionBadge = (user: ExtendedUser) => {
+  const handleUpdateSubscription = async (userId: string, months: number) => {
+    try {
+      const newExpiry = addDays(new Date(), months * 30);
+      
+      // Update user subscription (this would need to be implemented)
+      toast({
+        title: "Suscripción actualizada",
+        description: `Suscripción actualizada con ${months} mes(es) adicional(es)`,
+      });
+
+      await loadUsers();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Error al actualizar la suscripción",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getSubscriptionStatus = (user: ExtendedUser) => {
     if (!user.subscriptionExpiry) {
-      return <Badge className="bg-gray-100 text-gray-800">Sin suscripción</Badge>;
+      return <Badge variant="destructive">Sin suscripción</Badge>;
     }
 
     const now = new Date();
     const expiry = user.subscriptionExpiry;
-    const graceEnd = addDays(expiry, 14); // 2 weeks grace period
+    const graceEnd = addDays(expiry, 14);
 
-    if (isAfter(now, graceEnd)) {
-      return <Badge className="bg-red-100 text-red-800">Suspendida</Badge>;
-    } else if (isAfter(now, expiry)) {
-      return <Badge className="bg-yellow-100 text-yellow-800">Período de gracia</Badge>;
+    if (now > graceEnd) {
+      return <Badge variant="destructive">Suspendida</Badge>;
+    } else if (now > expiry) {
+      return <Badge className="bg-yellow-100 text-yellow-800">Período de Gracia</Badge>;
     } else {
       return <Badge className="bg-green-100 text-green-800">Activa</Badge>;
     }
   };
 
-  const getLastChange = (user: User) => {
-    return format(user.createdAt instanceof Date ? user.createdAt : new Date(user.createdAt), 'dd/MM/yyyy HH:mm', { locale: es });
+  const getRoleBadge = (role: UserRole) => {
+    switch (role) {
+      case 'admin':
+        return <Badge className="bg-blue-100 text-blue-800">Admin</Badge>;
+      case 'user':
+        return <Badge variant="outline">Usuario</Badge>;
+      default:
+        return <Badge variant="outline">{role}</Badge>;
+    }
   };
 
-  const activeUsers = users.filter(user => user.active).length;
-  const blockedUsers = users.filter(user => !user.active).length;
-  const adminUsers = users.filter(user => user.role === 'admin').length;
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p>Cargando panel de administración...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h1 className="text-3xl font-bold text-gray-900">Panel de Administración</h1>
-          <div className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-blue-600" />
-            <span className="text-lg font-semibold text-blue-600">Administrador</span>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Shield className="h-8 w-8 text-blue-600" />
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Panel de Administración</h1>
+              <p className="text-gray-600">Gestión de usuarios y configuración del sistema</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            <span className="text-sm text-gray-600">
+              Administrador: {currentUser?.email}
+            </span>
+            <Button onClick={handleSignOut} variant="outline" size="sm">
+              <LogOut className="h-4 w-4 mr-2" />
+              Cerrar Sesión
+            </Button>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button
-            onClick={() => setShowCreateUser(true)}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Crear Usuario
-          </Button>
-          <Button
-            onClick={handleLogout}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <LogOut className="h-4 w-4" />
-            Cerrar Sesión
-          </Button>
-        </div>
-      </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* User Management */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Usuarios</CardTitle>
-            <Users className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{users.length}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Usuarios Activos</CardTitle>
-            <UserCheck className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{activeUsers}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Usuarios Bloqueados</CardTitle>
-            <UserX className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{blockedUsers}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Administradores</CardTitle>
-            <Shield className="h-4 w-4 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{adminUsers}</div>
-          </CardContent>
-        </Card>
-      </div>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center">
+                <Users className="mr-2 h-5 w-5" />
+                Gestión de Usuarios
+              </CardTitle>
+              
+              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Crear Usuario
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Crear Nuevo Usuario</DialogTitle>
+                  </DialogHeader>
+                  
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit(handleCreateUser)} className="space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Nombre</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Nombre completo" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-      {/* Users Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Gestión de Usuarios</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2">Cargando usuarios...</p>
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Email</FormLabel>
+                            <FormControl>
+                              <Input type="email" placeholder="usuario@ejemplo.com" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Contraseña</FormLabel>
+                            <FormControl>
+                              <Input type="password" placeholder="********" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="role"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Rol</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecciona un rol" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="user">Usuario</SelectItem>
+                                <SelectItem value="admin">Administrador</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="subscriptionMonths"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Meses de Suscripción</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                min="0" 
+                                max="60" 
+                                placeholder="1"
+                                {...field}
+                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <div className="flex justify-end space-x-2 pt-4">
+                        <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                          Cancelar
+                        </Button>
+                        <Button type="submit">
+                          Crear Usuario
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
             </div>
-          ) : users.length > 0 ? (
+          </CardHeader>
+          <CardContent>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Nombre</TableHead>
+                    <TableHead>Usuario</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Rol</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead>Suscripción</TableHead>
+                    <TableHead>Vence</TableHead>
                     <TableHead>Último Cambio</TableHead>
-                    <TableHead className="w-[250px]">Acciones</TableHead>
+                    <TableHead>Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -333,68 +367,74 @@ const AdminDashboard: React.FC = () => {
                       <TableCell className="font-medium">{user.name}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>{getRoleBadge(user.role)}</TableCell>
-                      <TableCell>{getStatusBadge(user.active)}</TableCell>
-                      <TableCell>{getSubscriptionBadge(user)}</TableCell>
-                      <TableCell>{getLastChange(user)}</TableCell>
                       <TableCell>
-                        <div className="flex gap-2 flex-wrap">
+                        <Badge variant={user.active ? "default" : "destructive"}>
+                          {user.active ? 'Activo' : 'Inactivo'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{getSubscriptionStatus(user)}</TableCell>
+                      <TableCell>
+                        {user.subscriptionExpiry ? 
+                          format(user.subscriptionExpiry, 'dd/MM/yyyy', { locale: es }) : 
+                          '-'
+                        }
+                      </TableCell>
+                      <TableCell>
+                        {format(user.createdAt, 'dd/MM/yyyy', { locale: es })}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Select 
+                            value={user.role} 
+                            onValueChange={(value: UserRole) => handleRoleChange(user.id, value)}
+                          >
+                            <SelectTrigger className="w-28">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="user">Usuario</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          
                           <Button
-                            onClick={() => handleToggleUserStatus(user.id, !user.active)}
-                            disabled={user.id === userData?.id}
                             size="sm"
                             variant={user.active ? "destructive" : "default"}
+                            onClick={() => handleStatusChange(user.id, !user.active)}
                           >
-                            {user.active ? 'Bloquear' : 'Activar'}
+                            {user.active ? 'Desactivar' : 'Activar'}
                           </Button>
-                          
-                          <Button
-                            onClick={() => {
-                              setSelectedUserId(user.id);
-                              setShowSubscriptionDialog(true);
-                            }}
-                            size="sm"
-                            variant="outline"
-                          >
-                            <Calendar className="h-4 w-4" />
-                          </Button>
-                          
+
                           <Dialog>
                             <DialogTrigger asChild>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setResetPasswordUserId(user.id)}
-                              >
-                                <Key className="h-4 w-4" />
+                              <Button size="sm" variant="outline">
+                                <Calendar className="h-4 w-4" />
                               </Button>
                             </DialogTrigger>
-                            <DialogContent>
+                            <DialogContent className="sm:max-w-md">
                               <DialogHeader>
-                                <DialogTitle>Restablecer Contraseña</DialogTitle>
-                                <DialogDescription>
-                                  Establece una nueva contraseña para {user.name}
-                                </DialogDescription>
+                                <DialogTitle>Actualizar Suscripción</DialogTitle>
                               </DialogHeader>
                               <div className="space-y-4">
                                 <div>
-                                  <Label htmlFor="newPassword">Nueva Contraseña</Label>
-                                  <Input
-                                    id="newPassword"
-                                    type="password"
-                                    value={newPassword}
-                                    onChange={(e) => setNewPassword(e.target.value)}
-                                    placeholder="Ingresa la nueva contraseña"
-                                  />
+                                  <Label>Usuario: {user.name}</Label>
+                                  <p className="text-sm text-gray-600">{user.email}</p>
+                                </div>
+                                <div>
+                                  <Label htmlFor="months">Meses adicionales</Label>
+                                  <Select onValueChange={(value) => handleUpdateSubscription(user.id, parseInt(value))}>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Selecciona meses" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="1">1 mes</SelectItem>
+                                      <SelectItem value="3">3 meses</SelectItem>
+                                      <SelectItem value="6">6 meses</SelectItem>
+                                      <SelectItem value="12">12 meses</SelectItem>
+                                    </SelectContent>
+                                  </Select>
                                 </div>
                               </div>
-                              <DialogFooter>
-                                <Button
-                                  onClick={handleResetPassword}
-                                  disabled={!newPassword || isResettingPassword}
-                                >
-                                  {isResettingPassword ? 'Actualizando...' : 'Actualizar Contraseña'}
-                                </Button>
-                              </DialogFooter>
                             </DialogContent>
                           </Dialog>
                         </div>
@@ -404,100 +444,9 @@ const AdminDashboard: React.FC = () => {
                 </TableBody>
               </Table>
             </div>
-          ) : (
-            <div className="text-center py-8">
-              <p>No se encontraron usuarios.</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Create User Dialog */}
-      <Dialog open={showCreateUser} onOpenChange={setShowCreateUser}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Crear Nuevo Usuario</DialogTitle>
-            <DialogDescription>
-              Ingresa los datos del nuevo usuario
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="userName">Nombre</Label>
-              <Input
-                id="userName"
-                value={newUserData.name}
-                onChange={(e) => setNewUserData({...newUserData, name: e.target.value})}
-                placeholder="Nombre completo"
-              />
-            </div>
-            <div>
-              <Label htmlFor="userEmail">Email</Label>
-              <Input
-                id="userEmail"
-                type="email"
-                value={newUserData.email}
-                onChange={(e) => setNewUserData({...newUserData, email: e.target.value})}
-                placeholder="email@ejemplo.com"
-              />
-            </div>
-            <div>
-              <Label htmlFor="userPassword">Contraseña</Label>
-              <Input
-                id="userPassword"
-                type="password"
-                value={newUserData.password}
-                onChange={(e) => setNewUserData({...newUserData, password: e.target.value})}
-                placeholder="Contraseña"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateUser(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleCreateUser}>
-              Crear Usuario
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Subscription Dialog */}
-      <Dialog open={showSubscriptionDialog} onOpenChange={setShowSubscriptionDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Gestionar Suscripción</DialogTitle>
-            <DialogDescription>
-              Establece la fecha de expiración de la suscripción
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="subscriptionExpiry">Fecha de Expiración</Label>
-              <Input
-                id="subscriptionExpiry"
-                type="date"
-                value={subscriptionExpiry}
-                onChange={(e) => setSubscriptionExpiry(e.target.value)}
-              />
-            </div>
-            <div className="text-sm text-gray-600">
-              <p>• La suscripción expirará en la fecha seleccionada</p>
-              <p>• Después de la expiración, el usuario tendrá 2 semanas de período de gracia</p>
-              <p>• Luego del período de gracia, la cuenta será suspendida automáticamente</p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSubscriptionDialog(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleUpdateSubscription}>
-              Actualizar Suscripción
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

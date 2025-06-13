@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -8,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { 
@@ -34,6 +36,9 @@ const bookingSchema = z.object({
   eventTitle: z.string().min(2, { message: 'El título debe tener al menos 2 caracteres' }),
   eventDate: z.date({ required_error: "Por favor selecciona una fecha" }),
   eventVenue: z.string().min(2, { message: 'El lugar debe tener al menos 2 caracteres' }),
+  eventCategory: z.enum(['wedding', 'birthday', 'corporate', 'club', 'other'], { 
+    required_error: "Por favor selecciona una categoría" 
+  }),
   eventDescription: z.string().optional(),
 });
 
@@ -56,6 +61,7 @@ const BookingForm = () => {
       eventTitle: '',
       eventDate: new Date(),
       eventVenue: '',
+      eventCategory: 'other',
       eventDescription: '',
     },
   });
@@ -83,6 +89,17 @@ const BookingForm = () => {
     }
   }, [userId]);
 
+  const getCategoryLabel = (category: string) => {
+    const categoryLabels = {
+      wedding: 'Boda',
+      birthday: 'Cumpleaños',
+      corporate: 'Corporativo',
+      club: 'Club',
+      other: 'Otro'
+    };
+    return categoryLabels[category as keyof typeof categoryLabels] || 'Otro';
+  };
+
   const onSubmit = async (data: BookingFormValues) => {
     if (!userId) return;
     
@@ -100,11 +117,12 @@ const BookingForm = () => {
 
       // Create new event as prospect with correct structure - ensure customerId is string
       const newEvent = {
-        customerId: customer.id, // Use the customer ID string instead of the full object
+        customerId: customer.id,
         title: data.eventTitle,
         date: data.eventDate,
         venue: data.eventVenue,
-        cost: 0, // Will be filled later by the user
+        category: data.eventCategory,
+        cost: 0,
         status: 'prospect' as const,
         comments: data.eventDescription || '',
       };
@@ -147,21 +165,7 @@ const BookingForm = () => {
     );
   }
 
-  if (!userProfile) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Formulario no disponible
-          </h1>
-          <p className="text-gray-600">
-            Este enlace de booking no es válido o ha expirado.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
+  // Show form even if no userProfile to make it public
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="max-w-2xl mx-auto">
@@ -175,7 +179,7 @@ const BookingForm = () => {
               />
             )}
             <CardTitle className="text-2xl">
-              Contrataciones {userProfile.artistName || userProfile.name}
+              Contrataciones {userProfile?.artistName || userProfile?.name || 'Formulario de Booking'}
             </CardTitle>
             <p className="text-gray-600 mt-2">
               Completa el formulario para solicitar una cotización
@@ -242,6 +246,31 @@ const BookingForm = () => {
                         <FormControl>
                           <Input placeholder="Ej: Boda, Cumpleaños, Evento Corporativo" {...field} />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="eventCategory"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Categoría del Evento</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecciona una categoría" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="wedding">Boda</SelectItem>
+                            <SelectItem value="birthday">Cumpleaños</SelectItem>
+                            <SelectItem value="corporate">Corporativo</SelectItem>
+                            <SelectItem value="club">Club</SelectItem>
+                            <SelectItem value="other">Otro</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}

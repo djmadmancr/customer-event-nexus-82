@@ -28,7 +28,7 @@ import { Calendar, Plus, Search, Eye, Edit, Trash2 } from 'lucide-react';
 import FinancialSummary from '@/components/Events/FinancialSummary';
 
 const EventList = () => {
-  const { events, customers, deleteEvent } = useCrm();
+  const { events, customers, removeEvent } = useCrm();
   const { defaultCurrency } = useAppConfig();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
@@ -78,11 +78,11 @@ const EventList = () => {
 
   const filteredEvents = events.filter(event => {
     const customerName = getCustomerName(event.customerId).toLowerCase();
-    const eventName = event.eventName.toLowerCase();
+    const eventTitle = event.title.toLowerCase();
     const searchLower = searchTerm.toLowerCase();
     
     const matchesSearch = customerName.includes(searchLower) || 
-                         eventName.includes(searchLower);
+                         eventTitle.includes(searchLower);
     const matchesStatus = statusFilter === 'all' || event.status === statusFilter;
     const matchesCategory = categoryFilter === 'all' || event.category === categoryFilter;
     
@@ -92,7 +92,7 @@ const EventList = () => {
   const handleDeleteEvent = async (eventId: string) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar este evento?')) {
       try {
-        await deleteEvent(eventId);
+        await removeEvent(eventId);
       } catch (error) {
         console.error('Error deleting event:', error);
       }
@@ -183,7 +183,7 @@ const EventList = () => {
                     <TableCell className="font-medium">
                       {getCustomerName(event.customerId)}
                     </TableCell>
-                    <TableCell>{event.eventName}</TableCell>
+                    <TableCell>{event.title}</TableCell>
                     <TableCell>
                       {format(new Date(event.date), 'dd/MM/yyyy', { locale: es })}
                     </TableCell>

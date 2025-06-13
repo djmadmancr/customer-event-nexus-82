@@ -26,12 +26,14 @@ const AuthPage: React.FC = () => {
 
   return (
     <div 
-      className="min-h-screen flex flex-col justify-center py-6 sm:py-12 px-4 sm:px-6 lg:px-8 relative"
+      className="min-h-screen w-full flex flex-col justify-center py-6 sm:py-12 px-4 sm:px-6 lg:px-8 relative bg-cover bg-center bg-no-repeat"
       style={{
         backgroundImage: `url('/lovable-uploads/2f1db016-aabf-4de2-9cb7-bfbdb49673af.png')`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat'
+        backgroundRepeat: 'no-repeat',
+        minHeight: '100vh',
+        height: '100%'
       }}
     >
       {/* Dark overlay */}

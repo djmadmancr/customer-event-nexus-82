@@ -12,9 +12,15 @@ import { Payment, PaymentMethod } from '@/types/models';
 
 interface PaymentListProps {
   eventId?: string;
+  filterByCustomerId?: string;
+  showAddButton?: boolean;
 }
 
-const PaymentListWithCurrency: React.FC<PaymentListProps> = ({ eventId }) => {
+const PaymentListWithCurrency: React.FC<PaymentListProps> = ({ 
+  eventId, 
+  filterByCustomerId, 
+  showAddButton = true 
+}) => {
   const { defaultCurrency } = useAppConfig();
   const [payments, setPayments] = useState<Payment[]>([]);
 
