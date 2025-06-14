@@ -71,5 +71,9 @@
   "cash": "Cash",
   "credit": "Credit Card",
   "transfer": "Transfer",
-  "check": "Check"
+  "check": "Check",
+  "logo": "Logo",
+  "security": "Security",
+  "reset_password": "Reset Password",
+  "booking_link_copied": "Link copied to clipboard"
 }

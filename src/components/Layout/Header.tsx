@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { LogOut, Settings, User, CalendarPlus } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import NotificationBell from './NotificationBell';
 
 interface HeaderProps {
@@ -25,6 +26,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
   const { logoUrl } = useAppConfig();
   const { userProfile } = useUserProfile();
   const { t } = useLanguage();
+  const { toast } = useToast();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -33,6 +35,17 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
       navigate('/auth');
     } catch (error) {
       console.error('Error signing out:', error);
+    }
+  };
+
+  const handleCopyBookingLink = () => {
+    if (currentUser) {
+      const bookingUrl = `${window.location.origin}/booking/${currentUser.uid}`;
+      navigator.clipboard.writeText(bookingUrl);
+      toast({
+        title: t("booking_link_copied"),
+        description: "El link para bookings ha sido copiado al portapapeles",
+      });
     }
   };
 
@@ -57,7 +70,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
         <div className="flex items-center space-x-2">
           {currentUser && (
             <>
-              <Button variant="ghost" onClick={() => navigate('/booking')}>
+              <Button variant="ghost" onClick={handleCopyBookingLink}>
                 <CalendarPlus className="mr-2 h-4 w-4" />
                 {t("booking")}
               </Button>

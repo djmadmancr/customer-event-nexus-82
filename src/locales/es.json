@@ -71,5 +71,9 @@
   "cash": "Efectivo",
   "credit": "Tarjeta de Crédito",
   "transfer": "Transferencia",
-  "check": "Cheque"
+  "check": "Cheque",
+  "logo": "Logo",
+  "security": "Seguridad",
+  "reset_password": "Restablecer Contraseña",
+  "booking_link_copied": "Link copiado al portapapeles"
 }

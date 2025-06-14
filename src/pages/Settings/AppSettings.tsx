@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -59,6 +59,14 @@ const AppSettings = () => {
     currency: defaultCurrency,
     language: currentLanguage,
   });
+
+  // Update appData when currentLanguage changes
+  React.useEffect(() => {
+    setAppData(prev => ({
+      ...prev,
+      language: currentLanguage
+    }));
+  }, [currentLanguage]);
 
   const handleCopyBookingLink = () => {
     if (currentUser) {

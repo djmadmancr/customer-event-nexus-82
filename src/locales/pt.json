@@ -71,5 +71,9 @@
   "cash": "Dinheiro",
   "credit": "Cartão de Crédito",
   "transfer": "Transferência",
-  "check": "Cheque"
+  "check": "Cheque",
+  "logo": "Logo",
+  "security": "Segurança",
+  "reset_password": "Redefinir Senha",
+  "booking_link_copied": "Link copiado para a área de transferência"
 }
