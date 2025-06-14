@@ -26,7 +26,6 @@ const customerSchema = z.object({
   name: z.string().min(2, { message: 'El nombre debe tener al menos 2 caracteres' }),
   email: z.string().email({ message: 'Email inválido' }),
   phone: z.string().min(8, { message: 'El teléfono debe tener al menos 8 dígitos' }),
-  identificationNumber: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -49,7 +48,6 @@ const CustomerForm: React.FC = () => {
       name: '',
       email: '',
       phone: '',
-      identificationNumber: '',
       notes: '',
     },
   });
@@ -63,7 +61,6 @@ const CustomerForm: React.FC = () => {
           name: customerData.name,
           email: customerData.email,
           phone: customerData.phone,
-          identificationNumber: customerData.identificationNumber || '',
           notes: customerData.notes,
         });
       }
@@ -89,7 +86,6 @@ const CustomerForm: React.FC = () => {
           name: data.name,
           email: data.email,
           phone: data.phone,
-          identificationNumber: data.identificationNumber || '',
           notes: data.notes || '',
           userId: currentUser.uid,
         });
@@ -174,20 +170,6 @@ const CustomerForm: React.FC = () => {
                     <FormLabel>Teléfono</FormLabel>
                     <FormControl>
                       <Input placeholder="+506 0000-0000" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="identificationNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Identificación (Cédula/ID)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Número de identificación" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -1,3 +1,4 @@
+
 import { Customer, Event, Payment, EventDetail } from '../types/models';
 
 class DataService {
@@ -26,32 +27,10 @@ class DataService {
   }
 
   createUserProfile(userId: string): void {
-    const customerKey = this.getUserKey('customers');
-    // Only create demo data if it doesn't exist for the user
-    if (!localStorage.getItem(customerKey) || JSON.parse(localStorage.getItem(customerKey)!).length === 0) {
-      const demoCustomers: Customer[] = [
-        { id: 'demo-customer-1', name: 'Empresa Creativa S.A.', email: 'contacto@creativa.com', phone: '2233-4455', identificationNumber: '3-101-123456', notes: 'Cliente corporativo importante.', userId, createdAt: new Date(), updatedAt: new Date() },
-        { id: 'demo-customer-2', name: 'Ana Sofía Solano', email: 'anasolano@email.com', phone: '8877-6655', identificationNumber: '1-1234-5678', notes: 'Boda en la playa.', userId, createdAt: new Date(), updatedAt: new Date() },
-      ];
-      localStorage.setItem(customerKey, JSON.stringify(demoCustomers));
-
-      const demoEvents: Event[] = [
-        { id: 'demo-event-1', customerId: 'demo-customer-1', title: 'Lanzamiento Producto X', date: new Date(new Date().setMonth(new Date().getMonth() - 1)), venue: 'Hotel Real Intercontinental', cost: 1500, totalWithTax: 1695, taxPercentage: 13, status: 'paid', category: 'corporate', userId, createdAt: new Date(), updatedAt: new Date(), comments: 'Evento de alto perfil.' },
-        { id: 'demo-event-2', customerId: 'demo-customer-2', title: 'Boda Ana y Carlos', date: new Date(new Date().setDate(new Date().getDate() + 30)), venue: 'Reserva Conchal', cost: 2500, status: 'confirmed', category: 'wedding', userId, createdAt: new Date(), updatedAt: new Date(), comments: 'Requiere equipo de sonido para exteriores.' },
-        { id: 'demo-event-3', customerId: 'demo-customer-2', title: 'Cumpleaños de Ana', date: new Date(new Date().setDate(new Date().getDate() - 10)), venue: 'Salón de eventos La Arboleda', cost: 800, status: 'show_completed', category: 'birthday', userId, createdAt: new Date(), updatedAt: new Date(), comments: 'Saldo pendiente.' },
-      ];
-      localStorage.setItem(this.getUserKey('events'), JSON.stringify(demoEvents));
-
-      const demoPayments: Payment[] = [
-        { id: 'demo-payment-1', eventId: 'demo-event-1', amount: 1695, currency: 'USD', paymentDate: new Date(new Date().setMonth(new Date().getMonth() - 1)), method: 'transfer', createdAt: new Date(), updatedAt: new Date() },
-        { id: 'demo-payment-2', eventId: 'demo-event-2', amount: 1250, currency: 'USD', paymentDate: new Date(), method: 'credit', createdAt: new Date(), updatedAt: new Date() },
-      ];
-      localStorage.setItem(this.getUserKey('payments'), JSON.stringify(demoPayments));
-    }
-    
-    if (!localStorage.getItem(this.getUserKey('eventDetails'))) {
-        localStorage.setItem(this.getUserKey('eventDetails'), JSON.stringify([]));
-    }
+    localStorage.setItem(`customers_${userId}`, JSON.stringify([]));
+    localStorage.setItem(`events_${userId}`, JSON.stringify([]));
+    localStorage.setItem(`payments_${userId}`, JSON.stringify([]));
+    localStorage.setItem(`eventDetails_${userId}`, JSON.stringify([]));
   }
 
   // Currency formatting methods
@@ -76,11 +55,7 @@ class DataService {
   // Customer methods
   getAllCustomers(): Customer[] {
     const customers = localStorage.getItem(this.getUserKey('customers'));
-    return customers ? JSON.parse(customers).map((customer: any) => ({
-      ...customer,
-      createdAt: new Date(customer.createdAt),
-      updatedAt: new Date(customer.updatedAt),
-    })) : [];
+    return customers ? JSON.parse(customers) : [];
   }
 
   addCustomer(customer: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>): Customer {

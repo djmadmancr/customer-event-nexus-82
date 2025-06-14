@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CalendarDays, Users, Calendar, Coins, TrendingUp, User, CalendarIcon } from 'lucide-react';
 import { useCrm } from '@/contexts/CrmContext';
 import { useAppConfig } from '@/contexts/AppConfigContext';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, Legend } from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell } from 'recharts';
 import dataService from '@/services/DataService';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -232,7 +233,7 @@ const Dashboard = () => {
         {/* Monthly Revenue Comparison Chart */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm md:text-base">Ingresos Mensuales ({defaultCurrency})</CardTitle>
+            <CardTitle className="text-sm md:text-base">Ingresos Mensuales - Programados vs Cobrados ({defaultCurrency})</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -250,7 +251,6 @@ const Dashboard = () => {
                     name === 'programados' ? 'Programados' : 'Cobrados'
                   ]}
                 />
-                <Legend verticalAlign="bottom" height={36} />
                 <Bar dataKey="programados" fill="#A855F7" name="programados" />
                 <Bar dataKey="cobrados" fill="#7C3AED" name="cobrados" />
               </BarChart>
@@ -261,7 +261,7 @@ const Dashboard = () => {
         {/* Event Category Distribution */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm md:text-base">Categorías de Eventos</CardTitle>
+            <CardTitle className="text-sm md:text-base">Distribución por Categoría de Eventos</CardTitle>
           </CardHeader>
           <CardContent>
             {categoryData.length > 0 ? (
@@ -273,7 +273,7 @@ const Dashboard = () => {
                     cy="50%"
                     outerRadius={80}
                     dataKey="value"
-                    label={({ percent }) => `${(percent * 100).toFixed(1)}%`}
+                    label={({ name, value, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
                     fontSize={10}
                   >
                     {categoryData.map((entry, index) => (
@@ -281,7 +281,6 @@ const Dashboard = () => {
                     ))}
                   </Pie>
                   <Tooltip />
-                  <Legend verticalAlign="bottom" height={36}/>
                 </PieChart>
               </ResponsiveContainer>
             ) : (
