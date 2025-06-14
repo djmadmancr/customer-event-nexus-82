@@ -40,8 +40,8 @@ function App() {
           <UserProfileProvider>
             <AppConfigProvider>
               <EmailConfigProvider>
-                <CrmProvider>
-                  <NotificationProvider>
+                <NotificationProvider>
+                  <CrmProvider>
                     <Routes>
                       <Route path="/auth" element={<AuthPage />} />
                       <Route path="/login" element={<Navigate to="/auth" replace />} />
@@ -156,8 +156,8 @@ function App() {
                     </Routes>
                     <Toaster />
                     <Sonner />
-                  </NotificationProvider>
-                </CrmProvider>
+                  </CrmProvider>
+                </NotificationProvider>
               </EmailConfigProvider>
             </AppConfigProvider>
           </UserProfileProvider>
