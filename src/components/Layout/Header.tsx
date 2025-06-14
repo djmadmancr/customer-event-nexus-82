@@ -3,6 +3,7 @@ import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAppConfig } from '@/contexts/AppConfigContext';
 import { useUserProfile } from '@/contexts/UserProfileContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { 
@@ -23,6 +24,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
   const { currentUser, signOut, userData } = useAuth();
   const { logoUrl } = useAppConfig();
   const { userProfile } = useUserProfile();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -57,7 +59,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
             <>
               <Button variant="ghost" onClick={() => navigate('/booking')}>
                 <CalendarPlus className="mr-2 h-4 w-4" />
-                Booking
+                {t("booking")}
               </Button>
               <NotificationBell />
               <DropdownMenu>
@@ -72,12 +74,12 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuItem onClick={() => navigate('/settings')}>
                     <Settings className="mr-2 h-4 w-4" />
-                    Configuración
+                    {t("settings")}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut}>
                     <LogOut className="mr-2 h-4 w-4" />
-                    Cerrar Sesión
+                    {t("logout")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

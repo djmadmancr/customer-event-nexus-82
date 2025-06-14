@@ -1,4 +1,3 @@
-
 // Customer Model
 export interface Customer {
   id: string;
@@ -57,6 +56,9 @@ export type PaymentMethod = 'cash' | 'credit' | 'transfer' | 'check';
 // Currency enum - Added MXN and COP that are used in the app
 export type Currency = 'USD' | 'CRC' | 'EUR' | 'MXN' | 'COP';
 
+// Language enum - New type for multi-language support
+export type Language = 'es' | 'en' | 'pt';
+
 // Payment Model
 export interface Payment {
   id: string;
@@ -92,6 +94,7 @@ export interface UserProfile {
   phone: string;
   logoUrl?: string;
   defaultCurrency?: Currency;
+  defaultLanguage?: Language; // New field for default language
   updatedAt: Date;
 }
 

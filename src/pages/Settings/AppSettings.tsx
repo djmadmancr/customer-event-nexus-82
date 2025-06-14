@@ -9,11 +9,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { useAppConfig } from '@/contexts/AppConfigContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Copy, Upload, Save, KeyRound } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Currency } from '@/types/models';
+import { Currency, Language } from '@/types/models';
 import EmailSettings from '@/components/Settings/EmailSettings';
 import SubscriptionSettings from '@/components/Settings/SubscriptionSettings';
 import { supabase } from '@/integrations/supabase/client';
@@ -30,11 +31,13 @@ const artistSchema = z.object({
 
 const appSchema = z.object({
   currency: z.enum(['USD', 'EUR', 'CRC', 'MXN', 'COP']),
+  language: z.enum(['es', 'en', 'pt']),
 });
 
 const AppSettings = () => {
   const { userProfile, updateUserProfile } = useUserProfile();
   const { defaultCurrency, updateDefaultCurrency, logoUrl, updateAppLogo } = useAppConfig();
+  const { currentLanguage, setLanguage, t } = useLanguage();
   const { currentUser } = useAuth();
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -54,6 +57,7 @@ const AppSettings = () => {
 
   const [appData, setAppData] = useState({
     currency: defaultCurrency,
+    language: currentLanguage,
   });
 
   const handleCopyBookingLink = () => {
@@ -141,9 +145,10 @@ const AppSettings = () => {
 
   const handleSaveApp = () => {
     updateDefaultCurrency(appData.currency);
+    setLanguage(appData.language);
     toast({
-      title: "Configuración actualizada",
-      description: "La configuración de la aplicación ha sido guardada correctamente",
+      title: t("config_updated"),
+      description: t("config_updated"),
     });
   };
 
@@ -191,13 +196,13 @@ const AppSettings = () => {
       <Tabs defaultValue="profile" className="w-full">
         <TabsList className={`grid w-full ${isMobile ? 'grid-cols-3 h-auto' : 'grid-cols-5'}`}>
           <TabsTrigger value="profile" className={`${isMobile ? 'text-xs px-2 py-3' : ''}`}>
-            {isMobile ? 'Perfil' : 'Perfil'}
+            {isMobile ? t("profile") : t("profile")}
           </TabsTrigger>
           <TabsTrigger value="artist" className={`${isMobile ? 'text-xs px-2 py-3' : ''}`}>
-            {isMobile ? 'Artista' : 'Datos Artísticos'}
+            {isMobile ? t("artist_data") : t("artist_data")}
           </TabsTrigger>
           <TabsTrigger value="app" className={`${isMobile ? 'text-xs px-2 py-3' : ''}`}>
-            {isMobile ? 'App' : 'Aplicación'}
+            {isMobile ? 'App' : t("app_config")}
           </TabsTrigger>
           {!isMobile && (
             <>
@@ -222,22 +227,22 @@ const AppSettings = () => {
         <TabsContent value="profile" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'}`}>Información Personal</CardTitle>
+              <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'}`}>{t("personal_info")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name" className={`${isMobile ? 'text-sm' : ''}`}>Nombre Completo</Label>
+                <Label htmlFor="name" className={`${isMobile ? 'text-sm' : ''}`}>{t("full_name")}</Label>
                 <Input
                   id="name"
                   value={profileData.name}
                   onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
-                  placeholder="Tu nombre completo"
+                  placeholder={t("full_name")}
                   className={`${isMobile ? 'text-sm' : ''}`}
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="email" className={`${isMobile ? 'text-sm' : ''}`}>Email</Label>
+                <Label htmlFor="email" className={`${isMobile ? 'text-sm' : ''}`}>{t("email")}</Label>
                 <Input
                   id="email"
                   value={profileData.email}
@@ -248,7 +253,7 @@ const AppSettings = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="phone" className={`${isMobile ? 'text-sm' : ''}`}>Teléfono</Label>
+                <Label htmlFor="phone" className={`${isMobile ? 'text-sm' : ''}`}>{t("phone")}</Label>
                 <Input
                   id="phone"
                   value={profileData.phone}
@@ -259,7 +264,7 @@ const AppSettings = () => {
               </div>
 
               <div className="border-t pt-4">
-                <Label className={`${isMobile ? 'text-sm' : ''} mb-3 block`}>Seguridad</Label>
+                <Label className={`${isMobile ? 'text-sm' : ''} mb-3 block`}>{t("security")}</Label>
                 <Button 
                   onClick={handlePasswordReset}
                   disabled={isResettingPassword}
@@ -274,7 +279,7 @@ const AppSettings = () => {
                   ) : (
                     <>
                       <KeyRound className="h-4 w-4 mr-2" />
-                      Restablecer Contraseña
+                      {t("reset_password")}
                     </>
                   )}
                 </Button>
@@ -286,7 +291,7 @@ const AppSettings = () => {
               <div className="flex justify-end pt-4">
                 <Button onClick={handleSaveProfile} className="bg-crm-primary hover:bg-crm-primary/90">
                   <Save className="h-4 w-4 mr-2" />
-                  Guardar Perfil
+                  {t("save")} {t("profile")}
                 </Button>
               </div>
             </CardContent>
@@ -296,22 +301,22 @@ const AppSettings = () => {
         <TabsContent value="artist" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'}`}>Datos Artísticos</CardTitle>
+              <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'}`}>{t("artist_data")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="artistName" className={`${isMobile ? 'text-sm' : ''}`}>Nombre Artístico</Label>
+                <Label htmlFor="artistName" className={`${isMobile ? 'text-sm' : ''}`}>{t("artist_name")}</Label>
                 <Input
                   id="artistName"
                   value={artistData.artistName}
                   onChange={(e) => setArtistData({ ...artistData, artistName: e.target.value })}
-                  placeholder="Tu nombre artístico"
+                  placeholder={t("artist_name")}
                   className={`${isMobile ? 'text-sm' : ''}`}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label className={`${isMobile ? 'text-sm' : ''}`}>Logo</Label>
+                <Label className={`${isMobile ? 'text-sm' : ''}`}>{t("logo")}</Label>
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <input
@@ -366,7 +371,7 @@ const AppSettings = () => {
               <div className="flex justify-end pt-4">
                 <Button onClick={handleSaveArtist} className="bg-crm-primary hover:bg-crm-primary/90">
                   <Save className="h-4 w-4 mr-2" />
-                  Guardar Datos Artísticos
+                  {t("save")} {t("artist_data")}
                 </Button>
               </div>
             </CardContent>
@@ -376,11 +381,11 @@ const AppSettings = () => {
         <TabsContent value="app" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'}`}>Configuración de la Aplicación</CardTitle>
+              <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'}`}>{t("app_config")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="currency" className={`${isMobile ? 'text-sm' : ''}`}>Moneda por Defecto</Label>
+                <Label htmlFor="currency" className={`${isMobile ? 'text-sm' : ''}`}>{t("default_currency")}</Label>
                 <select
                   id="currency"
                   value={appData.currency}
@@ -409,7 +414,21 @@ const AppSettings = () => {
               </div>
 
               <div className="space-y-2">
-                <Label className={`${isMobile ? 'text-sm' : ''}`}>Link para Bookings</Label>
+                <Label htmlFor="language" className={`${isMobile ? 'text-sm' : ''}`}>{t("default_language")}</Label>
+                <select
+                  id="language"
+                  value={appData.language}
+                  onChange={(e) => setAppData({ ...appData, language: e.target.value as Language })}
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${isMobile ? 'text-sm' : ''}`}
+                >
+                  <option value="es">{t("spanish")}</option>
+                  <option value="en">{t("english")}</option>
+                  <option value="pt">{t("portuguese")}</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className={`${isMobile ? 'text-sm' : ''}`}>{t("booking_link")}</Label>
                 <div className="flex gap-2">
                   <Input
                     value={currentUser ? `${window.location.origin}/booking/${currentUser.uid}` : ''}
@@ -428,7 +447,7 @@ const AppSettings = () => {
               <div className="flex justify-end pt-4">
                 <Button onClick={handleSaveApp} className="bg-crm-primary hover:bg-crm-primary/90">
                   <Save className="h-4 w-4 mr-2" />
-                  Guardar Configuración
+                  {t("save")} {t("app_config")}
                 </Button>
               </div>
             </CardContent>

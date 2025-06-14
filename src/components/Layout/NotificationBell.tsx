@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -15,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 
 const NotificationBell: React.FC = () => {
   const { notifications, unreadCount, markAllAsRead, markAsRead } = useNotifications();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const handleNotificationClick = (notification: any) => {
@@ -39,11 +41,11 @@ const NotificationBell: React.FC = () => {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80">
         <div className="flex justify-between items-center p-2">
-            <DropdownMenuLabel>Notificaciones</DropdownMenuLabel>
+            <DropdownMenuLabel>{t("notifications")}</DropdownMenuLabel>
             {notifications.length > 0 && (
                  <Button variant="ghost" size="sm" onClick={markAllAsRead}>
                     <Check className="h-4 w-4 mr-1" />
-                    Marcar leídas
+                    {t("mark_as_read")}
                 </Button>
             )}
         </div>
@@ -65,7 +67,7 @@ const NotificationBell: React.FC = () => {
             ))}
           </div>
         ) : (
-          <p className="p-4 text-sm text-center text-muted-foreground">No hay notificaciones</p>
+          <p className="p-4 text-sm text-center text-muted-foreground">{t("no_notifications")}</p>
         )}
       </DropdownMenuContent>
     </DropdownMenu>
