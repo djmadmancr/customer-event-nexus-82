@@ -26,6 +26,7 @@ import dataService from '@/services/DataService';
 import { Event, Customer, SelectableEventStatus, EventCategory } from '@/types/models';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCrm } from '@/contexts/CrmContext';
 
 const eventSchema = z.object({
   customerId: z.string().min(1, { message: 'Debe seleccionar un cliente' }),
@@ -44,8 +45,8 @@ const EventForm: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { currentUser } = useAuth();
+  const { refreshEvents, customers } = useCrm();
   const [event, setEvent] = useState<Event | null>(null);
-  const [customers, setCustomers] = useState<Customer[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(!!id);
 
@@ -65,9 +66,6 @@ const EventForm: React.FC = () => {
   });
 
   useEffect(() => {
-    // Load customers
-    setCustomers(dataService.getAllCustomers());
-
     if (isEditing && id) {
       const eventData = dataService.getEventById(id);
       if (eventData) {
@@ -114,6 +112,9 @@ const EventForm: React.FC = () => {
         });
         toast.success('Evento creado correctamente');
       }
+      
+      // Refresh events data immediately
+      refreshEvents();
       
       navigate('/events');
     } catch (error) {

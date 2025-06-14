@@ -20,6 +20,7 @@ import dataService from '@/services/DataService';
 import { Customer } from '@/types/models';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCrm } from '@/contexts/CrmContext';
 
 const customerSchema = z.object({
   name: z.string().min(2, { message: 'El nombre debe tener al menos 2 caracteres' }),
@@ -34,6 +35,7 @@ const CustomerForm: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { currentUser } = useAuth();
+  const { refreshCustomers } = useCrm();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(!!id);
@@ -89,6 +91,9 @@ const CustomerForm: React.FC = () => {
         });
         toast.success('Cliente creado correctamente');
       }
+      
+      // Refresh customers data immediately
+      refreshCustomers();
       
       navigate('/customers');
     } catch (error) {

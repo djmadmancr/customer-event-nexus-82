@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Customer, Event, Payment } from '../types/models';
 import dataService from '../services/DataService';
@@ -48,13 +47,19 @@ export const CrmProvider: React.FC<CrmProviderProps> = ({ children }) => {
   const [payments, setPayments] = useState<Payment[]>([]);
   
   const refreshCustomers = () => {
-    console.log('Refreshing customers for user:', currentUser?.uid);
-    setCustomers(dataService.getAllCustomers());
+    if (currentUser) {
+      console.log('Refreshing customers for user:', currentUser.uid);
+      const customerData = dataService.getAllCustomers();
+      setCustomers(customerData);
+    }
   };
   
   const refreshEvents = () => {
-    console.log('Refreshing events for user:', currentUser?.uid);
-    setEvents(dataService.getAllEvents());
+    if (currentUser) {
+      console.log('Refreshing events for user:', currentUser.uid);
+      const eventData = dataService.getAllEvents();
+      setEvents(eventData);
+    }
   };
   
   const removeEvent = async (eventId: string): Promise<void> => {
@@ -68,15 +73,17 @@ export const CrmProvider: React.FC<CrmProviderProps> = ({ children }) => {
   };
   
   const refreshPayments = () => {
-    console.log('Refreshing payments for user:', currentUser?.uid);
-    if (selectedEvent) {
-      setPayments(dataService.getPaymentsByEventId(selectedEvent.id));
-    } else {
-      setPayments(dataService.getAllPayments());
+    if (currentUser) {
+      console.log('Refreshing payments for user:', currentUser.uid);
+      if (selectedEvent) {
+        setPayments(dataService.getPaymentsByEventId(selectedEvent.id));
+      } else {
+        setPayments(dataService.getAllPayments());
+      }
     }
   };
 
-  // Refresh all data when user changes
+  // Initial data load when user changes
   useEffect(() => {
     console.log('User changed, refreshing all data:', currentUser?.uid);
     if (currentUser) {
@@ -96,14 +103,14 @@ export const CrmProvider: React.FC<CrmProviderProps> = ({ children }) => {
   }, [currentUser?.uid]);
   
   // Update payments when selected event changes
-  React.useEffect(() => {
+  useEffect(() => {
     console.log('Selected event changed:', selectedEvent?.id);
-    if (selectedEvent) {
+    if (selectedEvent && currentUser) {
       setPayments(dataService.getPaymentsByEventId(selectedEvent.id));
     } else {
       setPayments([]);
     }
-  }, [selectedEvent]);
+  }, [selectedEvent, currentUser]);
   
   const value = {
     customers,

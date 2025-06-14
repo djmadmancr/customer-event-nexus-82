@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { User, UserRole } from '@/types/models';
@@ -89,12 +88,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (storedUsers) {
       try {
         additionalUsers = JSON.parse(storedUsers);
+        // Ensure dates are properly parsed
+        additionalUsers = additionalUsers.map((user: any) => ({
+          ...user,
+          createdAt: new Date(user.createdAt),
+          subscriptionExpiry: user.subscriptionExpiry ? new Date(user.subscriptionExpiry) : undefined
+        }));
       } catch (e) {
+        console.error('Error parsing stored users:', e);
         additionalUsers = [];
       }
     }
     
     return [...DEMO_USERS, ...additionalUsers];
+  };
+
+  // Function to save additional users to localStorage
+  const saveAdditionalUsers = (users: ExtendedUser[]) => {
+    // Filter out the default admin user and save only additional users
+    const additionalUsers = users.filter(user => user.id !== 'demo-admin');
+    localStorage.setItem('demo-users', JSON.stringify(additionalUsers));
   };
 
   // Function to sync user name from personal data configuration
@@ -308,19 +321,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       };
       
       // Add to additional users in localStorage
-      const storedUsers = localStorage.getItem('demo-users');
-      let additionalUsers = [];
-      
-      if (storedUsers) {
-        try {
-          additionalUsers = JSON.parse(storedUsers);
-        } catch (e) {
-          additionalUsers = [];
-        }
-      }
-      
-      additionalUsers.push(newUser);
-      localStorage.setItem('demo-users', JSON.stringify(additionalUsers));
+      const currentAdditionalUsers = getAllDemoUsers().filter(u => u.id !== 'demo-admin');
+      currentAdditionalUsers.push(newUser);
+      localStorage.setItem('demo-users', JSON.stringify(currentAdditionalUsers));
       
       // Create user profile space in data service
       dataService.createUserProfile(newUser.id);
@@ -401,13 +404,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       allUsers[userIndex].role = newRole;
       
       // Update in appropriate storage
-      if (userIndex === 0) {
+      if (userId === 'demo-admin') {
         // This is the default admin user, update in DEMO_USERS
         DEMO_USERS[0].role = newRole;
       } else {
         // This is a user created by admin, update in localStorage
-        const additionalUsers = allUsers.slice(1);
-        localStorage.setItem('demo-users', JSON.stringify(additionalUsers));
+        saveAdditionalUsers(allUsers);
       }
       
       toast({
@@ -425,13 +427,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       allUsers[userIndex].active = active;
       
       // Update in appropriate storage
-      if (userIndex === 0) {
+      if (userId === 'demo-admin') {
         // This is the default admin user, update in DEMO_USERS
         DEMO_USERS[0].active = active;
       } else {
         // This is a user created by admin, update in localStorage
-        const additionalUsers = allUsers.slice(1);
-        localStorage.setItem('demo-users', JSON.stringify(additionalUsers));
+        saveAdditionalUsers(allUsers);
       }
       
       toast({

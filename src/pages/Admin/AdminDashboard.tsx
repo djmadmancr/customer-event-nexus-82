@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -129,7 +128,7 @@ const AdminDashboard = () => {
       // Add new user to the array
       demoUsers.push(newUser);
       
-      // Save updated array to localStorage
+      // Save updated array to localStorage with proper serialization
       localStorage.setItem('demo-users', JSON.stringify(demoUsers));
 
       toast({
