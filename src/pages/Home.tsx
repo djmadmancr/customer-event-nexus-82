@@ -89,19 +89,31 @@ const Home = () => {
     { name: 'Pendiente', value: pendingCollection > 0 ? pendingCollection : 0 },
   ];
 
-  // Fix monthly data to properly include payments by month
+  // Fix monthly data to properly include payments by month and sort chronologically
   const monthlyData = filteredEvents.reduce((acc, event) => {
-    const month = new Date(event.date).toLocaleString('default', { month: 'short' });
-    const existingMonth = acc.find(item => item.month === month);
+    const eventDate = new Date(event.date);
+    const month = eventDate.toLocaleString('default', { month: 'short' });
+    const monthNumber = eventDate.getMonth(); // Get month number for sorting
+    const year = eventDate.getFullYear();
+    const monthKey = `${year}-${monthNumber.toString().padStart(2, '0')}`; // YYYY-MM format for sorting
+    
+    const existingMonth = acc.find(item => item.monthKey === monthKey);
 
     if (existingMonth) {
       existingMonth.programados += event.totalWithTax || event.cost;
     } else {
-      acc.push({ month, programados: event.totalWithTax || event.cost, cobrados: 0 });
+      acc.push({ 
+        month, 
+        monthKey,
+        monthNumber,
+        year,
+        programados: event.totalWithTax || event.cost, 
+        cobrados: 0 
+      });
     }
 
     return acc;
-  }, [] as Array<{ month: string; programados: number; cobrados: number }>);
+  }, [] as Array<{ month: string; monthKey: string; monthNumber: number; year: number; programados: number; cobrados: number }>);
 
   // Properly aggregate payments by month from all filtered events
   const allPaymentsForFilteredEvents = filteredEvents.flatMap(event => dataService.getPaymentsByEventId(event.id));
@@ -109,13 +121,29 @@ const Home = () => {
   allPaymentsForFilteredEvents.forEach(payment => {
     const paymentDate = new Date(payment.paymentDate);
     const month = paymentDate.toLocaleString('default', { month: 'short' });
+    const monthNumber = paymentDate.getMonth();
+    const year = paymentDate.getFullYear();
+    const monthKey = `${year}-${monthNumber.toString().padStart(2, '0')}`;
     
-    let existingMonth = monthlyData.find(item => item.month === month);
+    let existingMonth = monthlyData.find(item => item.monthKey === monthKey);
     if (!existingMonth) {
-      existingMonth = { month, programados: 0, cobrados: 0 };
+      existingMonth = { 
+        month, 
+        monthKey,
+        monthNumber,
+        year,
+        programados: 0, 
+        cobrados: 0 
+      };
       monthlyData.push(existingMonth);
     }
     existingMonth.cobrados += payment.amount;
+  });
+
+  // Sort monthly data chronologically
+  const sortedMonthlyData = monthlyData.sort((a, b) => {
+    if (a.year !== b.year) return a.year - b.year;
+    return a.monthNumber - b.monthNumber;
   });
 
   const topClients = customers.map(customer => {
@@ -265,12 +293,12 @@ const Home = () => {
           {/* Monthly Revenue Chart - Full Width */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">{t('monthly_revenue')}</CardTitle>
+              <CardTitle className="text-lg">{t('revenue')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="h-96 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={monthlyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <BarChart data={sortedMonthlyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
                     <YAxis tickFormatter={(value) => `${defaultCurrency} ${(value / 1000).toFixed(0)}k`} />
