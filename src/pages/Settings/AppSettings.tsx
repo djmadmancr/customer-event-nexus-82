@@ -12,7 +12,7 @@ import { useUserProfile } from '@/contexts/UserProfileContext';
 import { useAppConfig } from '@/contexts/AppConfigContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { Copy, Upload, Save, KeyRound } from 'lucide-react';
+import { Upload, Save, KeyRound } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Currency, Language } from '@/types/models';
@@ -68,17 +68,6 @@ const AppSettings = () => {
       language: currentLanguage
     }));
   }, [currentLanguage]);
-
-  const handleCopyBookingLink = () => {
-    if (currentUser) {
-      const bookingUrl = `${window.location.origin}/booking/${currentUser.uid}`;
-      navigator.clipboard.writeText(bookingUrl);
-      toast({
-        title: t("booking_link_copied"),
-        description: t("booking_link_copied"),
-      });
-    }
-  };
 
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -203,35 +192,40 @@ const AppSettings = () => {
   return (
     <div className="space-y-4 md:space-y-6 px-2 md:px-0">
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2 gap-1' : 'grid-cols-5'}`}>
-          <TabsTrigger value="profile" className={`${isMobile ? 'text-xs px-2 py-2' : ''}`}>
-            {t("profile")}
-          </TabsTrigger>
-          <TabsTrigger value="artist" className={`${isMobile ? 'text-xs px-2 py-2' : ''}`}>
-            {isMobile ? 'Artista' : t("artist_data")}
-          </TabsTrigger>
-          {!isMobile && (
-            <>
-              <TabsTrigger value="app">{t("app_config")}</TabsTrigger>
-              <TabsTrigger value="email">Email</TabsTrigger>
-              <TabsTrigger value="subscription">Suscripción</TabsTrigger>
-            </>
-          )}
-        </TabsList>
-
-        {/* Mobile-specific tabs */}
-        {isMobile && (
-          <TabsList className="grid w-full grid-cols-3 mt-2 gap-1">
-            <TabsTrigger value="app" className="text-xs px-1 py-2">
-              App
-            </TabsTrigger>
-            <TabsTrigger value="email" className="text-xs px-1 py-2">
-              Email
-            </TabsTrigger>
-            <TabsTrigger value="subscription" className="text-xs px-1 py-2">
-              Suscripción
-            </TabsTrigger>
+        {/* Desktop tabs */}
+        {!isMobile && (
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="profile">{t("profile")}</TabsTrigger>
+            <TabsTrigger value="artist">{t("artist_data")}</TabsTrigger>
+            <TabsTrigger value="app">{t("app_config")}</TabsTrigger>
+            <TabsTrigger value="email">Email</TabsTrigger>
+            <TabsTrigger value="subscription">{t("subscription")}</TabsTrigger>
           </TabsList>
+        )}
+
+        {/* Mobile tabs - two rows */}
+        {isMobile && (
+          <div className="space-y-2">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="profile" className="text-xs px-2 py-2">
+                {t("profile")}
+              </TabsTrigger>
+              <TabsTrigger value="artist" className="text-xs px-2 py-2">
+                Artista
+              </TabsTrigger>
+              <TabsTrigger value="app" className="text-xs px-2 py-2">
+                App
+              </TabsTrigger>
+            </TabsList>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="email" className="text-xs px-2 py-2">
+                Email
+              </TabsTrigger>
+              <TabsTrigger value="subscription" className="text-xs px-2 py-2">
+                {t("subscription")}
+              </TabsTrigger>
+            </TabsList>
+          </div>
         )}
 
         <TabsContent value="profile" className="mt-4 md:mt-6">
@@ -446,29 +440,6 @@ const AppSettings = () => {
                   <option value="en">{t("english")}</option>
                   <option value="pt">{t("portuguese")}</option>
                 </select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className={`${isMobile ? 'text-sm' : ''}`}>{t("booking_link")}</Label>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Input
-                    value={currentUser ? `${window.location.origin}/booking/${currentUser.uid}` : ''}
-                    readOnly
-                    className={`bg-gray-50 ${isMobile ? 'text-xs' : ''} flex-1`}
-                  />
-                  <Button 
-                    onClick={handleCopyBookingLink} 
-                    variant="outline" 
-                    size={isMobile ? "sm" : "icon"}
-                    className={isMobile ? "w-full" : ""}
-                  >
-                    <Copy className={`${isMobile ? 'h-3 w-3 mr-2' : 'h-4 w-4'}`} />
-                    {isMobile && 'Copiar'}
-                  </Button>
-                </div>
-                <p className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                  Comparte este link con tus clientes para que puedan solicitar cotizaciones
-                </p>
               </div>
 
               <div className="flex justify-end pt-4">

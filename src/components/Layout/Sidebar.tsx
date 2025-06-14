@@ -41,24 +41,19 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="flex flex-col h-full">
-          {/* Logo */}
+          {/* Header */}
           <div className="flex items-center px-6 py-4 border-b border-gray-200">
             <img 
               src="./logo.png" 
               alt="Bassline Logo" 
               className="h-8 w-auto max-w-[150px]"
               onError={(e) => {
-                // If the main logo fails, try the logoUrl from config
-                if (logoUrl) {
-                  (e.currentTarget as HTMLImageElement).src = logoUrl;
-                } else {
-                  // If both fail, hide the image and show text
-                  (e.currentTarget as HTMLImageElement).style.display = 'none';
-                  const textElement = document.createElement('div');
-                  textElement.className = 'text-xl font-bold text-crm-primary';
-                  textElement.textContent = 'BASSLINECRM';
-                  (e.currentTarget as HTMLImageElement).parentNode?.appendChild(textElement);
-                }
+                // If the main logo fails, hide the image and show text
+                (e.currentTarget as HTMLImageElement).style.display = 'none';
+                const textElement = document.createElement('div');
+                textElement.className = 'text-xl font-bold text-crm-primary';
+                textElement.textContent = 'BASSLINECRM';
+                (e.currentTarget as HTMLImageElement).parentNode?.appendChild(textElement);
               }}
             />
           </div>
@@ -85,6 +80,22 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               );
             })}
           </nav>
+
+          {/* Logo at bottom */}
+          {logoUrl && (
+            <div className="px-6 py-4 border-t border-gray-200">
+              <div className="flex items-center justify-center">
+                <img 
+                  src={logoUrl} 
+                  alt="User Logo" 
+                  className="h-12 w-auto max-w-[180px]"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </>

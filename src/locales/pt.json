@@ -79,5 +79,10 @@
   "monthly_revenue": "Receitas",
   "event_categories": "Categorias de Eventos",
   "collection": "Cobrança",
-  "top_clients": "Top 5 Clientes por Receitas"
+  "top_clients": "Top 5 Clientes por Receitas",
+  "revenue": "Receitas",
+  "programados": "Programados",
+  "cobrados": "Coletados",
+  "event": "evento",
+  "subscription": "Assinatura"
 }

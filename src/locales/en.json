@@ -79,5 +79,10 @@
   "monthly_revenue": "Revenue",
   "event_categories": "Event Categories",
   "collection": "Collection",
-  "top_clients": "Top 5 Clients by Revenue"
+  "top_clients": "Top 5 Clients by Revenue",
+  "revenue": "Revenue",
+  "programados": "Scheduled",
+  "cobrados": "Collected",
+  "event": "event",
+  "subscription": "Subscription"
 }

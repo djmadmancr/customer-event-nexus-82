@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -305,11 +306,11 @@ const Home = () => {
                     <Tooltip 
                       formatter={(value: any, name: string) => [
                         `${defaultCurrency} ${value.toLocaleString()}`, 
-                        name === 'programados' ? 'Programados' : 'Cobrados'
+                        name === 'programados' ? t('programados') : t('cobrados')
                       ]}
                     />
                     <Legend 
-                      formatter={(value) => value === 'programados' ? 'Programados' : 'Cobrados'}
+                      formatter={(value) => value === 'programados' ? t('programados') : t('cobrados')}
                     />
                     <Bar dataKey="programados" fill="#93c5fd" name="programados" />
                     <Bar dataKey="cobrados" fill="#1d4ed8" name="cobrados" />
@@ -342,7 +343,7 @@ const Home = () => {
                         {defaultCurrency} {client.totalRevenue.toLocaleString()}
                       </div>
                       <div className="text-sm text-gray-600">
-                        {client.eventCount} evento{client.eventCount !== 1 ? 's' : ''}
+                        {client.eventCount} {t('event')}{client.eventCount !== 1 ? 's' : ''}
                       </div>
                     </div>
                   </div>

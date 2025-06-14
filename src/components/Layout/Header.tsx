@@ -66,19 +66,8 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
           </Button>
         )}
 
-        {/* Logo Section */}
-        <div className={`flex-1 flex ${isMobile ? 'justify-center' : 'justify-center'}`}>
-          {logoUrl && (
-            <img 
-              src={logoUrl} 
-              alt="Logo" 
-              className={`${isMobile ? 'h-8 w-auto max-w-[150px]' : 'h-12 w-auto max-w-[200px]'}`}
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).style.display = 'none';
-              }}
-            />
-          )}
-        </div>
+        {/* Empty space in the center */}
+        <div className="flex-1"></div>
 
         {/* User Menu */}
         <div className="flex items-center space-x-1 md:space-x-2">

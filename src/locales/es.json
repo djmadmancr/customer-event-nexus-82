@@ -79,5 +79,10 @@
   "monthly_revenue": "Ingresos",
   "event_categories": "Categorías de Eventos",
   "collection": "Cobranza",
-  "top_clients": "Top 5 Clientes por Ingresos"
+  "top_clients": "Top 5 Clientes por Ingresos",
+  "revenue": "Ingresos",
+  "programados": "Programados",
+  "cobrados": "Cobrados",
+  "event": "evento",
+  "subscription": "Suscripción"
 }
