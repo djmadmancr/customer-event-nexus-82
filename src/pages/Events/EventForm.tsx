@@ -18,15 +18,16 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { CalendarIcon, ArrowLeft } from 'lucide-react';
+import { CalendarIcon, ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import dataService from '@/services/DataService';
-import { Event, Customer, SelectableEventStatus, EventCategory } from '@/types/models';
+import { Event, Customer, SelectableEventStatus, EventCategory, EventDetail, Payment, PaymentMethod, Currency } from '@/types/models';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCrm } from '@/contexts/CrmContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const eventSchema = z.object({
   customerId: z.string().min(1, { message: 'Debe seleccionar un cliente' }),
@@ -41,14 +42,35 @@ const eventSchema = z.object({
 
 type EventFormValues = z.infer<typeof eventSchema>;
 
+interface EventDetailForm {
+  id?: string;
+  description: string;
+  quantity: number;
+  notes?: string;
+}
+
+interface PaymentForm {
+  id?: string;
+  amount: number;
+  currency: Currency;
+  paymentDate: Date;
+  method: PaymentMethod;
+  notes?: string;
+}
+
 const EventForm: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { currentUser } = useAuth();
   const { refreshEvents, customers } = useCrm();
+  const { t } = useLanguage();
   const [event, setEvent] = useState<Event | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(!!id);
+
+  // Form state for details and payments
+  const [eventDetails, setEventDetails] = useState<EventDetailForm[]>([]);
+  const [payments, setPayments] = useState<PaymentForm[]>([]);
 
   const isEditing = !!id;
 
@@ -80,10 +102,67 @@ const EventForm: React.FC = () => {
           category: eventData.category || 'other',
           comments: eventData.comments || '',
         });
+
+        // Load existing details and payments
+        const existingDetails = dataService.getEventDetailsByEventId(id);
+        setEventDetails(existingDetails.map(detail => ({
+          id: detail.id,
+          description: detail.description,
+          quantity: detail.quantity,
+          notes: detail.notes
+        })));
+
+        const existingPayments = dataService.getPaymentsByEventId(id);
+        setPayments(existingPayments.map(payment => ({
+          id: payment.id,
+          amount: payment.amount,
+          currency: payment.currency,
+          paymentDate: payment.paymentDate,
+          method: payment.method,
+          notes: payment.notes
+        })));
       }
       setLoading(false);
     }
   }, [id, isEditing, form]);
+
+  const addEventDetail = () => {
+    setEventDetails([...eventDetails, {
+      description: '',
+      quantity: 1,
+      notes: ''
+    }]);
+  };
+
+  const removeEventDetail = (index: number) => {
+    setEventDetails(eventDetails.filter((_, i) => i !== index));
+  };
+
+  const updateEventDetail = (index: number, field: keyof EventDetailForm, value: any) => {
+    const updatedDetails = [...eventDetails];
+    updatedDetails[index] = { ...updatedDetails[index], [field]: value };
+    setEventDetails(updatedDetails);
+  };
+
+  const addPayment = () => {
+    setPayments([...payments, {
+      amount: 0,
+      currency: 'USD',
+      paymentDate: new Date(),
+      method: 'cash',
+      notes: ''
+    }]);
+  };
+
+  const removePayment = (index: number) => {
+    setPayments(payments.filter((_, i) => i !== index));
+  };
+
+  const updatePayment = (index: number, field: keyof PaymentForm, value: any) => {
+    const updatedPayments = [...payments];
+    updatedPayments[index] = { ...updatedPayments[index], [field]: value };
+    setPayments(updatedPayments);
+  };
 
   const onSubmit = async (data: EventFormValues) => {
     if (!currentUser) {
@@ -94,12 +173,13 @@ const EventForm: React.FC = () => {
     setIsSubmitting(true);
 
     try {
+      let savedEvent: Event;
+
       if (isEditing && event) {
-        dataService.updateEvent(event.id, data);
-        toast.success('Evento actualizado correctamente');
+        savedEvent = dataService.updateEvent(event.id, data)!;
+        toast.success(t('profile_updated'));
       } else {
-        // Ensure all required fields are present
-        dataService.addEvent({
+        savedEvent = dataService.addEvent({
           customerId: data.customerId,
           title: data.title,
           date: data.date,
@@ -112,10 +192,74 @@ const EventForm: React.FC = () => {
         });
         toast.success('Evento creado correctamente');
       }
+
+      // Save event details
+      if (isEditing) {
+        // Remove existing details that are not in the current form
+        const existingDetails = dataService.getEventDetailsByEventId(savedEvent.id);
+        const currentDetailIds = eventDetails.filter(d => d.id).map(d => d.id);
+        existingDetails.forEach(detail => {
+          if (!currentDetailIds.includes(detail.id)) {
+            dataService.deleteEventDetail(detail.id);
+          }
+        });
+      }
+
+      eventDetails.forEach(detail => {
+        if (detail.description.trim()) {
+          if (detail.id) {
+            dataService.updateEventDetail(detail.id, {
+              description: detail.description,
+              quantity: detail.quantity,
+              notes: detail.notes
+            });
+          } else {
+            dataService.addEventDetail({
+              eventId: savedEvent.id,
+              description: detail.description,
+              quantity: detail.quantity,
+              notes: detail.notes
+            });
+          }
+        }
+      });
+
+      // Save payments
+      if (isEditing) {
+        // Remove existing payments that are not in the current form
+        const existingPayments = dataService.getPaymentsByEventId(savedEvent.id);
+        const currentPaymentIds = payments.filter(p => p.id).map(p => p.id);
+        existingPayments.forEach(payment => {
+          if (!currentPaymentIds.includes(payment.id)) {
+            dataService.deletePayment(payment.id);
+          }
+        });
+      }
+
+      payments.forEach(payment => {
+        if (payment.amount > 0) {
+          if (payment.id) {
+            dataService.updatePayment(payment.id, {
+              amount: payment.amount,
+              currency: payment.currency,
+              paymentDate: payment.paymentDate,
+              method: payment.method,
+              notes: payment.notes
+            });
+          } else {
+            dataService.addPayment({
+              eventId: savedEvent.id,
+              amount: payment.amount,
+              currency: payment.currency,
+              paymentDate: payment.paymentDate,
+              method: payment.method,
+              notes: payment.notes
+            });
+          }
+        }
+      });
       
-      // Refresh events data immediately
       refreshEvents();
-      
       navigate('/events');
     } catch (error) {
       console.error('Error saving event:', error);
@@ -127,21 +271,31 @@ const EventForm: React.FC = () => {
 
   const getStatusText = (status: SelectableEventStatus) => {
     switch(status) {
-      case 'prospect': return 'Prospecto';
-      case 'confirmed': return 'Confirmado';
-      case 'show_completed': return 'Show Completado';
+      case 'prospect': return t('prospect');
+      case 'confirmed': return t('confirmed');
+      case 'show_completed': return t('show_completed');
       default: return status;
     }
   };
 
   const getCategoryText = (category: EventCategory) => {
     switch(category) {
-      case 'wedding': return 'Boda';
-      case 'birthday': return 'Cumpleaños';
-      case 'corporate': return 'Corporativo';
-      case 'club': return 'Club/Discoteca';
-      case 'other': return 'Otro';
+      case 'wedding': return t('wedding');
+      case 'birthday': return t('birthday');
+      case 'corporate': return t('corporate');
+      case 'club': return t('club');
+      case 'other': return t('other');
       default: return category;
+    }
+  };
+
+  const getMethodText = (method: PaymentMethod) => {
+    switch(method) {
+      case 'cash': return t('cash');
+      case 'credit': return t('credit');
+      case 'transfer': return t('transfer');
+      case 'check': return t('check');
+      default: return method;
     }
   };
 
@@ -154,7 +308,7 @@ const EventForm: React.FC = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-4xl mx-auto space-y-6">
       <div className="mb-6">
         <Button
           variant="ghost"
@@ -162,14 +316,14 @@ const EventForm: React.FC = () => {
           className="mb-4"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Volver a eventos
+          {t('events')}
         </Button>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle>
-            {isEditing ? 'Editar Evento' : 'Nuevo Evento'}
+            {isEditing ? t('edit_event') : t('new_event')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -180,7 +334,7 @@ const EventForm: React.FC = () => {
                 name="customerId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Cliente</FormLabel>
+                    <FormLabel>{t('customers')}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -219,7 +373,7 @@ const EventForm: React.FC = () => {
                 name="date"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel>Fecha del evento</FormLabel>
+                    <FormLabel>{t('date')}</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -259,7 +413,7 @@ const EventForm: React.FC = () => {
                 name="venue"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Lugar del evento</FormLabel>
+                    <FormLabel>{t('venue')}</FormLabel>
                     <FormControl>
                       <Input placeholder="Ej. Hotel Presidente, San José" {...field} />
                     </FormControl>
@@ -273,7 +427,7 @@ const EventForm: React.FC = () => {
                 name="category"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Categoría</FormLabel>
+                    <FormLabel>{t('category')}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -298,7 +452,7 @@ const EventForm: React.FC = () => {
                 name="cost"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Costo</FormLabel>
+                    <FormLabel>{t('cost')}</FormLabel>
                     <FormControl>
                       <Input 
                         type="number" 
@@ -318,7 +472,7 @@ const EventForm: React.FC = () => {
                 name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Estado</FormLabel>
+                    <FormLabel>{t('status')}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -341,7 +495,7 @@ const EventForm: React.FC = () => {
                 name="comments"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Comentarios</FormLabel>
+                    <FormLabel>{t('comments')}</FormLabel>
                     <FormControl>
                       <Textarea placeholder="Comentarios adicionales..." rows={4} {...field} />
                     </FormControl>
@@ -350,20 +504,176 @@ const EventForm: React.FC = () => {
                 )}
               />
 
+              {/* Event Details Section */}
+              <div className="space-y-4 border-t pt-6">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-medium">Equipo y Detalles</h3>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addEventDetail}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    {t('add')}
+                  </Button>
+                </div>
+
+                {eventDetails.map((detail, index) => (
+                  <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-4 p-4 border rounded-lg">
+                    <div className="md:col-span-5">
+                      <Input
+                        placeholder="Descripción del equipo/detalle"
+                        value={detail.description}
+                        onChange={(e) => updateEventDetail(index, 'description', e.target.value)}
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Input
+                        type="number"
+                        min="1"
+                        placeholder="Cantidad"
+                        value={detail.quantity}
+                        onChange={(e) => updateEventDetail(index, 'quantity', parseInt(e.target.value) || 1)}
+                      />
+                    </div>
+                    <div className="md:col-span-4">
+                      <Input
+                        placeholder="Notas adicionales"
+                        value={detail.notes || ''}
+                        onChange={(e) => updateEventDetail(index, 'notes', e.target.value)}
+                      />
+                    </div>
+                    <div className="md:col-span-1 flex justify-end">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeEventDetail(index)}
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Payments Section */}
+              <div className="space-y-4 border-t pt-6">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-medium">Pagos y Adelantos</h3>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addPayment}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    {t('add')}
+                  </Button>
+                </div>
+
+                {payments.map((payment, index) => (
+                  <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-4 p-4 border rounded-lg">
+                    <div className="md:col-span-2">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="Monto"
+                        value={payment.amount}
+                        onChange={(e) => updatePayment(index, 'amount', parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Select 
+                        value={payment.currency} 
+                        onValueChange={(value) => updatePayment(index, 'currency', value as Currency)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="USD">USD</SelectItem>
+                          <SelectItem value="CRC">CRC</SelectItem>
+                          <SelectItem value="EUR">EUR</SelectItem>
+                          <SelectItem value="MXN">MXN</SelectItem>
+                          <SelectItem value="COP">COP</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="md:col-span-2">
+                      <Select 
+                        value={payment.method} 
+                        onValueChange={(value) => updatePayment(index, 'method', value as PaymentMethod)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="cash">{getMethodText('cash')}</SelectItem>
+                          <SelectItem value="credit">{getMethodText('credit')}</SelectItem>
+                          <SelectItem value="transfer">{getMethodText('transfer')}</SelectItem>
+                          <SelectItem value="check">{getMethodText('check')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="md:col-span-2">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full pl-3 text-left font-normal"
+                          >
+                            {format(payment.paymentDate, "dd/MM/yyyy")}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={payment.paymentDate}
+                            onSelect={(date) => updatePayment(index, 'paymentDate', date || new Date())}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div className="md:col-span-3">
+                      <Input
+                        placeholder="Notas del pago"
+                        value={payment.notes || ''}
+                        onChange={(e) => updatePayment(index, 'notes', e.target.value)}
+                      />
+                    </div>
+                    <div className="md:col-span-1 flex justify-end">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removePayment(index)}
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
               <div className="flex justify-end space-x-2 pt-4">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => navigate('/events')}
                 >
-                  Cancelar
+                  {t('cancel')}
                 </Button>
                 <Button 
                   type="submit" 
                   disabled={isSubmitting}
                   className="bg-crm-primary hover:bg-crm-primary/90"
                 >
-                  {isSubmitting ? 'Guardando...' : (isEditing ? 'Actualizar' : 'Crear')}
+                  {isSubmitting ? 'Guardando...' : (isEditing ? t('edit') : 'Crear')}
                 </Button>
               </div>
             </form>
