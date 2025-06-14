@@ -39,10 +39,10 @@
   "default_language": "Default Language",
   "booking_link": "Booking Link",
   "notifications": "Notifications",
-  "no_notifications": "No notifications",
-  "mark_as_read": "Mark as read",
-  "profile_updated": "Profile updated",
-  "config_updated": "Configuration updated",
+  "no_notifications": "No Notifications",
+  "mark_as_read": "Mark as Read",
+  "profile_updated": "Profile Updated",
+  "config_updated": "Configuration Updated",
   "booking": "Booking",
   "new_customer": "New Customer",
   "customer_detail": "Customer Detail",
@@ -75,5 +75,5 @@
   "logo": "Logo",
   "security": "Security",
   "reset_password": "Reset Password",
-  "booking_link_copied": "Link copied to clipboard"
+  "booking_link_copied": "Link Copied to Clipboard"
 }

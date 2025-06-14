@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -73,8 +74,8 @@ const AppSettings = () => {
       const bookingUrl = `${window.location.origin}/booking/${currentUser.uid}`;
       navigator.clipboard.writeText(bookingUrl);
       toast({
-        title: "Link copiado",
-        description: "El link para bookings ha sido copiado al portapapeles",
+        title: t("booking_link_copied"),
+        description: t("booking_link_copied"),
       });
     }
   };
@@ -138,16 +139,16 @@ const AppSettings = () => {
   const handleSaveProfile = () => {
     updateUserProfile(profileData);
     toast({
-      title: "Perfil actualizado",
-      description: "La información personal ha sido guardada correctamente",
+      title: t("profile_updated"),
+      description: t("profile_updated"),
     });
   };
 
   const handleSaveArtist = () => {
     updateUserProfile(artistData);
     toast({
-      title: "Datos artísticos actualizados",
-      description: "Los datos artísticos han sido guardados correctamente",
+      title: t("artist_data"),
+      description: t("profile_updated"),
     });
   };
 
@@ -200,39 +201,40 @@ const AppSettings = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 px-2 md:px-0">
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className={`grid w-full ${isMobile ? 'grid-cols-3 h-auto' : 'grid-cols-5'}`}>
-          <TabsTrigger value="profile" className={`${isMobile ? 'text-xs px-2 py-3' : ''}`}>
-            {isMobile ? t("profile") : t("profile")}
+        <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2 gap-1' : 'grid-cols-5'}`}>
+          <TabsTrigger value="profile" className={`${isMobile ? 'text-xs px-2 py-2' : ''}`}>
+            {t("profile")}
           </TabsTrigger>
-          <TabsTrigger value="artist" className={`${isMobile ? 'text-xs px-2 py-3' : ''}`}>
-            {isMobile ? t("artist_data") : t("artist_data")}
-          </TabsTrigger>
-          <TabsTrigger value="app" className={`${isMobile ? 'text-xs px-2 py-3' : ''}`}>
-            {isMobile ? 'App' : t("app_config")}
+          <TabsTrigger value="artist" className={`${isMobile ? 'text-xs px-2 py-2' : ''}`}>
+            {isMobile ? 'Artista' : t("artist_data")}
           </TabsTrigger>
           {!isMobile && (
             <>
+              <TabsTrigger value="app">{t("app_config")}</TabsTrigger>
               <TabsTrigger value="email">Email</TabsTrigger>
               <TabsTrigger value="subscription">Suscripción</TabsTrigger>
             </>
           )}
         </TabsList>
 
-        {/* Mobile-specific tabs for Email and Subscription */}
+        {/* Mobile-specific tabs */}
         {isMobile && (
-          <TabsList className="grid w-full grid-cols-2 mt-2">
-            <TabsTrigger value="email" className="text-xs px-2 py-3">
+          <TabsList className="grid w-full grid-cols-3 mt-2 gap-1">
+            <TabsTrigger value="app" className="text-xs px-1 py-2">
+              App
+            </TabsTrigger>
+            <TabsTrigger value="email" className="text-xs px-1 py-2">
               Email
             </TabsTrigger>
-            <TabsTrigger value="subscription" className="text-xs px-2 py-3">
+            <TabsTrigger value="subscription" className="text-xs px-1 py-2">
               Suscripción
             </TabsTrigger>
           </TabsList>
         )}
 
-        <TabsContent value="profile" className="mt-6">
+        <TabsContent value="profile" className="mt-4 md:mt-6">
           <Card>
             <CardHeader>
               <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'}`}>{t("personal_info")}</CardTitle>
@@ -278,6 +280,7 @@ const AppSettings = () => {
                   disabled={isResettingPassword}
                   variant="outline"
                   className="w-full sm:w-auto"
+                  size={isMobile ? "sm" : "default"}
                 >
                   {isResettingPassword ? (
                     <>
@@ -297,16 +300,20 @@ const AppSettings = () => {
               </div>
 
               <div className="flex justify-end pt-4">
-                <Button onClick={handleSaveProfile} className="bg-crm-primary hover:bg-crm-primary/90">
+                <Button 
+                  onClick={handleSaveProfile} 
+                  className="bg-crm-primary hover:bg-crm-primary/90 w-full sm:w-auto"
+                  size={isMobile ? "sm" : "default"}
+                >
                   <Save className="h-4 w-4 mr-2" />
-                  {t("save")} {t("profile")}
+                  {t("save")}
                 </Button>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="artist" className="mt-6">
+        <TabsContent value="artist" className="mt-4 md:mt-6">
           <Card>
             <CardHeader>
               <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'}`}>{t("artist_data")}</CardTitle>
@@ -326,7 +333,7 @@ const AppSettings = () => {
               <div className="space-y-2">
                 <Label className={`${isMobile ? 'text-sm' : ''}`}>{t("logo")}</Label>
                 <div className="space-y-3">
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                     <input
                       type="file"
                       accept="image/*"
@@ -340,7 +347,8 @@ const AppSettings = () => {
                       variant="outline"
                       onClick={() => document.getElementById('logo-upload')?.click()}
                       disabled={isUploadingLogo}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 w-full sm:w-auto"
+                      size={isMobile ? "sm" : "default"}
                     >
                       <Upload className="h-4 w-4" />
                       {isUploadingLogo ? 'Subiendo...' : 'Subir Logo'}
@@ -350,7 +358,8 @@ const AppSettings = () => {
                         type="button"
                         variant="outline"
                         onClick={() => updateAppLogo(null)}
-                        className="text-red-600 hover:text-red-700"
+                        className="text-red-600 hover:text-red-700 w-full sm:w-auto"
+                        size={isMobile ? "sm" : "default"}
                       >
                         Eliminar
                       </Button>
@@ -377,16 +386,20 @@ const AppSettings = () => {
               </div>
 
               <div className="flex justify-end pt-4">
-                <Button onClick={handleSaveArtist} className="bg-crm-primary hover:bg-crm-primary/90">
+                <Button 
+                  onClick={handleSaveArtist} 
+                  className="bg-crm-primary hover:bg-crm-primary/90 w-full sm:w-auto"
+                  size={isMobile ? "sm" : "default"}
+                >
                   <Save className="h-4 w-4 mr-2" />
-                  {t("save")} {t("artist_data")}
+                  {t("save")}
                 </Button>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="app" className="mt-6">
+        <TabsContent value="app" className="mt-4 md:mt-6">
           <Card>
             <CardHeader>
               <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'}`}>{t("app_config")}</CardTitle>
@@ -437,14 +450,20 @@ const AppSettings = () => {
 
               <div className="space-y-2">
                 <Label className={`${isMobile ? 'text-sm' : ''}`}>{t("booking_link")}</Label>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Input
                     value={currentUser ? `${window.location.origin}/booking/${currentUser.uid}` : ''}
                     readOnly
-                    className={`bg-gray-50 ${isMobile ? 'text-xs' : ''}`}
+                    className={`bg-gray-50 ${isMobile ? 'text-xs' : ''} flex-1`}
                   />
-                  <Button onClick={handleCopyBookingLink} variant="outline" size="icon">
-                    <Copy className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
+                  <Button 
+                    onClick={handleCopyBookingLink} 
+                    variant="outline" 
+                    size={isMobile ? "sm" : "icon"}
+                    className={isMobile ? "w-full" : ""}
+                  >
+                    <Copy className={`${isMobile ? 'h-3 w-3 mr-2' : 'h-4 w-4'}`} />
+                    {isMobile && 'Copiar'}
                   </Button>
                 </div>
                 <p className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>
@@ -453,20 +472,24 @@ const AppSettings = () => {
               </div>
 
               <div className="flex justify-end pt-4">
-                <Button onClick={handleSaveApp} className="bg-crm-primary hover:bg-crm-primary/90">
+                <Button 
+                  onClick={handleSaveApp} 
+                  className="bg-crm-primary hover:bg-crm-primary/90 w-full sm:w-auto"
+                  size={isMobile ? "sm" : "default"}
+                >
                   <Save className="h-4 w-4 mr-2" />
-                  {t("save")} {t("app_config")}
+                  {t("save")}
                 </Button>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="email" className="mt-6">
+        <TabsContent value="email" className="mt-4 md:mt-6">
           <EmailSettings />
         </TabsContent>
 
-        <TabsContent value="subscription" className="mt-6">
+        <TabsContent value="subscription" className="mt-4 md:mt-6">
           <SubscriptionSettings />
         </TabsContent>
       </Tabs>

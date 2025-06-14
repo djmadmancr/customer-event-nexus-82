@@ -13,8 +13,9 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { LogOut, Settings, User, CalendarPlus } from 'lucide-react';
+import { LogOut, Settings, User, CalendarPlus, Menu } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 import NotificationBell from './NotificationBell';
 
 interface HeaderProps {
@@ -27,6 +28,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
   const { userProfile } = useUserProfile();
   const { t } = useLanguage();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -44,21 +46,33 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
       navigator.clipboard.writeText(bookingUrl);
       toast({
         title: t("booking_link_copied"),
-        description: "El link para bookings ha sido copiado al portapapeles",
+        description: t("booking_link_copied"),
       });
     }
   };
 
   return (
     <header className="bg-white shadow-sm border-b">
-      <div className="flex items-center justify-between px-6 py-4">
-        {/* Logo Section - Centered */}
-        <div className="flex-1 flex justify-center">
+      <div className="flex items-center justify-between px-3 md:px-6 py-3 md:py-4">
+        {/* Mobile menu button */}
+        {isMobile && (
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={toggleSidebar}
+            className="md:hidden"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        )}
+
+        {/* Logo Section */}
+        <div className={`flex-1 flex ${isMobile ? 'justify-center' : 'justify-center'}`}>
           {logoUrl && (
             <img 
               src={logoUrl} 
               alt="Logo" 
-              className="h-12 w-auto max-w-[200px]"
+              className={`${isMobile ? 'h-8 w-auto max-w-[150px]' : 'h-12 w-auto max-w-[200px]'}`}
               onError={(e) => {
                 (e.currentTarget as HTMLImageElement).style.display = 'none';
               }}
@@ -67,24 +81,37 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
         </div>
 
         {/* User Menu */}
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-1 md:space-x-2">
           {currentUser && (
             <>
-              <Button variant="ghost" onClick={handleCopyBookingLink}>
-                <CalendarPlus className="mr-2 h-4 w-4" />
-                {t("booking")}
-              </Button>
+              {!isMobile && (
+                <Button variant="ghost" onClick={handleCopyBookingLink} className="hidden sm:flex">
+                  <CalendarPlus className="mr-2 h-4 w-4" />
+                  {t("booking")}
+                </Button>
+              )}
               <NotificationBell />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center space-x-2">
+                  <Button variant="ghost" className={`flex items-center ${isMobile ? 'px-2' : 'space-x-2'}`}>
                     <User className="h-4 w-4" />
-                    <span className="hidden sm:inline">
-                      {userData?.name || userProfile?.name || currentUser.email}
-                    </span>
+                    {!isMobile && (
+                      <span className="hidden sm:inline">
+                        {userData?.name || userProfile?.name || currentUser.email}
+                      </span>
+                    )}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
+                  {isMobile && (
+                    <>
+                      <DropdownMenuItem onClick={handleCopyBookingLink}>
+                        <CalendarPlus className="mr-2 h-4 w-4" />
+                        {t("booking")}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
                   <DropdownMenuItem onClick={() => navigate('/settings')}>
                     <Settings className="mr-2 h-4 w-4" />
                     {t("settings")}

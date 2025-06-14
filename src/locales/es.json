@@ -1,7 +1,7 @@
 
 {
-  "app_name": "CRM Sistema de Gestión",
-  "dashboard": "Dashboard",
+  "app_name": "Sistema de Gestión CRM",
+  "dashboard": "Panel de Control",
   "customers": "Clientes",
   "events": "Eventos",
   "payments": "Pagos",
@@ -40,9 +40,9 @@
   "booking_link": "Link para Bookings",
   "notifications": "Notificaciones",
   "no_notifications": "No hay notificaciones",
-  "mark_as_read": "Marcar leídas",
-  "profile_updated": "Perfil actualizado",
-  "config_updated": "Configuración actualizada",
+  "mark_as_read": "Marcar como leídas",
+  "profile_updated": "Perfil Actualizado",
+  "config_updated": "Configuración Actualizada",
   "booking": "Booking",
   "new_customer": "Nuevo Cliente",
   "customer_detail": "Detalle del Cliente",
@@ -75,5 +75,5 @@
   "logo": "Logo",
   "security": "Seguridad",
   "reset_password": "Restablecer Contraseña",
-  "booking_link_copied": "Link copiado al portapapeles"
+  "booking_link_copied": "Link Copiado al Portapapeles"
 }

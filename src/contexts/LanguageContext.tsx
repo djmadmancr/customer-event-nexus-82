@@ -26,6 +26,20 @@ interface LanguageProviderProps {
 export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) => {
   const { currentUser } = useAuth();
   const [currentLanguage, setCurrentLanguage] = useState<Language>('es');
+  const [translations, setTranslations] = useState<Record<string, string>>({});
+
+  // Load translations for current language
+  const loadTranslations = async (language: Language) => {
+    try {
+      const translationModule = await import(`@/locales/${language}.json`);
+      setTranslations(translationModule.default);
+    } catch (error) {
+      console.warn(`Failed to load translations for language: ${language}`);
+      // Fallback to Spanish
+      const fallbackModule = await import('@/locales/es.json');
+      setTranslations(fallbackModule.default);
+    }
+  };
 
   useEffect(() => {
     if (currentUser) {
@@ -35,34 +49,37 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
       
       if (savedLanguage && ['es', 'en', 'pt'].includes(savedLanguage)) {
         setCurrentLanguage(savedLanguage);
+        loadTranslations(savedLanguage);
       } else {
         setCurrentLanguage('es'); // Default to Spanish
+        loadTranslations('es');
       }
     } else {
       setCurrentLanguage('es'); // Default when no user
+      loadTranslations('es');
     }
   }, [currentUser?.uid]);
 
+  // Load translations when language changes
+  useEffect(() => {
+    loadTranslations(currentLanguage);
+  }, [currentLanguage]);
+
   const setLanguage = (language: Language) => {
-    if (!currentUser) return;
-    
-    console.log('Updating language for user:', currentUser.uid, 'Language:', language);
+    console.log('Updating language to:', language);
     setCurrentLanguage(language);
+    loadTranslations(language);
     
-    // Save to localStorage with user-specific key
-    const languageKey = `defaultLanguage_${currentUser.uid}`;
-    localStorage.setItem(languageKey, language);
+    if (currentUser) {
+      // Save to localStorage with user-specific key
+      const languageKey = `defaultLanguage_${currentUser.uid}`;
+      localStorage.setItem(languageKey, language);
+    }
   };
 
-  // Translation function - loads from translations file
+  // Translation function
   const t = (key: string): string => {
-    try {
-      const translations = require(`@/locales/${currentLanguage}.json`);
-      return translations[key] || key;
-    } catch (error) {
-      console.warn(`Translation not found for key: ${key} in language: ${currentLanguage}`);
-      return key;
-    }
+    return translations[key] || key;
   };
 
   const value = {

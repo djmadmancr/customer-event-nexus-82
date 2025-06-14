@@ -39,10 +39,10 @@
   "default_language": "Idioma Padrão",
   "booking_link": "Link para Reservas",
   "notifications": "Notificações",
-  "no_notifications": "Nenhuma notificação",
-  "mark_as_read": "Marcar como lidas",
-  "profile_updated": "Perfil atualizado",
-  "config_updated": "Configuração atualizada",
+  "no_notifications": "Nenhuma Notificação",
+  "mark_as_read": "Marcar como Lidas",
+  "profile_updated": "Perfil Atualizado",
+  "config_updated": "Configuração Atualizada",
   "booking": "Reserva",
   "new_customer": "Novo Cliente",
   "customer_detail": "Detalhes do Cliente",
@@ -75,5 +75,5 @@
   "logo": "Logo",
   "security": "Segurança",
   "reset_password": "Redefinir Senha",
-  "booking_link_copied": "Link copiado para a área de transferência"
+  "booking_link_copied": "Link Copiado para a Área de Transferência"
 }
