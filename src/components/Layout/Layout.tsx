@@ -6,6 +6,7 @@ import { useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Outlet } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface LayoutProps {
   children?: React.ReactNode;
@@ -16,6 +17,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const location = useLocation();
   const isMobile = useIsMobile();
+  const { t } = useLanguage();
   
   const toggleSidebar = () => {
     // On mobile
@@ -30,20 +32,20 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   // Get title based on current route
   const getPageTitle = () => {
     const path = location.pathname;
-    if (path === '/' || path === '/dashboard') return 'Dashboard';
-    if (path === '/customers') return 'Gestión de Clientes';
-    if (path.includes('/customers/') && path.includes('/edit')) return 'Editar Cliente';
-    if (path.includes('/customers/') && path.includes('/new')) return 'Nuevo Cliente';
-    if (path.includes('/customers/')) return 'Detalle del Cliente';
+    if (path === '/' || path === '/dashboard') return t('dashboard');
+    if (path === '/customers') return t('customer_management');
+    if (path.includes('/customers/') && path.includes('/edit')) return t('edit_customer');
+    if (path.includes('/customers/') && path.includes('/new')) return t('new_customer');
+    if (path.includes('/customers/')) return t('customer_detail');
     
-    if (path === '/events') return 'Gestión de Eventos';
-    if (path.includes('/events/') && path.includes('/edit')) return 'Editar Evento';
-    if (path.includes('/events/') && path.includes('/new')) return 'Nuevo Evento';
-    if (path.includes('/events/')) return 'Detalle del Evento';
+    if (path === '/events') return t('event_management');
+    if (path.includes('/events/') && path.includes('/edit')) return t('edit_event');
+    if (path.includes('/events/') && path.includes('/new')) return t('new_event');
+    if (path.includes('/events/')) return t('event_detail');
     
-    if (path === '/payments') return 'Gestión de Pagos';
+    if (path === '/payments') return t('payment_management');
     
-    if (path === '/settings') return 'Configuración';
+    if (path === '/settings') return t('settings');
     
     return 'NEXUS';
   };

@@ -4,14 +4,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { Home, Users, Calendar, Coins } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/contexts/AppConfigContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useIsMobile } from '@/hooks/use-mobile';
-
-const navigation = [
-  { name: 'Dashboard', href: '/', icon: Home },
-  { name: 'Clientes', href: '/customers', icon: Users },
-  { name: 'Eventos', href: '/events', icon: Calendar },
-  { name: 'Pagos', href: '/payments', icon: Coins },
-];
 
 interface SidebarProps {
   isOpen: boolean;
@@ -21,7 +15,15 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const location = useLocation();
   const { logoUrl } = useAppConfig();
+  const { t } = useLanguage();
   const isMobile = useIsMobile();
+
+  const navigation = [
+    { name: t('dashboard'), href: '/', icon: Home },
+    { name: t('customers'), href: '/customers', icon: Users },
+    { name: t('events'), href: '/events', icon: Calendar },
+    { name: t('payments'), href: '/payments', icon: Coins },
+  ];
 
   return (
     <>

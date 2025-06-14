@@ -75,5 +75,9 @@
   "logo": "Logo",
   "security": "Segurança",
   "reset_password": "Redefinir Senha",
-  "booking_link_copied": "Link Copiado para a Área de Transferência"
+  "booking_link_copied": "Link Copiado para a Área de Transferência",
+  "monthly_revenue": "Receitas",
+  "event_categories": "Categorias de Eventos",
+  "collection": "Cobrança",
+  "top_clients": "Top 5 Clientes por Receitas"
 }

@@ -1,7 +1,7 @@
 
 {
   "app_name": "Sistema de Gestión CRM",
-  "dashboard": "Panel de Control",
+  "dashboard": "Dashboard",
   "customers": "Clientes",
   "events": "Eventos",
   "payments": "Pagos",
@@ -37,13 +37,13 @@
   "artist_name": "Nombre Artístico",
   "default_currency": "Moneda por Defecto",
   "default_language": "Idioma por Defecto",
-  "booking_link": "Link para Bookings",
+  "booking_link": "Link para Reservas",
   "notifications": "Notificaciones",
-  "no_notifications": "No hay notificaciones",
-  "mark_as_read": "Marcar como leídas",
+  "no_notifications": "No hay Notificaciones",
+  "mark_as_read": "Marcar como Leídas",
   "profile_updated": "Perfil Actualizado",
   "config_updated": "Configuración Actualizada",
-  "booking": "Booking",
+  "booking": "Reserva",
   "new_customer": "Nuevo Cliente",
   "customer_detail": "Detalle del Cliente",
   "edit_customer": "Editar Cliente",
@@ -75,5 +75,9 @@
   "logo": "Logo",
   "security": "Seguridad",
   "reset_password": "Restablecer Contraseña",
-  "booking_link_copied": "Link Copiado al Portapapeles"
+  "booking_link_copied": "Link Copiado al Portapapeles",
+  "monthly_revenue": "Ingresos",
+  "event_categories": "Categorías de Eventos",
+  "collection": "Cobranza",
+  "top_clients": "Top 5 Clientes por Ingresos"
 }

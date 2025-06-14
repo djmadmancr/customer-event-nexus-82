@@ -75,5 +75,9 @@
   "logo": "Logo",
   "security": "Security",
   "reset_password": "Reset Password",
-  "booking_link_copied": "Link Copied to Clipboard"
+  "booking_link_copied": "Link Copied to Clipboard",
+  "monthly_revenue": "Revenue",
+  "event_categories": "Event Categories",
+  "collection": "Collection",
+  "top_clients": "Top 5 Clients by Revenue"
 }

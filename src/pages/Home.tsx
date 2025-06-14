@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -6,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useCrm } from '@/contexts/CrmContext';
 import { useAppConfig } from '@/contexts/AppConfigContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import {
   ResponsiveContainer,
   BarChart,
@@ -34,6 +34,7 @@ interface EventSummary {
 const Home = () => {
   const { events, customers, payments } = useCrm();
   const { defaultCurrency } = useAppConfig();
+  const { t } = useLanguage();
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [filteredEvents, setFilteredEvents] = useState(events);
@@ -133,7 +134,7 @@ const Home = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-gray-800">Dashboard</CardTitle>
+          <CardTitle className="text-2xl font-bold text-gray-800">{t('dashboard')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Date Range Filter */}
@@ -168,7 +169,7 @@ const Home = () => {
             {/* Category Distribution Chart */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Categorías de Eventos</CardTitle>
+                <CardTitle className="text-lg">{t('event_categories')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-72">
@@ -199,7 +200,7 @@ const Home = () => {
             {/* Percentage Pending Collection Chart */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Cobranza</CardTitle>
+                <CardTitle className="text-lg">{t('collection')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-72">
@@ -264,7 +265,7 @@ const Home = () => {
           {/* Monthly Revenue Chart - Full Width */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Ingresos Mensuales - Programados vs Cobrados</CardTitle>
+              <CardTitle className="text-lg">{t('monthly_revenue')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="h-96 w-full">
@@ -293,7 +294,7 @@ const Home = () => {
           {/* Top 5 Clients List */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Top 5 Clientes por Ingresos</CardTitle>
+              <CardTitle className="text-lg">{t('top_clients')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
