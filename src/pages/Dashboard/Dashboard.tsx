@@ -1,8 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CalendarDays, Users, Calendar, Coins, TrendingUp, User, CalendarIcon } from 'lucide-react';
 import { useCrm } from '@/contexts/CrmContext';
 import { useAppConfig } from '@/contexts/AppConfigContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, Legend } from 'recharts';
 import dataService from '@/services/DataService';
 import { Button } from '@/components/ui/button';
@@ -14,6 +16,7 @@ import { es } from 'date-fns/locale';
 const Dashboard = () => {
   const { customers, events } = useCrm();
   const { defaultCurrency } = useAppConfig();
+  const { t } = useLanguage();
   const [filteredEvents, setFilteredEvents] = useState(events);
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
@@ -59,11 +62,11 @@ const Dashboard = () => {
 
   // Event category distribution
   const categoryData = [
-    { name: 'Bodas', value: filteredEvents.filter(e => e.category === 'wedding').length, color: '#7C3AED' },
-    { name: 'Cumpleaños', value: filteredEvents.filter(e => e.category === 'birthday').length, color: '#A855F7' },
-    { name: 'Corporativos', value: filteredEvents.filter(e => e.category === 'corporate').length, color: '#6366F1' },
-    { name: 'Club', value: filteredEvents.filter(e => e.category === 'club').length, color: '#8B5CF6' },
-    { name: 'Otros', value: filteredEvents.filter(e => e.category === 'other' || !e.category).length, color: '#9333EA' },
+    { name: t('wedding'), value: filteredEvents.filter(e => e.category === 'wedding').length, color: '#7C3AED' },
+    { name: t('birthday'), value: filteredEvents.filter(e => e.category === 'birthday').length, color: '#A855F7' },
+    { name: t('corporate'), value: filteredEvents.filter(e => e.category === 'corporate').length, color: '#6366F1' },
+    { name: t('club'), value: filteredEvents.filter(e => e.category === 'club').length, color: '#8B5CF6' },
+    { name: t('other'), value: filteredEvents.filter(e => e.category === 'other' || !e.category).length, color: '#9333EA' },
   ].filter(category => category.value > 0);
 
   // Format number without currency symbol
@@ -127,17 +130,17 @@ const Dashboard = () => {
       {/* Date Range Filter */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm md:text-base">Filtro de Fechas</CardTitle>
+          <CardTitle className="text-sm md:text-base">{t('date_filters')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-4 items-center">
             <div className="flex items-center space-x-2">
-              <label className="text-sm font-medium">Desde:</label>
+              <label className="text-sm font-medium">{t('from')}:</label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="justify-start text-left font-normal">
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateRange.from ? format(dateRange.from, "dd/MM/yyyy") : "Seleccionar fecha"}
+                    {dateRange.from ? format(dateRange.from, "dd/MM/yyyy") : t('select_date')}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -152,12 +155,12 @@ const Dashboard = () => {
             </div>
             
             <div className="flex items-center space-x-2">
-              <label className="text-sm font-medium">Hasta:</label>
+              <label className="text-sm font-medium">{t('to')}:</label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="justify-start text-left font-normal">
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateRange.to ? format(dateRange.to, "dd/MM/yyyy") : "Seleccionar fecha"}
+                    {dateRange.to ? format(dateRange.to, "dd/MM/yyyy") : t('select_date')}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -176,7 +179,7 @@ const Dashboard = () => {
               onClick={() => setDateRange({})}
               className="text-sm"
             >
-              Limpiar filtros
+              {t('clear_filters')}
             </Button>
           </div>
         </CardContent>
@@ -186,7 +189,7 @@ const Dashboard = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">Total Clientes</CardTitle>
+            <CardTitle className="text-xs md:text-sm font-medium">{t('total_customers')}</CardTitle>
             <Users className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -196,7 +199,7 @@ const Dashboard = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">Total Eventos</CardTitle>
+            <CardTitle className="text-xs md:text-sm font-medium">{t('total_events')}</CardTitle>
             <Calendar className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -206,7 +209,7 @@ const Dashboard = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">Próximos Eventos</CardTitle>
+            <CardTitle className="text-xs md:text-sm font-medium">{t('upcoming_events')}</CardTitle>
             <CalendarDays className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -216,7 +219,7 @@ const Dashboard = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">Ingresos Totales ({defaultCurrency})</CardTitle>
+            <CardTitle className="text-xs md:text-sm font-medium">{t('total_revenue')} ({defaultCurrency})</CardTitle>
             <Coins className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -232,7 +235,7 @@ const Dashboard = () => {
         {/* Monthly Revenue Comparison Chart */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm md:text-base">Ingresos Mensuales ({defaultCurrency})</CardTitle>
+            <CardTitle className="text-sm md:text-base">{t('monthly_revenue')} ({defaultCurrency})</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -247,10 +250,14 @@ const Dashboard = () => {
                 <Tooltip 
                   formatter={(value: number, name: string) => [
                     formatNumber(value), 
-                    name === 'programados' ? 'Programados' : 'Cobrados'
+                    name === 'programados' ? t('programados') : t('cobrados')
                   ]}
                 />
-                <Legend verticalAlign="bottom" height={36} />
+                <Legend 
+                  formatter={(value) => value === 'programados' ? t('programados') : t('cobrados')}
+                  verticalAlign="bottom" 
+                  height={36} 
+                />
                 <Bar dataKey="programados" fill="#A855F7" name="programados" />
                 <Bar dataKey="cobrados" fill="#7C3AED" name="cobrados" />
               </BarChart>
@@ -261,7 +268,7 @@ const Dashboard = () => {
         {/* Event Category Distribution */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm md:text-base">Categorías de Eventos</CardTitle>
+            <CardTitle className="text-sm md:text-base">{t('event_categories')}</CardTitle>
           </CardHeader>
           <CardContent>
             {categoryData.length > 0 ? (
@@ -286,7 +293,7 @@ const Dashboard = () => {
               </ResponsiveContainer>
             ) : (
               <div className="flex items-center justify-center h-[300px] text-gray-500 text-sm">
-                No hay eventos categorizados
+                {t('no_categorized_events')}
               </div>
             )}
           </CardContent>
@@ -298,7 +305,7 @@ const Dashboard = () => {
         {/* Top Customers Horizontal Bar Chart */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm md:text-base">Top 5 Clientes por Ingresos - Gráfico de Barras</CardTitle>
+            <CardTitle className="text-sm md:text-base">{t('top_clients')} - {t('revenue')}</CardTitle>
           </CardHeader>
           <CardContent>
             {horizontalBarData.length > 0 ? (
@@ -314,14 +321,14 @@ const Dashboard = () => {
                     tickFormatter={(value) => value.length > 15 ? value.substring(0, 15) + '...' : value}
                   />
                   <Tooltip 
-                    formatter={(value: number) => [formatNumber(value), 'Ingresos']}
+                    formatter={(value: number) => [formatNumber(value), t('revenue')]}
                   />
                   <Bar dataKey="revenue" fill="#6E59A5" />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
               <div className="flex items-center justify-center h-[300px] text-gray-500 text-sm">
-                No hay datos de ingresos disponibles
+                {t('no_revenue_data')}
               </div>
             )}
           </CardContent>
@@ -332,7 +339,7 @@ const Dashboard = () => {
           <CardHeader>
             <CardTitle className="flex items-center text-sm md:text-base">
               <User className="mr-2 h-4 w-4 md:h-5 md:w-5" />
-              Top 5 Clientes por Ingresos ({defaultCurrency})
+              {t('top_clients')} ({defaultCurrency})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -346,7 +353,7 @@ const Dashboard = () => {
                       </div>
                       <div>
                         <p className="font-medium text-gray-900 text-sm md:text-base">{customer.name}</p>
-                        <p className="text-xs text-gray-500">{customer.eventCount} evento(s)</p>
+                        <p className="text-xs text-gray-500">{customer.eventCount} {t('event')}{customer.eventCount !== 1 ? 's' : ''}</p>
                       </div>
                     </div>
                     <div className="text-right">
@@ -359,7 +366,7 @@ const Dashboard = () => {
               </div>
             ) : (
               <div className="flex items-center justify-center h-[200px] text-gray-500 text-sm">
-                No hay datos de ingresos disponibles
+                {t('no_revenue_data')}
               </div>
             )}
           </CardContent>

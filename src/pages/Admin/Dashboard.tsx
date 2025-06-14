@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CalendarDays, Users, Calendar, Coins, TrendingUp, User } from 'lucide-react';
 import { useCrm } from '@/contexts/CrmContext';
 import { useAppConfig } from '@/contexts/AppConfigContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell } from 'recharts';
 import dataService from '@/services/DataService';
 import DashboardFilters from '@/components/Dashboard/DashboardFilters';
@@ -11,6 +12,7 @@ import DashboardFilters from '@/components/Dashboard/DashboardFilters';
 const Dashboard = () => {
   const { customers, events } = useCrm();
   const { defaultCurrency } = useAppConfig();
+  const { t } = useLanguage();
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
   const [filteredEvents, setFilteredEvents] = useState(events);
   const [filters, setFilters] = useState<any>({});
@@ -65,10 +67,10 @@ const Dashboard = () => {
 
   // Event status distribution with updated colors that match the app theme
   const statusData = [
-    { name: 'Prospectos', value: filteredEvents.filter(e => e.status === 'prospect').length, color: '#A855F7' },
-    { name: 'Confirmados', value: filteredEvents.filter(e => e.status === 'confirmed').length, color: '#6366F1' },
-    { name: 'Show Realizado', value: filteredEvents.filter(e => e.status === 'show_completed').length, color: '#8B5CF6' },
-    { name: 'Pagados', value: filteredEvents.filter(e => e.status === 'paid').length, color: '#7C3AED' },
+    { name: t('prospects'), value: filteredEvents.filter(e => e.status === 'prospect').length, color: '#A855F7' },
+    { name: t('confirmed'), value: filteredEvents.filter(e => e.status === 'confirmed').length, color: '#6366F1' },
+    { name: t('show_completed'), value: filteredEvents.filter(e => e.status === 'show_completed').length, color: '#8B5CF6' },
+    { name: t('paid'), value: filteredEvents.filter(e => e.status === 'paid').length, color: '#7C3AED' },
   ];
 
   // Top 5 customers by revenue (as a list instead of chart)
@@ -84,11 +86,11 @@ const Dashboard = () => {
 
   // Event category distribution
   const categoryData = [
-    { name: 'Bodas', value: filteredEvents.filter(e => e.category === 'wedding').length, color: '#7C3AED' },
-    { name: 'Cumpleaños', value: filteredEvents.filter(e => e.category === 'birthday').length, color: '#A855F7' },
-    { name: 'Corporativos', value: filteredEvents.filter(e => e.category === 'corporate').length, color: '#6366F1' },
-    { name: 'Club', value: filteredEvents.filter(e => e.category === 'club').length, color: '#8B5CF6' },
-    { name: 'Otros', value: filteredEvents.filter(e => e.category === 'other' || !e.category).length, color: '#9333EA' },
+    { name: t('wedding'), value: filteredEvents.filter(e => e.category === 'wedding').length, color: '#7C3AED' },
+    { name: t('birthday'), value: filteredEvents.filter(e => e.category === 'birthday').length, color: '#A855F7' },
+    { name: t('corporate'), value: filteredEvents.filter(e => e.category === 'corporate').length, color: '#6366F1' },
+    { name: t('club'), value: filteredEvents.filter(e => e.category === 'club').length, color: '#8B5CF6' },
+    { name: t('other'), value: filteredEvents.filter(e => e.category === 'other' || !e.category).length, color: '#9333EA' },
   ].filter(category => category.value > 0);
 
   // Conversion funnel data
@@ -98,10 +100,10 @@ const Dashboard = () => {
   const totalPaid = events.filter(e => e.status === 'paid').length;
 
   const funnelData = [
-    { name: 'Prospectos', value: totalProspects, fill: '#A855F7' },
-    { name: 'Confirmados', value: totalConfirmed, fill: '#6366F1' },
-    { name: 'Show Realizado', value: totalCompleted, fill: '#8B5CF6' },
-    { name: 'Pagados', value: totalPaid, fill: '#7C3AED' },
+    { name: t('prospects'), value: totalProspects, fill: '#A855F7' },
+    { name: t('confirmed'), value: totalConfirmed, fill: '#6366F1' },
+    { name: t('show_completed'), value: totalCompleted, fill: '#8B5CF6' },
+    { name: t('paid'), value: totalPaid, fill: '#7C3AED' },
   ];
 
   // Format number without currency symbol
@@ -155,7 +157,7 @@ const Dashboard = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">Total Clientes</CardTitle>
+            <CardTitle className="text-xs md:text-sm font-medium">{t('total_customers')}</CardTitle>
             <Users className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -171,7 +173,7 @@ const Dashboard = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">Total Eventos</CardTitle>
+            <CardTitle className="text-xs md:text-sm font-medium">{t('total_events')}</CardTitle>
             <Calendar className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -190,7 +192,7 @@ const Dashboard = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">Próximos Eventos</CardTitle>
+            <CardTitle className="text-xs md:text-sm font-medium">{t('upcoming_events')}</CardTitle>
             <CalendarDays className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -203,7 +205,7 @@ const Dashboard = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">Ingresos Totales ({defaultCurrency})</CardTitle>
+            <CardTitle className="text-xs md:text-sm font-medium">{t('total_revenue')} ({defaultCurrency})</CardTitle>
             <Coins className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -222,7 +224,7 @@ const Dashboard = () => {
         {/* Monthly Revenue Chart */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm md:text-base">Ingresos Mensuales ({defaultCurrency})</CardTitle>
+            <CardTitle className="text-sm md:text-base">{t('monthly_revenue')} ({defaultCurrency})</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
@@ -237,7 +239,7 @@ const Dashboard = () => {
                 <Tooltip 
                   formatter={(value: number) => [
                     formatNumber(value), 
-                    'Ingresos'
+                    t('revenue')
                   ]}
                 />
                 <Bar dataKey="revenue" fill="#6E59A5" />
@@ -249,7 +251,7 @@ const Dashboard = () => {
         {/* Event Status Distribution */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm md:text-base">Estado de Eventos</CardTitle>
+            <CardTitle className="text-sm md:text-base">{t('event_status')}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
@@ -281,7 +283,7 @@ const Dashboard = () => {
           <CardHeader>
             <CardTitle className="flex items-center text-sm md:text-base">
               <User className="mr-2 h-4 w-4 md:h-5 md:w-5" />
-              Top 5 Clientes por Ingresos ({defaultCurrency})
+              {t('top_clients')} ({defaultCurrency})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -295,7 +297,7 @@ const Dashboard = () => {
                       </div>
                       <div>
                         <p className="font-medium text-gray-900 text-sm md:text-base">{customer.name}</p>
-                        <p className="text-xs text-gray-500">{customer.eventCount} evento(s)</p>
+                        <p className="text-xs text-gray-500">{customer.eventCount} {t('event')}{customer.eventCount !== 1 ? 's' : ''}</p>
                       </div>
                     </div>
                     <div className="text-right">
@@ -308,7 +310,7 @@ const Dashboard = () => {
               </div>
             ) : (
               <div className="flex items-center justify-center h-[200px] text-gray-500 text-sm">
-                No hay datos de ingresos disponibles
+                {t('no_revenue_data')}
               </div>
             )}
           </CardContent>
@@ -317,7 +319,7 @@ const Dashboard = () => {
         {/* Event Category Distribution */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm md:text-base">Distribución de Tipos de Evento</CardTitle>
+            <CardTitle className="text-sm md:text-base">{t('event_distribution')}</CardTitle>
           </CardHeader>
           <CardContent>
             {categoryData.length > 0 ? (
@@ -341,7 +343,7 @@ const Dashboard = () => {
               </ResponsiveContainer>
             ) : (
               <div className="flex items-center justify-center h-[250px] text-gray-500 text-sm">
-                No hay eventos categorizados
+                {t('no_categorized_events')}
               </div>
             )}
           </CardContent>
@@ -353,7 +355,7 @@ const Dashboard = () => {
         <CardHeader>
           <CardTitle className="flex items-center text-sm md:text-base">
             <TrendingUp className="mr-2 h-4 w-4 md:h-5 md:w-5" />
-            Tasa de Conversión de Prospectos
+            {t('prospects_conversion')}
           </CardTitle>
         </CardHeader>
         <CardContent>
