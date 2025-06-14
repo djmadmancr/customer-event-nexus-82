@@ -100,5 +100,16 @@
   "prospects": "Prospectos",
   "no_revenue_data": "Não há dados de receitas disponíveis",
   "no_categorized_events": "Não há eventos categorizados",
-  "prospects_conversion": "Taxa de Conversão de Prospectos"
+  "prospects_conversion": "Taxa de Conversão de Prospectos",
+  "top_clients_revenue": "Top 5 Clientes - Receitas",
+  "start_date": "Data de Início",
+  "end_date": "Data de Fim",
+  "apply_filter": "Aplicar Filtro",
+  "collected": "Coletado",
+  "pending": "Pendente",
+  "quotes": "Cotações",
+  "delivered": "Entregues",
+  "financial_summary": "Resumo Financeiro",
+  "paid_events": "Eventos Pagos",
+  "pending_events": "Eventos Pendentes"
 }

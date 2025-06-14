@@ -100,5 +100,16 @@
   "prospects": "Prospects",
   "no_revenue_data": "No revenue data available",
   "no_categorized_events": "No categorized events",
-  "prospects_conversion": "Prospects Conversion Rate"
+  "prospects_conversion": "Prospects Conversion Rate",
+  "top_clients_revenue": "Top 5 Clients - Revenue",
+  "start_date": "Start Date",
+  "end_date": "End Date",
+  "apply_filter": "Apply Filter",
+  "collected": "Collected",
+  "pending": "Pending",
+  "quotes": "Quotes",
+  "delivered": "Delivered",
+  "financial_summary": "Financial Summary",
+  "paid_events": "Paid Events",
+  "pending_events": "Pending Events"
 }

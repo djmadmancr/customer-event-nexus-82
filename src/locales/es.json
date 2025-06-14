@@ -100,5 +100,16 @@
   "prospects": "Prospectos",
   "no_revenue_data": "No hay datos de ingresos disponibles",
   "no_categorized_events": "No hay eventos categorizados",
-  "prospects_conversion": "Tasa de Conversión de Prospectos"
+  "prospects_conversion": "Tasa de Conversión de Prospectos",
+  "top_clients_revenue": "Top 5 Clientes - Ingresos",
+  "start_date": "Fecha de Inicio",
+  "end_date": "Fecha de Fin",
+  "apply_filter": "Aplicar Filtro",
+  "collected": "Cobrado",
+  "pending": "Pendiente",
+  "quotes": "Cotizaciones",
+  "delivered": "Entregados",
+  "financial_summary": "Resumen Financiero",
+  "paid_events": "Eventos Pagados",
+  "pending_events": "Eventos Pendientes"
 }

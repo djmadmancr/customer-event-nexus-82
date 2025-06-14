@@ -86,8 +86,8 @@ const Home = () => {
   const pendingCollection = totalRevenue - totalPaid;
 
   const pendingCollectionData = [
-    { name: 'Cobrado', value: totalPaid },
-    { name: 'Pendiente', value: pendingCollection > 0 ? pendingCollection : 0 },
+    { name: t('collected'), value: totalPaid },
+    { name: t('pending'), value: pendingCollection > 0 ? pendingCollection : 0 },
   ];
 
   // Fix monthly data to properly include payments by month and sort chronologically
@@ -169,7 +169,7 @@ const Home = () => {
           {/* Date Range Filter */}
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
             <div className="flex-1">
-              <Label htmlFor="start-date">Fecha de Inicio</Label>
+              <Label htmlFor="start-date">{t('start_date')}</Label>
               <Input
                 id="start-date"
                 type="date"
@@ -179,7 +179,7 @@ const Home = () => {
               />
             </div>
             <div className="flex-1">
-              <Label htmlFor="end-date">Fecha de Fin</Label>
+              <Label htmlFor="end-date">{t('end_date')}</Label>
               <Input
                 id="end-date"
                 type="date"
@@ -189,7 +189,7 @@ const Home = () => {
               />
             </div>
             <Button onClick={applyDateFilter} className="bg-crm-primary hover:bg-crm-primary/90">
-              Aplicar Filtro
+              {t('apply_filter')}
             </Button>
           </div>
 
@@ -265,28 +265,28 @@ const Home = () => {
             <Card>
               <CardContent className="flex flex-col items-center justify-center p-6">
                 <div className="text-2xl font-bold text-yellow-600">{eventSummary.prospect}</div>
-                <div className="text-sm text-gray-600 text-center">Cotizaciones</div>
+                <div className="text-sm text-gray-600 text-center">{t('quotes')}</div>
               </CardContent>
             </Card>
             
             <Card>
               <CardContent className="flex flex-col items-center justify-center p-6">
                 <div className="text-2xl font-bold text-blue-600">{eventSummary.confirmed}</div>
-                <div className="text-sm text-gray-600 text-center">Confirmados</div>
+                <div className="text-sm text-gray-600 text-center">{t('confirmed')}</div>
               </CardContent>
             </Card>
             
             <Card>
               <CardContent className="flex flex-col items-center justify-center p-6">
                 <div className="text-2xl font-bold text-purple-600">{eventSummary.show_completed}</div>
-                <div className="text-sm text-gray-600 text-center">Show Realizado</div>
+                <div className="text-sm text-gray-600 text-center">{t('show_completed')}</div>
               </CardContent>
             </Card>
             
             <Card>
               <CardContent className="flex flex-col items-center justify-center p-6">
                 <div className="text-2xl font-bold text-green-600">{eventSummary.paid}</div>
-                <div className="text-sm text-gray-600 text-center">Pagados</div>
+                <div className="text-sm text-gray-600 text-center">{t('paid')}</div>
               </CardContent>
             </Card>
           </div>

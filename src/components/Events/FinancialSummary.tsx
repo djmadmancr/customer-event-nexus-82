@@ -14,9 +14,11 @@ import { Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import dataService from '@/services/DataService';
 import { useAppConfig } from '@/contexts/AppConfigContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const FinancialSummary: React.FC = () => {
   const { defaultCurrency } = useAppConfig();
+  const { t } = useLanguage();
   const [startDate, setStartDate] = useState<Date | undefined>(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [endDate, setEndDate] = useState<Date | undefined>(new Date());
   const [paidTotal, setPaidTotal] = useState(0);
@@ -50,16 +52,16 @@ const FinancialSummary: React.FC = () => {
       <CardContent className="pt-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h3 className="text-sm font-medium text-gray-500">Resumen Financiero</h3>
+            <h3 className="text-sm font-medium text-gray-500">{t('financial_summary')}</h3>
             <div className="grid grid-cols-2 gap-6 mt-2">
               <div>
-                <p className="text-sm text-gray-500">Eventos Pagados ({defaultCurrency})</p>
+                <p className="text-sm text-gray-500">{t('paid_events')} ({defaultCurrency})</p>
                 <p className="text-2xl font-bold text-green-600">
                   {formatNumber(paidTotal)}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Eventos Pendientes ({defaultCurrency})</p>
+                <p className="text-sm text-gray-500">{t('pending_events')} ({defaultCurrency})</p>
                 <p className="text-2xl font-bold text-amber-600">
                   {formatNumber(pendingTotal)}
                 </p>
@@ -69,7 +71,7 @@ const FinancialSummary: React.FC = () => {
           
           <div className="flex flex-wrap gap-2 items-center">
             <div>
-              <p className="text-xs text-gray-500 mb-1">Fecha inicio</p>
+              <p className="text-xs text-gray-500 mb-1">{t('start_date')}</p>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -82,7 +84,7 @@ const FinancialSummary: React.FC = () => {
                     {startDate ? (
                       format(startDate, "dd/MM/yyyy", { locale: es })
                     ) : (
-                      <span>Seleccionar</span>
+                      <span>{t('select_date')}</span>
                     )}
                     <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                   </Button>
@@ -101,7 +103,7 @@ const FinancialSummary: React.FC = () => {
             </div>
             
             <div>
-              <p className="text-xs text-gray-500 mb-1">Fecha fin</p>
+              <p className="text-xs text-gray-500 mb-1">{t('end_date')}</p>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -114,7 +116,7 @@ const FinancialSummary: React.FC = () => {
                     {endDate ? (
                       format(endDate, "dd/MM/yyyy", { locale: es })
                     ) : (
-                      <span>Seleccionar</span>
+                      <span>{t('select_date')}</span>
                     )}
                     <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                   </Button>
