@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -67,7 +66,7 @@ const Home = () => {
   }, { prospect: 0, confirmed: 0, show_completed: 0, paid: 0 });
 
   const categoryData = filteredEvents.reduce((acc, event) => {
-    const category = event.category || 'Sin categoría';
+    const category = event.category || t('uncategorized');
     const existingCategory = acc.find(item => item.name === category);
   
     if (existingCategory) {
@@ -90,7 +89,6 @@ const Home = () => {
     { name: t('pending'), value: pendingCollection > 0 ? pendingCollection : 0 },
   ];
 
-  // Fix monthly data to properly include payments by month and sort chronologically
   const monthlyData = filteredEvents.reduce((acc, event) => {
     const eventDate = new Date(event.date);
     const month = eventDate.toLocaleString('default', { month: 'short' });
@@ -116,7 +114,6 @@ const Home = () => {
     return acc;
   }, [] as Array<{ month: string; monthKey: string; monthNumber: number; year: number; programados: number; cobrados: number }>);
 
-  // Properly aggregate payments by month from all filtered events
   const allPaymentsForFilteredEvents = filteredEvents.flatMap(event => dataService.getPaymentsByEventId(event.id));
 
   allPaymentsForFilteredEvents.forEach(payment => {
@@ -141,7 +138,6 @@ const Home = () => {
     existingMonth.cobrados += payment.amount;
   });
 
-  // Sort monthly data chronologically
   const sortedMonthlyData = monthlyData.sort((a, b) => {
     if (a.year !== b.year) return a.year - b.year;
     return a.monthNumber - b.monthNumber;

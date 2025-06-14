@@ -130,5 +130,8 @@
   "quantity": "Quantity",
   "notes": "Notes",
   "additional_notes_placeholder": "Additional notes...",
-  "update": "Update"
+  "update": "Update",
+  "description_min_length": "Description must be at least 2 characters",
+  "quantity_positive": "Quantity must be a positive number",
+  "uncategorized": "Uncategorized"
 }

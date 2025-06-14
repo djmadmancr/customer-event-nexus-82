@@ -130,5 +130,8 @@
   "quantity": "Quantidade",
   "notes": "Notas",
   "additional_notes_placeholder": "Notas adicionais...",
-  "update": "Atualizar"
+  "update": "Atualizar",
+  "description_min_length": "A descrição deve ter pelo menos 2 caracteres",
+  "quantity_positive": "A quantidade deve ser um número positivo",
+  "uncategorized": "Sem categoria"
 }

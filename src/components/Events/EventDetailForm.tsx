@@ -17,14 +17,6 @@ import {
 import { useLanguage } from '@/contexts/LanguageContext';
 import dataService from '@/services/DataService';
 
-const detailSchema = z.object({
-  description: z.string().min(2, { message: 'La descripción debe tener al menos 2 caracteres' }),
-  quantity: z.coerce.number().int().positive({ message: 'La cantidad debe ser un número positivo' }),
-  notes: z.string().optional(),
-});
-
-type DetailFormValues = z.infer<typeof detailSchema>;
-
 interface EventDetailFormProps {
   eventId: string;
   detailId?: string;
@@ -38,6 +30,14 @@ const EventDetailForm: React.FC<EventDetailFormProps> = ({
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { t } = useLanguage();
+
+  const detailSchema = z.object({
+    description: z.string().min(2, { message: t('description_min_length') }),
+    quantity: z.coerce.number().int().positive({ message: t('quantity_positive') }),
+    notes: z.string().optional(),
+  });
+
+  type DetailFormValues = z.infer<typeof detailSchema>;
 
   const form = useForm<DetailFormValues>({
     resolver: zodResolver(detailSchema),
