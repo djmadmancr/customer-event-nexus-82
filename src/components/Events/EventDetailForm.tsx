@@ -14,6 +14,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { useLanguage } from '@/contexts/LanguageContext';
 import dataService from '@/services/DataService';
 
 const detailSchema = z.object({
@@ -36,6 +37,7 @@ const EventDetailForm: React.FC<EventDetailFormProps> = ({
   onComplete,
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { t } = useLanguage();
 
   const form = useForm<DetailFormValues>({
     resolver: zodResolver(detailSchema),
@@ -91,9 +93,9 @@ const EventDetailForm: React.FC<EventDetailFormProps> = ({
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Descripción</FormLabel>
+              <FormLabel>{t('description')}</FormLabel>
               <FormControl>
-                <Input placeholder="Ej. Micrófono, Proyector, etc." {...field} />
+                <Input placeholder={t('description_placeholder')} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -105,7 +107,7 @@ const EventDetailForm: React.FC<EventDetailFormProps> = ({
           name="quantity"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Cantidad</FormLabel>
+              <FormLabel>{t('quantity')}</FormLabel>
               <FormControl>
                 <Input type="number" min={1} {...field} />
               </FormControl>
@@ -119,9 +121,9 @@ const EventDetailForm: React.FC<EventDetailFormProps> = ({
           name="notes"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Notas</FormLabel>
+              <FormLabel>{t('notes')}</FormLabel>
               <FormControl>
-                <Textarea placeholder="Notas adicionales..." rows={3} {...field} />
+                <Textarea placeholder={t('additional_notes_placeholder')} rows={3} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -130,14 +132,14 @@ const EventDetailForm: React.FC<EventDetailFormProps> = ({
 
         <div className="flex justify-end space-x-2 pt-4">
           <Button type="button" variant="outline" onClick={onComplete}>
-            Cancelar
+            {t('cancel')}
           </Button>
           <Button 
             type="submit" 
             disabled={isSubmitting}
             className="bg-crm-primary hover:bg-crm-primary/90"
           >
-            {detailId ? 'Actualizar' : 'Agregar'}
+            {detailId ? t('update') : t('add')}
           </Button>
         </div>
       </form>

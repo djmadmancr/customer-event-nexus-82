@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface NoCustomerDialogProps {
   open: boolean;
@@ -21,22 +22,23 @@ const NoCustomerDialog: React.FC<NoCustomerDialogProps> = ({
   onOpenChange,
   onCreateCustomer,
 }) => {
+  const { t } = useLanguage();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>No hay clientes disponibles</DialogTitle>
+          <DialogTitle>{t('no_customers_available')}</DialogTitle>
           <DialogDescription>
-            Para crear un evento necesitas tener al menos un cliente registrado.
-            ¿Deseas crear un cliente primero?
+            {t('no_customers_description')}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
+            {t('cancel')}
           </Button>
           <Button onClick={onCreateCustomer}>
-            Crear Cliente
+            {t('new_customer')}
           </Button>
         </DialogFooter>
       </DialogContent>
