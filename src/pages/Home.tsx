@@ -19,6 +19,8 @@ import {
   Pie,
   Cell,
 } from 'recharts';
+import { useNotifications } from '@/contexts/NotificationContext';
+import dataService from '@/services/DataService';
 
 const CATEGORY_COLORS = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd'];
 
@@ -76,7 +78,9 @@ const Home = () => {
   }, [] as Array<{ name: string; value: number }>);
 
   const totalRevenue = filteredEvents.reduce((acc, event) => acc + (event.totalWithTax || event.cost), 0);
-  const totalPaid = payments.reduce((acc, payment) => acc + payment.amount, 0);
+  const totalPaid = filteredEvents
+    .flatMap(event => dataService.getPaymentsByEventId(event.id))
+    .reduce((acc, payment) => acc + payment.amount, 0);
   const pendingCollection = totalRevenue - totalPaid;
 
   const pendingCollectionData = [
@@ -98,8 +102,10 @@ const Home = () => {
     return acc;
   }, [] as Array<{ month: string; programados: number; cobrados: number }>);
 
-  // Properly aggregate payments by month
-  payments.forEach(payment => {
+  // Properly aggregate payments by month from all filtered events
+  const allPaymentsForFilteredEvents = filteredEvents.flatMap(event => dataService.getPaymentsByEventId(event.id));
+
+  allPaymentsForFilteredEvents.forEach(payment => {
     const paymentDate = new Date(payment.paymentDate);
     const month = paymentDate.toLocaleString('default', { month: 'short' });
     
@@ -127,7 +133,7 @@ const Home = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-gray-800">Dashboard de Análisis</CardTitle>
+          <CardTitle className="text-2xl font-bold text-gray-800">Dashboard</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Date Range Filter */}
@@ -162,10 +168,10 @@ const Home = () => {
             {/* Category Distribution Chart */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Distribución por Categoría de Evento</CardTitle>
+                <CardTitle className="text-lg">Categorías de Eventos</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-64">
+                <div className="h-72">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -173,7 +179,7 @@ const Home = () => {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
                         outerRadius={80}
                         fill="#8884d8"
                         dataKey="value"
@@ -183,6 +189,7 @@ const Home = () => {
                         ))}
                       </Pie>
                       <Tooltip />
+                      <Legend verticalAlign="bottom" height={36} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
@@ -192,10 +199,10 @@ const Home = () => {
             {/* Percentage Pending Collection Chart */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">% Pendiente de Cobrar</CardTitle>
+                <CardTitle className="text-lg">Cobranza</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-64">
+                <div className="h-72">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -203,7 +210,7 @@ const Home = () => {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
+                        label={({ percent }) => `${(percent * 100).toFixed(1)}%`}
                         outerRadius={80}
                         fill="#8884d8"
                         dataKey="value"
@@ -215,6 +222,7 @@ const Home = () => {
                       <Tooltip 
                         formatter={(value: any) => [`${defaultCurrency} ${value.toLocaleString()}`, '']}
                       />
+                       <Legend verticalAlign="bottom" height={36} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>

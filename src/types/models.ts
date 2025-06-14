@@ -5,6 +5,7 @@ export interface Customer {
   name: string;
   email: string;
   phone: string;
+  identificationNumber?: string; // New field for identification number
   notes: string;
   userId: string; // New field to associate customer with user
   createdAt: Date;

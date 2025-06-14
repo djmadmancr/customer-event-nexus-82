@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { Customer, Event, Payment } from '../types/models';
 import dataService from '../services/DataService';
 import { useAuth } from './AuthContext';
+import { useNotifications } from './NotificationContext';
 
 interface CrmContextType {
   // Customers
@@ -38,6 +39,7 @@ interface CrmProviderProps {
 
 export const CrmProvider: React.FC<CrmProviderProps> = ({ children }) => {
   const { currentUser } = useAuth();
+  const { addNotification, notifications } = useNotifications();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   
@@ -46,21 +48,21 @@ export const CrmProvider: React.FC<CrmProviderProps> = ({ children }) => {
   
   const [payments, setPayments] = useState<Payment[]>([]);
   
-  const refreshCustomers = () => {
+  const refreshCustomers = useCallback(() => {
     if (currentUser) {
       console.log('Refreshing customers for user:', currentUser.uid);
       const customerData = dataService.getAllCustomers();
       setCustomers(customerData);
     }
-  };
+  }, [currentUser]);
   
-  const refreshEvents = () => {
+  const refreshEvents = useCallback(() => {
     if (currentUser) {
       console.log('Refreshing events for user:', currentUser.uid);
       const eventData = dataService.getAllEvents();
       setEvents(eventData);
     }
-  };
+  }, [currentUser]);
   
   const removeEvent = async (eventId: string): Promise<void> => {
     try {
@@ -72,16 +74,12 @@ export const CrmProvider: React.FC<CrmProviderProps> = ({ children }) => {
     }
   };
   
-  const refreshPayments = () => {
+  const refreshPayments = useCallback(() => {
     if (currentUser) {
       console.log('Refreshing payments for user:', currentUser.uid);
-      if (selectedEvent) {
-        setPayments(dataService.getPaymentsByEventId(selectedEvent.id));
-      } else {
-        setPayments(dataService.getAllPayments());
-      }
+      setPayments(dataService.getAllPayments());
     }
-  };
+  }, [currentUser]);
 
   // Initial data load when user changes
   useEffect(() => {
@@ -89,9 +87,9 @@ export const CrmProvider: React.FC<CrmProviderProps> = ({ children }) => {
     if (currentUser) {
       refreshCustomers();
       refreshEvents();
+      refreshPayments();
       setSelectedCustomer(null);
       setSelectedEvent(null);
-      setPayments([]);
     } else {
       // Clear data if no user is logged in
       setCustomers([]);
@@ -100,17 +98,53 @@ export const CrmProvider: React.FC<CrmProviderProps> = ({ children }) => {
       setSelectedCustomer(null);
       setSelectedEvent(null);
     }
-  }, [currentUser?.uid]);
+  }, [currentUser, refreshCustomers, refreshEvents, refreshPayments]);
   
-  // Update payments when selected event changes
+  // Update payments when selected event changes (only used for filtering view, not dashboard)
   useEffect(() => {
     console.log('Selected event changed:', selectedEvent?.id);
     if (selectedEvent && currentUser) {
       setPayments(dataService.getPaymentsByEventId(selectedEvent.id));
-    } else {
+    } else if (currentUser) {
+      // If no event is selected, show all payments.
+      refreshPayments();
+    }
+     else {
       setPayments([]);
     }
-  }, [selectedEvent, currentUser]);
+  }, [selectedEvent, currentUser, refreshPayments]);
+
+  // Check for pending payment notifications
+  useEffect(() => {
+    if (!currentUser || !events.length) return;
+
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    events.forEach(event => {
+      if (event.status === 'show_completed' && new Date(event.date) < sevenDaysAgo) {
+        const eventPayments = dataService.getPaymentsByEventId(event.id);
+        const totalPaid = eventPayments.reduce((acc, p) => acc + p.amount, 0);
+        const totalCost = event.totalWithTax || event.cost;
+
+        if (totalPaid < totalCost) {
+          const existingNotification = notifications.find(
+            n => n.targetId === event.id && n.type === 'payment_due'
+          );
+
+          if (!existingNotification) {
+            addNotification({
+              type: 'payment_due',
+              title: 'Cobro pendiente',
+              message: `El evento "${event.title}" tiene un saldo pendiente de ${totalCost - totalPaid}.`,
+              targetId: event.id,
+              targetType: 'event',
+            });
+          }
+        }
+      }
+    });
+  }, [events, currentUser, addNotification, notifications]);
   
   const value = {
     customers,
