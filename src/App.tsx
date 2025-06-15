@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -23,6 +24,7 @@ import EventForm from '@/pages/Events/EventForm';
 import PaymentPage from '@/pages/Payments/PaymentPage';
 import PaymentForm from '@/pages/Payments/PaymentForm';
 import AppSettings from '@/pages/Settings/AppSettings';
+import ProfilePage from '@/pages/Profile/ProfilePage';
 import Dashboard from '@/pages/Admin/Dashboard';
 import UserManagement from '@/pages/Admin/UserManagement';
 import AdminDashboard from '@/pages/Admin/AdminDashboard';
@@ -59,6 +61,13 @@ function App() {
                           <ProtectedRoute>
                             <Layout>
                               <Dashboard />
+                            </Layout>
+                          </ProtectedRoute>
+                        } />
+                        <Route path="/profile" element={
+                          <ProtectedRoute>
+                            <Layout>
+                              <ProfilePage />
                             </Layout>
                           </ProtectedRoute>
                         } />

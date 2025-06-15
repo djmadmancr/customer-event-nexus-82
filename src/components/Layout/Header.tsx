@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { LogOut, Settings, User, CalendarPlus, Menu } from 'lucide-react';
+import { LogOut, Settings, User, CalendarPlus, Menu, UserCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import NotificationBell from './NotificationBell';
@@ -96,6 +96,10 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
                       <DropdownMenuSeparator />
                     </>
                   )}
+                  <DropdownMenuItem onClick={() => navigate('/profile')}>
+                    <UserCircle className="mr-2 h-4 w-4" />
+                    {t("profile")}
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate('/settings')}>
                     <Settings className="mr-2 h-4 w-4" />
                     {t("settings")}
