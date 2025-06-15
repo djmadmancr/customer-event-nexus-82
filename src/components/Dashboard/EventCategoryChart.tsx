@@ -63,8 +63,8 @@ const EventCategoryChart: React.FC<EventCategoryChartProps> = ({ categoryData })
               <Legend 
                 verticalAlign="bottom" 
                 height={36}
-                formatter={(value, entry) => {
-                  const item = translatedCategoryData.find(d => d.name === entry.payload.name);
+                formatter={(value: string) => {
+                  const item = translatedCategoryData.find(d => d.name === value);
                   return item ? item.translatedName : value;
                 }}
               />
