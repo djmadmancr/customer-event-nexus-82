@@ -82,13 +82,8 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
               <NotificationBell />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className={`flex items-center ${isMobile ? 'px-2' : 'space-x-2'}`}>
+                  <Button variant="ghost" size="icon">
                     <User className="h-4 w-4" />
-                    {!isMobile && (
-                      <span className="hidden sm:inline">
-                        {userData?.name || userProfile?.name || currentUser.email}
-                      </span>
-                    )}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
