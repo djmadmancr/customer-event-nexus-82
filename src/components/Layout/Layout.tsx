@@ -33,6 +33,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const getPageTitle = () => {
     const path = location.pathname;
     if (path === '/' || path === '/dashboard') return ''; // Remove title for dashboard
+    if (path === '/profile') return ''; // Do not show title for profile page
     if (path === '/customers') return t('customer_management');
     if (path.includes('/customers/') && path.includes('/edit')) return t('edit_customer');
     if (path.includes('/customers/') && path.includes('/new')) return t('new_customer');
