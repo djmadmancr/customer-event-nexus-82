@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { Customer, Event, Payment } from '../types/models';
 import dataService from '../services/DataService';
@@ -48,6 +49,7 @@ export const CrmProvider: React.FC<CrmProviderProps> = ({ children }) => {
   
   const [payments, setPayments] = useState<Payment[]>([]);
   
+  // Memoized refresh functions to prevent infinite loops
   const refreshCustomers = useCallback(() => {
     if (currentUser) {
       console.log('Refreshing customers for user:', currentUser.uid);
@@ -81,9 +83,9 @@ export const CrmProvider: React.FC<CrmProviderProps> = ({ children }) => {
     }
   }, [currentUser]);
 
-  // Initial data load when user changes
+  // Initial data load when user changes - FIXED to prevent infinite loops
   useEffect(() => {
-    console.log('User changed, refreshing all data:', currentUser?.uid);
+    console.log('User changed, initializing data for:', currentUser?.uid);
     if (currentUser) {
       refreshCustomers();
       refreshEvents();
@@ -98,23 +100,23 @@ export const CrmProvider: React.FC<CrmProviderProps> = ({ children }) => {
       setSelectedCustomer(null);
       setSelectedEvent(null);
     }
-  }, [currentUser, refreshCustomers, refreshEvents, refreshPayments]);
+  }, [currentUser?.uid]); // Only depend on currentUser.uid to prevent loops
   
   // Update payments when selected event changes (only used for filtering view, not dashboard)
   useEffect(() => {
     console.log('Selected event changed:', selectedEvent?.id);
     if (selectedEvent && currentUser) {
       setPayments(dataService.getPaymentsByEventId(selectedEvent.id));
-    } else if (currentUser) {
+    } else if (currentUser && !selectedEvent) {
       // If no event is selected, show all payments.
-      refreshPayments();
-    }
-     else {
+      const allPayments = dataService.getAllPayments();
+      setPayments(allPayments);
+    } else {
       setPayments([]);
     }
-  }, [selectedEvent, currentUser, refreshPayments]);
+  }, [selectedEvent?.id, currentUser?.uid]); // Fixed dependencies
 
-  // Check for pending payment notifications
+  // Check for pending payment notifications - OPTIMIZED
   useEffect(() => {
     if (!currentUser || !events.length) return;
 
@@ -144,7 +146,7 @@ export const CrmProvider: React.FC<CrmProviderProps> = ({ children }) => {
         }
       }
     });
-  }, [events, currentUser, addNotification, notifications]);
+  }, [events.length, currentUser?.uid]); // Optimized dependencies
   
   const value = {
     customers,

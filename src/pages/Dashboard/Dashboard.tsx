@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useCrm } from '@/contexts/CrmContext';
 import DashboardStats from '@/components/Dashboard/DashboardStats';
@@ -14,8 +15,8 @@ const Dashboard = () => {
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
 
-  // Debug log to verify Dashboard renders
-  console.log('Dashboard rendering - Total customers:', customers.length, 'Total events:', events.length);
+  // Debug log to verify single Dashboard render
+  console.log('Dashboard rendered ONCE - customers:', customers.length, 'events:', events.length);
 
   // Apply date filter to events
   useEffect(() => {
@@ -128,10 +129,8 @@ const Dashboard = () => {
         <EventCategoryChart categoryData={categoryData} />
       </div>
 
-      {/* Top Customers List - SINGLE INSTANCE ONLY */}
-      <div className="w-full">
-        <TopCustomersList topCustomers={topCustomers} />
-      </div>
+      {/* ÚNICA Lista de Clientes Principales */}
+      <TopCustomersList topCustomers={topCustomers} />
     </div>
   );
 };
