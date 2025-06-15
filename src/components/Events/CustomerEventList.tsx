@@ -15,7 +15,7 @@ import { useCrm } from '@/contexts/CrmContext';
 import { useAppConfig } from '@/contexts/AppConfigContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { es, en, pt } from 'date-fns/locale';
 import { Eye, Edit, Trash2 } from 'lucide-react';
 
 interface CustomerEventListProps {
@@ -25,10 +25,23 @@ interface CustomerEventListProps {
 const CustomerEventList: React.FC<CustomerEventListProps> = ({ customerId }) => {
   const { events, removeEvent } = useCrm();
   const { defaultCurrency } = useAppConfig();
-  const { t } = useLanguage();
+  const { t, currentLanguage } = useLanguage();
   const navigate = useNavigate();
 
   const customerEvents = events.filter(event => event.customerId === customerId);
+
+  // Get the appropriate locale for date formatting
+  const getDateLocale = () => {
+    switch (currentLanguage) {
+      case 'en':
+        return en;
+      case 'pt':
+        return pt;
+      case 'es':
+      default:
+        return es;
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -102,7 +115,7 @@ const CustomerEventList: React.FC<CustomerEventListProps> = ({ customerId }) => 
             <TableRow key={event.id}>
               <TableCell className="font-medium">{event.title}</TableCell>
               <TableCell>
-                {format(new Date(event.date), 'dd/MM/yyyy', { locale: es })}
+                {format(new Date(event.date), 'dd/MM/yyyy', { locale: getDateLocale() })}
               </TableCell>
               <TableCell>{getCategoryBadge(event.category)}</TableCell>
               <TableCell>{getStatusBadge(event.status)}</TableCell>

@@ -25,7 +25,7 @@ import { useCrm } from '@/contexts/CrmContext';
 import { useAppConfig } from '@/contexts/AppConfigContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { es, en, pt } from 'date-fns/locale';
 import { Calendar, Plus, Search, Eye, Edit, Trash2, List } from 'lucide-react';
 import FinancialSummary from '@/components/Events/FinancialSummary';
 import EventCalendar from '@/components/Events/EventCalendar';
@@ -33,11 +33,24 @@ import EventCalendar from '@/components/Events/EventCalendar';
 const EventList = () => {
   const { events, customers, removeEvent } = useCrm();
   const { defaultCurrency } = useAppConfig();
-  const { t } = useLanguage();
+  const { t, currentLanguage } = useLanguage();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
+
+  // Get the appropriate locale for date formatting
+  const getDateLocale = () => {
+    switch (currentLanguage) {
+      case 'en':
+        return en;
+      case 'pt':
+        return pt;
+      case 'es':
+      default:
+        return es;
+    }
+  };
 
   const getCustomerName = (customerId: string) => {
     const customer = customers.find(c => c.id === customerId);
@@ -115,11 +128,8 @@ const EventList = () => {
     handleDeleteEvent(eventId);
   };
 
-  const currentDate = new Date().toLocaleDateString('es-ES', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
+  // Format current date with proper localization
+  const currentDate = format(new Date(), 'PPPP', { locale: getDateLocale() });
 
   return (
     <div className="space-y-6">
@@ -214,7 +224,7 @@ const EventList = () => {
                         </TableCell>
                         <TableCell>{event.title}</TableCell>
                         <TableCell>
-                          {format(new Date(event.date), 'dd/MM/yyyy', { locale: es })}
+                          {format(new Date(event.date), 'dd/MM/yyyy', { locale: getDateLocale() })}
                         </TableCell>
                         <TableCell>{getCategoryBadge(event.category)}</TableCell>
                         <TableCell>{getStatusBadge(event.status)}</TableCell>

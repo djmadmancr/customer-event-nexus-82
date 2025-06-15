@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Event, Customer } from '@/types/models';
 import { format, isSameDay } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { es, en, pt } from 'date-fns/locale';
 import { MoreVertical, Eye, Pencil, Trash2 } from 'lucide-react';
 import dataService from '@/services/DataService';
 import { useAppConfig } from '@/contexts/AppConfigContext';
@@ -30,7 +30,20 @@ const EventCalendar: React.FC<EventCalendarProps> = ({
 }) => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const { defaultCurrency } = useAppConfig();
-  const { t } = useLanguage();
+  const { t, currentLanguage } = useLanguage();
+
+  // Get the appropriate locale for date formatting
+  const getDateLocale = () => {
+    switch (currentLanguage) {
+      case 'en':
+        return en;
+      case 'pt':
+        return pt;
+      case 'es':
+      default:
+        return es;
+    }
+  };
 
   const getCustomerName = (customerId: string) => {
     const customer = customers.find(c => c.id === customerId);
@@ -72,7 +85,7 @@ const EventCalendar: React.FC<EventCalendarProps> = ({
             mode="single"
             selected={selectedDate}
             onSelect={(date) => date && setSelectedDate(date)}
-            locale={es}
+            locale={getDateLocale()}
             modifiers={{
               hasEvent: eventDates,
             }}
@@ -92,7 +105,7 @@ const EventCalendar: React.FC<EventCalendarProps> = ({
       <Card>
         <CardHeader>
           <CardTitle>
-            {t('events_for_date')} {format(selectedDate, "d 'de' MMMM, yyyy", { locale: es })}
+            {t('events_for_date')} {format(selectedDate, "PPPP", { locale: getDateLocale() })}
           </CardTitle>
         </CardHeader>
         <CardContent>
