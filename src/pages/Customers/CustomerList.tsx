@@ -15,12 +15,14 @@ import {
   DialogDescription
 } from '@/components/ui/dialog';
 import { useCrm } from '@/contexts/CrmContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Search, Plus, MoreVertical, Pencil, Trash2, Eye } from 'lucide-react';
 import dataService from '@/services/DataService';
 
 const CustomerList = () => {
   const navigate = useNavigate();
   const { customers, refreshCustomers, setSelectedCustomer } = useCrm();
+  const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [customerToDelete, setCustomerToDelete] = useState<string | null>(null);
   
@@ -58,7 +60,7 @@ const CustomerList = () => {
         <div className="relative w-full sm:w-64">
           <Search className="absolute top-2.5 left-3 h-4 w-4 text-gray-400" />
           <Input
-            placeholder="Buscar clientes..."
+            placeholder={t('search_customers')}
             className="pl-9"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -69,7 +71,7 @@ const CustomerList = () => {
           onClick={() => navigate('/customers/new')}
         >
           <Plus className="h-4 w-4 mr-2" />
-          Nuevo Cliente
+          {t('new_customer')}
         </Button>
       </div>
       
@@ -80,9 +82,9 @@ const CustomerList = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead className="hidden md:table-cell">Teléfono</TableHead>
+                  <TableHead>{t('name')}</TableHead>
+                  <TableHead>{t('email')}</TableHead>
+                  <TableHead className="hidden md:table-cell">{t('phone')}</TableHead>
                   <TableHead className="w-[80px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -106,14 +108,14 @@ const CustomerList = () => {
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleEditCustomer(customer.id)}>
                             <Pencil className="h-4 w-4 mr-2" />
-                            Editar
+                            {t('edit')}
                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             className="text-red-600"
                             onClick={() => setCustomerToDelete(customer.id)}
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
-                            Eliminar
+                            {t('delete')}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -125,13 +127,13 @@ const CustomerList = () => {
           </div>
         ) : (
           <div className="p-8 text-center">
-            <p className="text-gray-500 mb-4">No se encontraron clientes</p>
+            <p className="text-gray-500 mb-4">{t('no_customers_found')}</p>
             <Button 
               variant="outline"
               onClick={() => navigate('/customers/new')}
             >
               <Plus className="h-4 w-4 mr-2" />
-              Crear nuevo cliente
+              {t('create_new_customer')}
             </Button>
           </div>
         )}
@@ -148,13 +150,13 @@ const CustomerList = () => {
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCustomerToDelete(null)}>
-              Cancelar
+              {t('cancel')}
             </Button>
             <Button 
               variant="destructive" 
               onClick={handleDeleteCustomer}
             >
-              Eliminar
+              {t('delete')}
             </Button>
           </DialogFooter>
         </DialogContent>

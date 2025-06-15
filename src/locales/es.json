@@ -133,5 +133,15 @@
   "update": "Actualizar",
   "description_min_length": "La descripción debe tener al menos 2 caracteres",
   "quantity_positive": "La cantidad debe ser un número positivo",
-  "uncategorized": "Sin categoría"
+  "uncategorized": "Sin categoría",
+  "total_payments": "Total de Pagos",
+  "last_payment": "Último Pago",
+  "payment_records": "Registro de Pagos",
+  "method": "Método",
+  "payments_registered": "pagos registrados",
+  "no_payments_registered": "No hay pagos registrados",
+  "client": "Cliente",
+  "search_customers": "Buscar clientes...",
+  "no_customers_found": "No se encontraron clientes",
+  "create_new_customer": "Crear nuevo cliente"
 }

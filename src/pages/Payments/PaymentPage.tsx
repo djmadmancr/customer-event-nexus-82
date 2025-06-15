@@ -13,6 +13,7 @@ import { PaymentMethod } from '@/types/models';
 import { useCrm } from '@/contexts/CrmContext';
 import dataService from '@/services/DataService';
 import { useAppConfig } from '@/contexts/AppConfigContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ArrowUpDown, Calendar, CreditCard } from 'lucide-react';
@@ -21,6 +22,7 @@ const PaymentPage = () => {
   const navigate = useNavigate();
   const { customers, events } = useCrm();
   const { defaultCurrency } = useAppConfig();
+  const { t } = useLanguage();
   const [payments, setPayments] = useState(dataService.getAllPayments());
   const [sortType, setSortType] = useState<'date' | 'amount'>('date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
@@ -28,10 +30,10 @@ const PaymentPage = () => {
   // Format payment method
   const getPaymentMethodText = (method: string) => {
     switch(method) {
-      case 'cash': return 'Efectivo';
-      case 'credit': return 'Tarjeta de crédito';
-      case 'transfer': return 'Transferencia';
-      case 'check': return 'Cheque';
+      case 'cash': return t('cash');
+      case 'credit': return t('credit');
+      case 'transfer': return t('transfer');
+      case 'check': return t('check');
       default: return method;
     }
   };
@@ -89,20 +91,20 @@ const PaymentPage = () => {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Pagos</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('total_payments')}</CardTitle>
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{dataService.formatCurrency(totalAmount, defaultCurrency)}</div>
             <p className="text-xs text-muted-foreground">
-              {payments.length} pagos registrados
+              {payments.length} {t('payments_registered')}
             </p>
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Último Pago</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('last_payment')}</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -116,7 +118,7 @@ const PaymentPage = () => {
                 </p>
               </>
             ) : (
-              <div className="text-muted-foreground">No hay pagos</div>
+              <div className="text-muted-foreground">{t('no_payments_registered')}</div>
             )}
           </CardContent>
         </Card>
@@ -125,7 +127,7 @@ const PaymentPage = () => {
       {/* Payments Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Registro de Pagos</CardTitle>
+          <CardTitle>{t('payment_records')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -137,19 +139,19 @@ const PaymentPage = () => {
                     onClick={() => toggleSort('date')}
                   >
                     <div className="flex items-center">
-                      Fecha
+                      {t('date')}
                       <ArrowUpDown className="ml-2 h-4 w-4" />
                     </div>
                   </TableHead>
-                  <TableHead className="hidden md:table-cell">Cliente</TableHead>
-                  <TableHead className="hidden lg:table-cell">Evento</TableHead>
-                  <TableHead>Método</TableHead>
+                  <TableHead className="hidden md:table-cell">{t('client')}</TableHead>
+                  <TableHead className="hidden lg:table-cell">{t('event')}</TableHead>
+                  <TableHead>{t('method')}</TableHead>
                   <TableHead 
                     className="cursor-pointer text-right"
                     onClick={() => toggleSort('amount')}
                   >
                     <div className="flex items-center justify-end">
-                      Monto
+                      {t('amount')}
                       <ArrowUpDown className="ml-2 h-4 w-4" />
                     </div>
                   </TableHead>
@@ -187,7 +189,7 @@ const PaymentPage = () => {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-6">
-                      No hay pagos registrados
+                      {t('no_payments_registered')}
                     </TableCell>
                   </TableRow>
                 )}
