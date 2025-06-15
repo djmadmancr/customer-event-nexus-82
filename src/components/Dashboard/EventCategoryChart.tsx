@@ -11,6 +11,27 @@ interface EventCategoryChartProps {
 const EventCategoryChart: React.FC<EventCategoryChartProps> = ({ categoryData }) => {
   const { t } = useLanguage();
 
+  // Function to translate category names
+  const translateCategory = (categoryName: string) => {
+    const categoryMap: { [key: string]: string } = {
+      'wedding': t('wedding'),
+      'birthday': t('birthday'),
+      'corporate': t('corporate'),
+      'club': t('club'),
+      'other': t('other'),
+      'uncategorized': t('uncategorized')
+    };
+    
+    return categoryMap[categoryName.toLowerCase()] || categoryName;
+  };
+
+  // Transform data to include translated names
+  const translatedCategoryData = categoryData.map(item => ({
+    ...item,
+    translatedName: translateCategory(item.name),
+    name: item.name // Keep original for data key
+  }));
+
   return (
     <Card>
       <CardHeader>
@@ -21,7 +42,7 @@ const EventCategoryChart: React.FC<EventCategoryChartProps> = ({ categoryData })
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
-                data={categoryData}
+                data={translatedCategoryData}
                 cx="50%"
                 cy="50%"
                 outerRadius={80}
@@ -29,12 +50,24 @@ const EventCategoryChart: React.FC<EventCategoryChartProps> = ({ categoryData })
                 label={({ percent }) => `${(percent * 100).toFixed(1)}%`}
                 fontSize={10}
               >
-                {categoryData.map((entry, index) => (
+                {translatedCategoryData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>
-              <Tooltip />
-              <Legend verticalAlign="bottom" height={36}/>
+              <Tooltip 
+                formatter={(value, name, props) => [
+                  value,
+                  props.payload.translatedName
+                ]}
+              />
+              <Legend 
+                verticalAlign="bottom" 
+                height={36}
+                formatter={(value, entry) => {
+                  const item = translatedCategoryData.find(d => d.name === entry.payload.name);
+                  return item ? item.translatedName : value;
+                }}
+              />
             </PieChart>
           </ResponsiveContainer>
         ) : (
