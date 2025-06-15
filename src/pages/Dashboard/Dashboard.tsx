@@ -125,10 +125,8 @@ const Dashboard = () => {
         <EventCategoryChart categoryData={categoryData} />
       </div>
 
-      {/* Top Customers List */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-        <TopCustomersList topCustomers={topCustomers} />
-      </div>
+      {/* Top Customers List - Single component */}
+      <TopCustomersList topCustomers={topCustomers} />
     </div>
   );
 };
