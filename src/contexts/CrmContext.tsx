@@ -1,25 +1,22 @@
 
-import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from 'react';
 import { Customer, Event, Payment } from '../types/models';
 import dataService from '../services/DataService';
 import { useAuth } from './AuthContext';
 import { useNotifications } from './NotificationContext';
 
 interface CrmContextType {
-  // Customers
   customers: Customer[];
   selectedCustomer: Customer | null;
   setSelectedCustomer: (customer: Customer | null) => void;
   refreshCustomers: () => void;
   
-  // Events
   events: Event[];
   selectedEvent: Event | null;
   setSelectedEvent: (event: Event | null) => void;
   refreshEvents: () => void;
   removeEvent: (eventId: string) => Promise<void>;
   
-  // Payments
   payments: Payment[];
   refreshPayments: () => void;
 }
@@ -41,32 +38,41 @@ interface CrmProviderProps {
 export const CrmProvider: React.FC<CrmProviderProps> = ({ children }) => {
   const { currentUser } = useAuth();
   const { addNotification, notifications } = useNotifications();
+  
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  
   const [payments, setPayments] = useState<Payment[]>([]);
-  
-  // Memoized refresh functions to prevent infinite loops
+
+  // Stable user ID reference
+  const userId = currentUser?.uid;
+
+  // Memoized refresh functions
   const refreshCustomers = useCallback(() => {
-    if (currentUser) {
-      console.log('Refreshing customers for user:', currentUser.uid);
+    if (userId) {
+      console.log('Refreshing customers for user:', userId);
       const customerData = dataService.getAllCustomers();
       setCustomers(customerData);
     }
-  }, [currentUser]);
+  }, [userId]);
   
   const refreshEvents = useCallback(() => {
-    if (currentUser) {
-      console.log('Refreshing events for user:', currentUser.uid);
+    if (userId) {
+      console.log('Refreshing events for user:', userId);
       const eventData = dataService.getAllEvents();
       setEvents(eventData);
     }
-  }, [currentUser]);
+  }, [userId]);
   
-  const removeEvent = async (eventId: string): Promise<void> => {
+  const refreshPayments = useCallback(() => {
+    if (userId) {
+      console.log('Refreshing payments for user:', userId);
+      setPayments(dataService.getAllPayments());
+    }
+  }, [userId]);
+
+  const removeEvent = useCallback(async (eventId: string): Promise<void> => {
     try {
       dataService.deleteEvent(eventId);
       refreshEvents();
@@ -74,51 +80,42 @@ export const CrmProvider: React.FC<CrmProviderProps> = ({ children }) => {
       console.error('Error removing event:', error);
       throw error;
     }
-  };
-  
-  const refreshPayments = useCallback(() => {
-    if (currentUser) {
-      console.log('Refreshing payments for user:', currentUser.uid);
-      setPayments(dataService.getAllPayments());
-    }
-  }, [currentUser]);
+  }, [refreshEvents]);
 
-  // Initial data load when user changes - FIXED to prevent infinite loops
+  // Initialize data when user changes
   useEffect(() => {
-    console.log('User changed, initializing data for:', currentUser?.uid);
-    if (currentUser) {
+    if (userId) {
+      console.log('User changed, initializing data for:', userId);
       refreshCustomers();
       refreshEvents();
       refreshPayments();
       setSelectedCustomer(null);
       setSelectedEvent(null);
     } else {
-      // Clear data if no user is logged in
+      // Clear data if no user
       setCustomers([]);
       setEvents([]);
       setPayments([]);
       setSelectedCustomer(null);
       setSelectedEvent(null);
     }
-  }, [currentUser?.uid]); // Only depend on currentUser.uid to prevent loops
+  }, [userId, refreshCustomers, refreshEvents, refreshPayments]);
   
-  // Update payments when selected event changes (only used for filtering view, not dashboard)
+  // Update payments when selected event changes
   useEffect(() => {
-    console.log('Selected event changed:', selectedEvent?.id);
-    if (selectedEvent && currentUser) {
+    if (selectedEvent && userId) {
+      console.log('Selected event changed:', selectedEvent.id);
       setPayments(dataService.getPaymentsByEventId(selectedEvent.id));
-    } else if (currentUser && !selectedEvent) {
-      // If no event is selected, show all payments.
-      const allPayments = dataService.getAllPayments();
-      setPayments(allPayments);
+    } else if (userId && !selectedEvent) {
+      setPayments(dataService.getAllPayments());
     } else {
       setPayments([]);
     }
-  }, [selectedEvent?.id, currentUser?.uid]); // Fixed dependencies
+  }, [selectedEvent?.id, userId]);
 
-  // Check for pending payment notifications - OPTIMIZED
-  useEffect(() => {
-    if (!currentUser || !events.length) return;
+  // Check for pending payment notifications (optimized)
+  const notificationCheck = useMemo(() => {
+    if (!userId || !events.length) return;
 
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -146,9 +143,9 @@ export const CrmProvider: React.FC<CrmProviderProps> = ({ children }) => {
         }
       }
     });
-  }, [events.length, currentUser?.uid]); // Optimized dependencies
-  
-  const value = {
+  }, [events.length, userId, notifications, addNotification]);
+
+  const value = useMemo(() => ({
     customers,
     selectedCustomer,
     setSelectedCustomer,
@@ -162,7 +159,17 @@ export const CrmProvider: React.FC<CrmProviderProps> = ({ children }) => {
     
     payments,
     refreshPayments,
-  };
+  }), [
+    customers,
+    selectedCustomer,
+    refreshCustomers,
+    events,
+    selectedEvent,
+    refreshEvents,
+    removeEvent,
+    payments,
+    refreshPayments,
+  ]);
   
   return <CrmContext.Provider value={value}>{children}</CrmContext.Provider>;
 };
