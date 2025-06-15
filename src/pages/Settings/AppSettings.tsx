@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { useAppConfig } from '@/contexts/AppConfigContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -130,51 +131,40 @@ const AppSettings = () => {
   return (
     <div className="space-y-4 md:space-y-6 px-2 md:px-0">
       <Tabs defaultValue="artist" className="w-full">
-        {/* Desktop tabs - single row with proper spacing */}
-        {!isMobile && (
-          <div className="w-full overflow-x-auto">
-            <TabsList className="grid w-full grid-cols-4 min-w-max">
-              <TabsTrigger value="artist" className="whitespace-nowrap px-3 py-2">
-                {t("artist_data")}
+        {/* Compact tabs design for all screen sizes */}
+        <div className="w-full">
+          <ScrollArea className="w-full">
+            <TabsList className="grid w-full grid-cols-4 h-auto p-1 bg-muted">
+              <TabsTrigger 
+                value="artist" 
+                className="text-xs sm:text-sm px-2 py-2 whitespace-nowrap data-[state=active]:bg-background data-[state=active]:text-foreground"
+              >
+                <span className="hidden sm:inline">{t("artist_data")}</span>
+                <span className="sm:hidden">Artista</span>
               </TabsTrigger>
-              <TabsTrigger value="app" className="whitespace-nowrap px-3 py-2">
-                {t("app_config")}
+              <TabsTrigger 
+                value="app" 
+                className="text-xs sm:text-sm px-2 py-2 whitespace-nowrap data-[state=active]:bg-background data-[state=active]:text-foreground"
+              >
+                <span className="hidden sm:inline">{t("app_config")}</span>
+                <span className="sm:hidden">App</span>
               </TabsTrigger>
-              <TabsTrigger value="email" className="whitespace-nowrap px-3 py-2">
+              <TabsTrigger 
+                value="email" 
+                className="text-xs sm:text-sm px-2 py-2 whitespace-nowrap data-[state=active]:bg-background data-[state=active]:text-foreground"
+              >
                 Email
               </TabsTrigger>
-              <TabsTrigger value="subscription" className="whitespace-nowrap px-3 py-2">
-                {t("subscription")}
+              <TabsTrigger 
+                value="subscription" 
+                className="text-xs sm:text-sm px-2 py-2 whitespace-nowrap data-[state=active]:bg-background data-[state=active]:text-foreground"
+              >
+                <span className="hidden sm:inline">{t("subscription")}</span>
+                <span className="sm:hidden">Plan</span>
               </TabsTrigger>
             </TabsList>
-          </div>
-        )}
-
-        {/* Mobile tabs - stacked design with better spacing */}
-        {isMobile && (
-          <div className="space-y-2">
-            <div className="w-full overflow-x-auto">
-              <TabsList className="flex w-full min-w-max">
-                <TabsTrigger value="artist" className="flex-1 text-xs px-3 py-2 whitespace-nowrap">
-                  {t("artist_data")}
-                </TabsTrigger>
-                <TabsTrigger value="app" className="flex-1 text-xs px-3 py-2 whitespace-nowrap">
-                  {t("app_config")}
-                </TabsTrigger>
-              </TabsList>
-            </div>
-            <div className="w-full overflow-x-auto">
-              <TabsList className="flex w-full min-w-max">
-                <TabsTrigger value="email" className="flex-1 text-xs px-3 py-2 whitespace-nowrap">
-                  Email
-                </TabsTrigger>
-                <TabsTrigger value="subscription" className="flex-1 text-xs px-3 py-2 whitespace-nowrap">
-                  {t("subscription")}
-                </TabsTrigger>
-              </TabsList>
-            </div>
-          </div>
-        )}
+          </ScrollArea>
+        </div>
 
         {/* Tab content with consistent spacing */}
         <div className="mt-6">
