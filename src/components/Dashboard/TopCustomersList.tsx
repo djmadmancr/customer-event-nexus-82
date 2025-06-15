@@ -13,6 +13,9 @@ const TopCustomersList: React.FC<TopCustomersListProps> = ({ topCustomers }) => 
   const { defaultCurrency } = useAppConfig();
   const { t } = useLanguage();
 
+  // Debug log to verify single render
+  console.log('TopCustomersList rendered with customers:', topCustomers.length);
+
   // Format number without currency symbol
   const formatNumber = (amount: number) => {
     return new Intl.NumberFormat('es-ES', {
@@ -22,7 +25,7 @@ const TopCustomersList: React.FC<TopCustomersListProps> = ({ topCustomers }) => 
   };
 
   return (
-    <Card>
+    <Card className="w-full" data-testid="top-customers-list">
       <CardHeader>
         <CardTitle className="flex items-center text-sm md:text-base">
           <User className="mr-2 h-4 w-4 md:h-5 md:w-5" />
@@ -33,7 +36,7 @@ const TopCustomersList: React.FC<TopCustomersListProps> = ({ topCustomers }) => 
         {topCustomers.length > 0 ? (
           <div className="space-y-3">
             {topCustomers.map((customer, index) => (
-              <div key={customer.name} className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg">
+              <div key={`${customer.name}-${index}`} className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center space-x-2 md:space-x-3">
                   <div className="flex items-center justify-center w-6 h-6 md:w-8 md:h-8 bg-crm-primary text-white rounded-full text-xs md:text-sm font-bold">
                     {index + 1}

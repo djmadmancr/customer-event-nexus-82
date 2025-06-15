@@ -14,6 +14,9 @@ const Dashboard = () => {
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
 
+  // Debug log to verify Dashboard renders
+  console.log('Dashboard rendering - Total customers:', customers.length, 'Total events:', events.length);
+
   // Apply date filter to events
   useEffect(() => {
     let filtered = [...events];
@@ -125,8 +128,10 @@ const Dashboard = () => {
         <EventCategoryChart categoryData={categoryData} />
       </div>
 
-      {/* Top Customers List - Single component */}
-      <TopCustomersList topCustomers={topCustomers} />
+      {/* Top Customers List - SINGLE INSTANCE ONLY */}
+      <div className="w-full">
+        <TopCustomersList topCustomers={topCustomers} />
+      </div>
     </div>
   );
 };
