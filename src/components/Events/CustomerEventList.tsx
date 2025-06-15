@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -15,7 +14,9 @@ import { useCrm } from '@/contexts/CrmContext';
 import { useAppConfig } from '@/contexts/AppConfigContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { format } from 'date-fns';
-import { es, en, pt } from 'date-fns/locale';
+import { es } from 'date-fns/locale/es';
+import { enUS } from 'date-fns/locale/en-US';
+import { ptBR } from 'date-fns/locale/pt-BR';
 import { Eye, Edit, Trash2 } from 'lucide-react';
 
 interface CustomerEventListProps {
@@ -34,9 +35,9 @@ const CustomerEventList: React.FC<CustomerEventListProps> = ({ customerId }) => 
   const getDateLocale = () => {
     switch (currentLanguage) {
       case 'en':
-        return en;
+        return enUS;
       case 'pt':
-        return pt;
+        return ptBR;
       case 'es':
       default:
         return es;

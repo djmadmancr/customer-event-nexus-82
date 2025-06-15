@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +6,9 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Event, Customer } from '@/types/models';
 import { format, isSameDay } from 'date-fns';
-import { es, en, pt } from 'date-fns/locale';
+import { es } from 'date-fns/locale/es';
+import { enUS } from 'date-fns/locale/en-US';
+import { ptBR } from 'date-fns/locale/pt-BR';
 import { MoreVertical, Eye, Pencil, Trash2 } from 'lucide-react';
 import dataService from '@/services/DataService';
 import { useAppConfig } from '@/contexts/AppConfigContext';
@@ -36,9 +37,9 @@ const EventCalendar: React.FC<EventCalendarProps> = ({
   const getDateLocale = () => {
     switch (currentLanguage) {
       case 'en':
-        return en;
+        return enUS;
       case 'pt':
-        return pt;
+        return ptBR;
       case 'es':
       default:
         return es;

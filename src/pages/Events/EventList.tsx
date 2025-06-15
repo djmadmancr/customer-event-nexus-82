@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,7 +24,9 @@ import { useCrm } from '@/contexts/CrmContext';
 import { useAppConfig } from '@/contexts/AppConfigContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { format } from 'date-fns';
-import { es, en, pt } from 'date-fns/locale';
+import { es } from 'date-fns/locale/es';
+import { enUS } from 'date-fns/locale/en-US';
+import { ptBR } from 'date-fns/locale/pt-BR';
 import { Calendar, Plus, Search, Eye, Edit, Trash2, List } from 'lucide-react';
 import FinancialSummary from '@/components/Events/FinancialSummary';
 import EventCalendar from '@/components/Events/EventCalendar';
@@ -43,9 +44,9 @@ const EventList = () => {
   const getDateLocale = () => {
     switch (currentLanguage) {
       case 'en':
-        return en;
+        return enUS;
       case 'pt':
-        return pt;
+        return ptBR;
       case 'es':
       default:
         return es;
