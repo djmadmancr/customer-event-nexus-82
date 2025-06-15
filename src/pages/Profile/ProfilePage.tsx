@@ -75,15 +75,6 @@ const ProfilePage = () => {
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-2xl">
-      <div className="mb-6">
-        <h1 className={`font-bold text-gray-900 ${isMobile ? 'text-xl' : 'text-2xl'}`}>
-          {t("profile")}
-        </h1>
-        <p className={`text-gray-600 mt-2 ${isMobile ? 'text-sm' : ''}`}>
-          {t("personal_info")}
-        </p>
-      </div>
-
       <Card>
         <CardHeader>
           <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'}`}>
