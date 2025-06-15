@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -131,39 +130,37 @@ const AppSettings = () => {
   return (
     <div className="space-y-4 md:space-y-6 px-2 md:px-0">
       <Tabs defaultValue="artist" className="w-full">
-        {/* Compact tabs design for all screen sizes */}
+        {/* Fixed tabs layout */}
         <div className="w-full">
-          <ScrollArea className="w-full">
-            <TabsList className="grid w-full grid-cols-4 h-auto p-1 bg-muted">
-              <TabsTrigger 
-                value="artist" 
-                className="text-xs sm:text-sm px-2 py-2 whitespace-nowrap data-[state=active]:bg-background data-[state=active]:text-foreground"
-              >
-                <span className="hidden sm:inline">{t("artist_data")}</span>
-                <span className="sm:hidden">Artista</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="app" 
-                className="text-xs sm:text-sm px-2 py-2 whitespace-nowrap data-[state=active]:bg-background data-[state=active]:text-foreground"
-              >
-                <span className="hidden sm:inline">{t("app_config")}</span>
-                <span className="sm:hidden">App</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="email" 
-                className="text-xs sm:text-sm px-2 py-2 whitespace-nowrap data-[state=active]:bg-background data-[state=active]:text-foreground"
-              >
-                Email
-              </TabsTrigger>
-              <TabsTrigger 
-                value="subscription" 
-                className="text-xs sm:text-sm px-2 py-2 whitespace-nowrap data-[state=active]:bg-background data-[state=active]:text-foreground"
-              >
-                <span className="hidden sm:inline">{t("subscription")}</span>
-                <span className="sm:hidden">Plan</span>
-              </TabsTrigger>
-            </TabsList>
-          </ScrollArea>
+          <TabsList className="grid w-full grid-cols-4 h-auto p-1 bg-muted gap-0">
+            <TabsTrigger 
+              value="artist" 
+              className="text-xs sm:text-sm px-1 sm:px-2 py-2 whitespace-nowrap data-[state=active]:bg-background data-[state=active]:text-foreground min-w-0 flex-shrink-0"
+            >
+              <span className="hidden sm:inline">{t("artist_data")}</span>
+              <span className="sm:hidden truncate">Artista</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="app" 
+              className="text-xs sm:text-sm px-1 sm:px-2 py-2 whitespace-nowrap data-[state=active]:bg-background data-[state=active]:text-foreground min-w-0 flex-shrink-0"
+            >
+              <span className="hidden sm:inline">{t("app_config")}</span>
+              <span className="sm:hidden truncate">App</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="email" 
+              className="text-xs sm:text-sm px-1 sm:px-2 py-2 whitespace-nowrap data-[state=active]:bg-background data-[state=active]:text-foreground min-w-0 flex-shrink-0"
+            >
+              <span className="truncate">Email</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="subscription" 
+              className="text-xs sm:text-sm px-1 sm:px-2 py-2 whitespace-nowrap data-[state=active]:bg-background data-[state=active]:text-foreground min-w-0 flex-shrink-0"
+            >
+              <span className="hidden sm:inline">{t("subscription")}</span>
+              <span className="sm:hidden truncate">Plan</span>
+            </TabsTrigger>
+          </TabsList>
         </div>
 
         {/* Tab content with consistent spacing */}
