@@ -4,7 +4,6 @@ import DashboardStats from '@/components/Dashboard/DashboardStats';
 import DashboardDateFilters from '@/components/Dashboard/DashboardDateFilters';
 import MonthlyRevenueChart from '@/components/Dashboard/MonthlyRevenueChart';
 import EventCategoryChart from '@/components/Dashboard/EventCategoryChart';
-import TopCustomersChart from '@/components/Dashboard/TopCustomersChart';
 import TopCustomersList from '@/components/Dashboard/TopCustomersList';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -62,13 +61,6 @@ const Dashboard = () => {
     { name: t('club'), value: filteredEvents.filter(e => e.category === 'club').length, color: '#8B5CF6' },
     { name: t('other'), value: filteredEvents.filter(e => e.category === 'other' || !e.category).length, color: '#9333EA' },
   ].filter(category => category.value > 0);
-
-  // Horizontal bar chart data (top customers)
-  const horizontalBarData = topCustomers.map((customer, index) => ({
-    name: customer.name,
-    revenue: customer.revenue,
-    rank: index + 1
-  }));
 
   // Calculate monthly data for revenue comparison
   useEffect(() => {
@@ -133,9 +125,8 @@ const Dashboard = () => {
         <EventCategoryChart categoryData={categoryData} />
       </div>
 
-      {/* Horizontal Bar Chart and Top Customers */}
+      {/* Top Customers List */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-        <TopCustomersChart horizontalBarData={horizontalBarData} />
         <TopCustomersList topCustomers={topCustomers} />
       </div>
     </div>
