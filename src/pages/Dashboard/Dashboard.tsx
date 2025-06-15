@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useCrm } from '@/contexts/CrmContext';
 import DashboardStats from '@/components/Dashboard/DashboardStats';
