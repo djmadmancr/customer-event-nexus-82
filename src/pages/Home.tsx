@@ -347,38 +347,6 @@ const Home = () => {
               </div>
             </CardContent>
           </Card>
-
-          {/* Full Client List */}
-          <Card className="w-full">
-            <CardHeader>
-              <CardTitle className="text-lg">{t('top_clients')} - Lista Completa</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {topClients.map((client, index) => (
-                  <div key={client.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex items-center justify-center w-8 h-8 bg-crm-primary text-white rounded-full font-bold">
-                        {index + 1}
-                      </div>
-                      <div>
-                        <h3 className="font-semibold">{client.name}</h3>
-                        <p className="text-sm text-gray-600">{client.email}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold text-lg">
-                        {defaultCurrency} {client.totalRevenue.toLocaleString()}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        {client.eventCount} {t('event')}{client.eventCount !== 1 ? 's' : ''}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
         </CardContent>
       </Card>
     </div>
