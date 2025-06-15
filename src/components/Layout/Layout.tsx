@@ -32,7 +32,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   // Get title based on current route
   const getPageTitle = () => {
     const path = location.pathname;
-    if (path === '/' || path === '/dashboard') return t('dashboard');
+    if (path === '/' || path === '/dashboard') return ''; // Remove title for dashboard
     if (path === '/customers') return t('customer_management');
     if (path.includes('/customers/') && path.includes('/edit')) return t('edit_customer');
     if (path.includes('/customers/') && path.includes('/new')) return t('new_customer');
@@ -49,6 +49,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     
     return 'NEXUS';
   };
+  
+  const pageTitle = getPageTitle();
   
   return (
     <div className="min-h-screen bg-crm-background">
@@ -69,9 +71,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         )}
       >
         <div className="p-2 md:p-4 lg:p-6 max-w-full w-full">
-          <div className="mb-4 md:mb-6">
-            <h1 className="text-xl md:text-2xl font-bold">{getPageTitle()}</h1>
-          </div>
+          {pageTitle && (
+            <div className="mb-4 md:mb-6">
+              <h1 className="text-xl md:text-2xl font-bold">{pageTitle}</h1>
+            </div>
+          )}
           {children || <Outlet />}
         </div>
       </main>
