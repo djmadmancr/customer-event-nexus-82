@@ -156,14 +156,14 @@ const Home = () => {
   }).sort((a, b) => b.totalRevenue - a.totalRevenue).slice(0, 5);
 
   return (
-    <div className="space-y-6">
-      <Card>
+    <div className="w-full max-w-none">
+      <Card className="w-full">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-gray-800">{t('dashboard')}</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 w-full">
           {/* Date Range Filter */}
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end w-full">
             <div className="flex-1">
               <Label htmlFor="start-date">{t('start_date')}</Label>
               <Input
@@ -189,75 +189,8 @@ const Home = () => {
             </Button>
           </div>
 
-          {/* Pie Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Category Distribution Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">{t('event_categories')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-72">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={categoryData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {categoryData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend verticalAlign="bottom" height={36} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Percentage Pending Collection Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">{t('collection')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-72">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={pendingCollectionData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ percent }) => `${(percent * 100).toFixed(1)}%`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {pendingCollectionData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={index === 0 ? '#10b981' : '#ef4444'} />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        formatter={(value: any) => [`${defaultCurrency} ${value.toLocaleString()}`, '']}
-                      />
-                       <Legend verticalAlign="bottom" height={36} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Event Status Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Event Status Summary - Full Width */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
             <Card>
               <CardContent className="flex flex-col items-center justify-center p-6">
                 <div className="text-2xl font-bold text-yellow-600">{eventSummary.prospect}</div>
@@ -287,8 +220,107 @@ const Home = () => {
             </Card>
           </div>
 
+          {/* Charts Row - Full Width */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 w-full">
+            {/* Category Distribution Chart */}
+            <Card className="w-full">
+              <CardHeader>
+                <CardTitle className="text-lg">{t('event_categories')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-72 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={categoryData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {categoryData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend verticalAlign="bottom" height={36} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Percentage Pending Collection Chart */}
+            <Card className="w-full">
+              <CardHeader>
+                <CardTitle className="text-lg">{t('collection')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-72 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={pendingCollectionData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ percent }) => `${(percent * 100).toFixed(1)}%`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {pendingCollectionData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={index === 0 ? '#10b981' : '#ef4444'} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        formatter={(value: any) => [`${defaultCurrency} ${value.toLocaleString()}`, '']}
+                      />
+                       <Legend verticalAlign="bottom" height={36} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Top 5 Clients List */}
+            <Card className="w-full">
+              <CardHeader>
+                <CardTitle className="text-lg">{t('top_clients')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {topClients.slice(0, 3).map((client, index) => (
+                    <div key={client.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex items-center justify-center w-6 h-6 bg-crm-primary text-white rounded-full font-bold text-sm">
+                          {index + 1}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-semibold text-sm truncate">{client.name}</h3>
+                          <p className="text-xs text-gray-600 truncate">{client.email}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-sm">
+                          {defaultCurrency} {client.totalRevenue.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          {client.eventCount} {t('event')}{client.eventCount !== 1 ? 's' : ''}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Monthly Revenue Chart - Full Width */}
-          <Card>
+          <Card className="w-full">
             <CardHeader>
               <CardTitle className="text-lg">{t('revenue')}</CardTitle>
             </CardHeader>
@@ -316,10 +348,10 @@ const Home = () => {
             </CardContent>
           </Card>
 
-          {/* Top 5 Clients List */}
-          <Card>
+          {/* Full Client List */}
+          <Card className="w-full">
             <CardHeader>
-              <CardTitle className="text-lg">{t('top_clients')}</CardTitle>
+              <CardTitle className="text-lg">{t('top_clients')} - Lista Completa</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">

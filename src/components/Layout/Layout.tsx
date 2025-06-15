@@ -68,7 +68,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           !isMobile && sidebarOpen ? "md:ml-64" : !isMobile ? "md:ml-16" : ""
         )}
       >
-        <div className="p-2 md:p-4 lg:p-6">
+        <div className="p-2 md:p-4 lg:p-6 max-w-full w-full">
           <div className="mb-4 md:mb-6">
             <h1 className="text-xl md:text-2xl font-bold">{getPageTitle()}</h1>
           </div>
