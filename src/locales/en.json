@@ -143,5 +143,19 @@
   "client": "Client",
   "search_customers": "Search customers...",
   "no_customers_found": "No customers found",
-  "create_new_customer": "Create new customer"
+  "create_new_customer": "Create new customer",
+  "list": "List",
+  "calendar": "Calendar",
+  "search_by_customer_or_event": "Search by customer or event...",
+  "all": "All",
+  "quotation": "Quote",
+  "all_categories": "All Categories",
+  "actions": "Actions",
+  "title": "Title",
+  "event_calendar": "Event Calendar",
+  "events_for_date": "Events for",
+  "no_events_scheduled": "No events scheduled for this date",
+  "view_detail": "View Detail",
+  "no_events_found": "No events found with applied filters",
+  "no_events_registered": "No events registered"
 }

@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/table';
 import { useCrm } from '@/contexts/CrmContext';
 import { useAppConfig } from '@/contexts/AppConfigContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar, Plus, Search, Eye, Edit, Trash2, List } from 'lucide-react';
@@ -32,6 +33,7 @@ import EventCalendar from '@/components/Events/EventCalendar';
 const EventList = () => {
   const { events, customers, removeEvent } = useCrm();
   const { defaultCurrency } = useAppConfig();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -44,10 +46,10 @@ const EventList = () => {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      prospect: { label: 'Cotización', className: 'bg-yellow-100 text-yellow-800' },
-      confirmed: { label: 'Confirmado', className: 'bg-blue-100 text-blue-800' },
-      show_completed: { label: 'Show Realizado', className: 'bg-purple-100 text-purple-800' },
-      paid: { label: 'Pagado', className: 'bg-green-100 text-green-800' },
+      prospect: { label: t('quotation'), className: 'bg-yellow-100 text-yellow-800' },
+      confirmed: { label: t('confirmed'), className: 'bg-blue-100 text-blue-800' },
+      show_completed: { label: t('show_completed'), className: 'bg-purple-100 text-purple-800' },
+      paid: { label: t('paid'), className: 'bg-green-100 text-green-800' },
     };
     
     const config = statusConfig[status as keyof typeof statusConfig] || 
@@ -58,15 +60,15 @@ const EventList = () => {
 
   const getCategoryBadge = (category: string) => {
     const categoryConfig = {
-      wedding: { label: 'Boda', className: 'bg-pink-100 text-pink-800' },
-      birthday: { label: 'Cumpleaños', className: 'bg-orange-100 text-orange-800' },
-      corporate: { label: 'Corporativo', className: 'bg-blue-100 text-blue-800' },
-      club: { label: 'Club', className: 'bg-purple-100 text-purple-800' },
-      other: { label: 'Otro', className: 'bg-gray-100 text-gray-800' },
+      wedding: { label: t('wedding'), className: 'bg-pink-100 text-pink-800' },
+      birthday: { label: t('birthday'), className: 'bg-orange-100 text-orange-800' },
+      corporate: { label: t('corporate'), className: 'bg-blue-100 text-blue-800' },
+      club: { label: t('club'), className: 'bg-purple-100 text-purple-800' },
+      other: { label: t('other'), className: 'bg-gray-100 text-gray-800' },
     };
     
     const config = categoryConfig[category as keyof typeof categoryConfig] || 
-      { label: category || 'Sin categoría', className: 'bg-gray-100 text-gray-800' };
+      { label: category || t('uncategorized'), className: 'bg-gray-100 text-gray-800' };
     
     return <Badge variant="outline" className={config.className}>{config.label}</Badge>;
   };
@@ -128,11 +130,11 @@ const EventList = () => {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center">
               <Calendar className="mr-2 h-5 w-5" />
-              Eventos: {currentDate}
+              {t('events')}: {currentDate}
             </CardTitle>
             <Button onClick={() => navigate('/events/new')}>
               <Plus className="mr-2 h-4 w-4" />
-              Nuevo Evento
+              {t('new_event')}
             </Button>
           </div>
         </CardHeader>
@@ -141,11 +143,11 @@ const EventList = () => {
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="list" className="flex items-center gap-2">
                 <List className="h-4 w-4" />
-                Lista
+                {t('list')}
               </TabsTrigger>
               <TabsTrigger value="calendar" className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
-                Calendario
+                {t('calendar')}
               </TabsTrigger>
             </TabsList>
             
@@ -155,7 +157,7 @@ const EventList = () => {
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <Input
-                      placeholder="Buscar por cliente o evento..."
+                      placeholder={t('search_by_customer_or_event')}
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-10"
@@ -165,27 +167,27 @@ const EventList = () => {
                 <div className="flex gap-2">
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Estado" />
+                      <SelectValue placeholder={t('status')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      <SelectItem value="prospect">Cotización</SelectItem>
-                      <SelectItem value="confirmed">Confirmado</SelectItem>
-                      <SelectItem value="show_completed">Show Realizado</SelectItem>
-                      <SelectItem value="paid">Pagado</SelectItem>
+                      <SelectItem value="all">{t('all')}</SelectItem>
+                      <SelectItem value="prospect">{t('quotation')}</SelectItem>
+                      <SelectItem value="confirmed">{t('confirmed')}</SelectItem>
+                      <SelectItem value="show_completed">{t('show_completed')}</SelectItem>
+                      <SelectItem value="paid">{t('paid')}</SelectItem>
                     </SelectContent>
                   </Select>
                   <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                     <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Categoría" />
+                      <SelectValue placeholder={t('category')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Todas</SelectItem>
-                      <SelectItem value="wedding">Boda</SelectItem>
-                      <SelectItem value="birthday">Cumpleaños</SelectItem>
-                      <SelectItem value="corporate">Corporativo</SelectItem>
-                      <SelectItem value="club">Club</SelectItem>
-                      <SelectItem value="other">Otro</SelectItem>
+                      <SelectItem value="all">{t('all_categories')}</SelectItem>
+                      <SelectItem value="wedding">{t('wedding')}</SelectItem>
+                      <SelectItem value="birthday">{t('birthday')}</SelectItem>
+                      <SelectItem value="corporate">{t('corporate')}</SelectItem>
+                      <SelectItem value="club">{t('club')}</SelectItem>
+                      <SelectItem value="other">{t('other')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -195,13 +197,13 @@ const EventList = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>Evento</TableHead>
-                      <TableHead>Fecha</TableHead>
-                      <TableHead>Categoría</TableHead>
-                      <TableHead>Estado</TableHead>
-                      <TableHead>Total ({defaultCurrency})</TableHead>
-                      <TableHead>Acciones</TableHead>
+                      <TableHead>{t('client')}</TableHead>
+                      <TableHead>{t('title')}</TableHead>
+                      <TableHead>{t('date')}</TableHead>
+                      <TableHead>{t('category')}</TableHead>
+                      <TableHead>{t('status')}</TableHead>
+                      <TableHead>{t('total')} ({defaultCurrency})</TableHead>
+                      <TableHead>{t('actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -253,8 +255,8 @@ const EventList = () => {
               {filteredEvents.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
                   {events.length === 0 ? 
-                    'No hay eventos registrados.' : 
-                    'No se encontraron eventos con los filtros aplicados.'
+                    t('no_events_registered') : 
+                    t('no_events_found')
                   }
                 </div>
               )}

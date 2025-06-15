@@ -143,5 +143,19 @@
   "client": "Cliente",
   "search_customers": "Buscar clientes...",
   "no_customers_found": "Nenhum cliente encontrado",
-  "create_new_customer": "Criar novo cliente"
+  "create_new_customer": "Criar novo cliente",
+  "list": "Lista",
+  "calendar": "Calendário",
+  "search_by_customer_or_event": "Buscar por cliente ou evento...",
+  "all": "Todos",
+  "quotation": "Cotação",
+  "all_categories": "Todas as Categorias",
+  "actions": "Ações",
+  "title": "Título",
+  "event_calendar": "Calendário de Eventos",
+  "events_for_date": "Eventos para",
+  "no_events_scheduled": "Não há eventos programados para esta data",
+  "view_detail": "Ver Detalhes",
+  "no_events_found": "Nenhum evento encontrado com os filtros aplicados",
+  "no_events_registered": "Nenhum evento registrado"
 }

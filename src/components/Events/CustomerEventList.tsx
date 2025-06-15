@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/table';
 import { useCrm } from '@/contexts/CrmContext';
 import { useAppConfig } from '@/contexts/AppConfigContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Eye, Edit, Trash2 } from 'lucide-react';
@@ -24,16 +25,17 @@ interface CustomerEventListProps {
 const CustomerEventList: React.FC<CustomerEventListProps> = ({ customerId }) => {
   const { events, removeEvent } = useCrm();
   const { defaultCurrency } = useAppConfig();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const customerEvents = events.filter(event => event.customerId === customerId);
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      prospect: { label: 'Cotización', className: 'bg-yellow-100 text-yellow-800' },
-      confirmed: { label: 'Confirmado', className: 'bg-blue-100 text-blue-800' },
-      show_completed: { label: 'Show Realizado', className: 'bg-purple-100 text-purple-800' },
-      paid: { label: 'Pagado', className: 'bg-green-100 text-green-800' },
+      prospect: { label: t('quotation'), className: 'bg-yellow-100 text-yellow-800' },
+      confirmed: { label: t('confirmed'), className: 'bg-blue-100 text-blue-800' },
+      show_completed: { label: t('show_completed'), className: 'bg-purple-100 text-purple-800' },
+      paid: { label: t('paid'), className: 'bg-green-100 text-green-800' },
     };
     
     const config = statusConfig[status as keyof typeof statusConfig] || 
@@ -44,15 +46,15 @@ const CustomerEventList: React.FC<CustomerEventListProps> = ({ customerId }) => 
 
   const getCategoryBadge = (category: string) => {
     const categoryConfig = {
-      wedding: { label: 'Boda', className: 'bg-pink-100 text-pink-800' },
-      birthday: { label: 'Cumpleaños', className: 'bg-orange-100 text-orange-800' },
-      corporate: { label: 'Corporativo', className: 'bg-blue-100 text-blue-800' },
-      club: { label: 'Club', className: 'bg-purple-100 text-purple-800' },
-      other: { label: 'Otro', className: 'bg-gray-100 text-gray-800' },
+      wedding: { label: t('wedding'), className: 'bg-pink-100 text-pink-800' },
+      birthday: { label: t('birthday'), className: 'bg-orange-100 text-orange-800' },
+      corporate: { label: t('corporate'), className: 'bg-blue-100 text-blue-800' },
+      club: { label: t('club'), className: 'bg-purple-100 text-purple-800' },
+      other: { label: t('other'), className: 'bg-gray-100 text-gray-800' },
     };
     
     const config = categoryConfig[category as keyof typeof categoryConfig] || 
-      { label: category || 'Sin categoría', className: 'bg-gray-100 text-gray-800' };
+      { label: category || t('uncategorized'), className: 'bg-gray-100 text-gray-800' };
     
     return <Badge variant="outline" className={config.className}>{config.label}</Badge>;
   };
@@ -87,12 +89,12 @@ const CustomerEventList: React.FC<CustomerEventListProps> = ({ customerId }) => 
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Evento</TableHead>
-            <TableHead>Fecha</TableHead>
-            <TableHead>Categoría</TableHead>
-            <TableHead>Estado</TableHead>
-            <TableHead>Total ({defaultCurrency})</TableHead>
-            <TableHead>Acciones</TableHead>
+            <TableHead>{t('title')}</TableHead>
+            <TableHead>{t('date')}</TableHead>
+            <TableHead>{t('category')}</TableHead>
+            <TableHead>{t('status')}</TableHead>
+            <TableHead>{t('total')} ({defaultCurrency})</TableHead>
+            <TableHead>{t('actions')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

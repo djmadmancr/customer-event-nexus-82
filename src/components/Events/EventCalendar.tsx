@@ -11,6 +11,7 @@ import { es } from 'date-fns/locale';
 import { MoreVertical, Eye, Pencil, Trash2 } from 'lucide-react';
 import dataService from '@/services/DataService';
 import { useAppConfig } from '@/contexts/AppConfigContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface EventCalendarProps {
   events: Event[];
@@ -29,6 +30,7 @@ const EventCalendar: React.FC<EventCalendarProps> = ({
 }) => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const { defaultCurrency } = useAppConfig();
+  const { t } = useLanguage();
 
   const getCustomerName = (customerId: string) => {
     const customer = customers.find(c => c.id === customerId);
@@ -38,13 +40,13 @@ const EventCalendar: React.FC<EventCalendarProps> = ({
   const getStatusBadge = (status: string) => {
     switch(status) {
       case 'prospect':
-        return <Badge className="bg-purple-200 text-purple-800 text-xs">Prospecto</Badge>;
+        return <Badge className="bg-purple-200 text-purple-800 text-xs">{t('prospect')}</Badge>;
       case 'confirmed':
-        return <Badge className="bg-blue-200 text-blue-800 text-xs">Confirmado</Badge>;
+        return <Badge className="bg-blue-200 text-blue-800 text-xs">{t('confirmed')}</Badge>;
       case 'show_completed':
-        return <Badge className="bg-indigo-200 text-indigo-800 text-xs">Show Realizado</Badge>;
+        return <Badge className="bg-indigo-200 text-indigo-800 text-xs">{t('show_completed')}</Badge>;
       case 'paid':
-        return <Badge className="bg-purple-300 text-purple-900 text-xs">Pagado</Badge>;
+        return <Badge className="bg-purple-300 text-purple-900 text-xs">{t('paid')}</Badge>;
       default:
         return <Badge variant="outline" className="text-xs">{status}</Badge>;
     }
@@ -63,7 +65,7 @@ const EventCalendar: React.FC<EventCalendarProps> = ({
       {/* Calendar */}
       <Card>
         <CardHeader>
-          <CardTitle>Calendario de Eventos</CardTitle>
+          <CardTitle>{t('event_calendar')}</CardTitle>
         </CardHeader>
         <CardContent>
           <Calendar
@@ -90,7 +92,7 @@ const EventCalendar: React.FC<EventCalendarProps> = ({
       <Card>
         <CardHeader>
           <CardTitle>
-            Eventos - {format(selectedDate, "d 'de' MMMM, yyyy", { locale: es })}
+            {t('events_for_date')} {format(selectedDate, "d 'de' MMMM, yyyy", { locale: es })}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -104,10 +106,10 @@ const EventCalendar: React.FC<EventCalendarProps> = ({
                       <div className="flex-1">
                         <h4 className="font-semibold text-lg">{event.title}</h4>
                         <p className="text-sm text-gray-600 mb-1">
-                          Cliente: {getCustomerName(event.customerId)}
+                          {t('client')}: {getCustomerName(event.customerId)}
                         </p>
                         <p className="text-sm text-gray-600 mb-1">
-                          Lugar: {event.venue}
+                          {t('venue')}: {event.venue}
                         </p>
                         <p className="text-sm font-medium text-green-600">
                           {dataService.formatCurrency(eventTotal, defaultCurrency)}
@@ -125,18 +127,18 @@ const EventCalendar: React.FC<EventCalendarProps> = ({
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => onEventClick(event.id)}>
                             <Eye className="h-4 w-4 mr-2" />
-                            Ver detalle
+                            {t('view_detail')}
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => onEventEdit(event.id)}>
                             <Pencil className="h-4 w-4 mr-2" />
-                            Editar
+                            {t('edit')}
                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             className="text-red-600"
                             onClick={() => onEventDelete(event.id)}
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
-                            Eliminar
+                            {t('delete')}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -147,7 +149,7 @@ const EventCalendar: React.FC<EventCalendarProps> = ({
             </div>
           ) : (
             <div className="text-center py-8 text-gray-500">
-              No hay eventos programados para esta fecha
+              {t('no_events_scheduled')}
             </div>
           )}
         </CardContent>
