@@ -3,119 +3,39 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, CreditCard, Calendar, CheckCircle, XCircle, Clock, AlertTriangle } from 'lucide-react';
+import { Loader2, CreditCard, Calendar, CheckCircle, XCircle, Clock, AlertTriangle, Settings, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-
-interface SubscriptionData {
-  status: string;
-  subscribed: boolean;
-  subscription_tier: string | null;
-  subscription_end: string | null;
-}
+import AdminSubscriptionManager from './AdminSubscriptionManager';
 
 const SubscriptionSettings = () => {
-  const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const { toast } = useToast();
-  const { currentUser, userData, checkSubscriptionStatus } = useAuth();
+  const { 
+    currentUser, 
+    userData, 
+    userRole,
+    subscriptionData, 
+    refreshSubscription 
+  } = useAuth();
 
   const checkSubscription = async () => {
     try {
       setLoading(true);
-      
-      // Check if user is authenticated
-      if (!currentUser || !userData) {
-        console.log('No current user found');
-        setSubscriptionData({
-          status: 'inactive',
-          subscribed: false,
-          subscription_tier: null,
-          subscription_end: null
-        });
-        return;
-      }
-
-      // For local users with subscription data, use that directly
-      if (userData.subscriptionExpiry) {
-        const status = checkSubscriptionStatus(userData);
-        const isActive = status === 'active';
-        const isGrace = status === 'grace';
-        
-        setSubscriptionData({
-          status: isActive ? 'active' : isGrace ? 'trial' : 'inactive',
-          subscribed: isActive || isGrace,
-          subscription_tier: isActive || isGrace ? 'premium' : null,
-          subscription_end: userData.subscriptionExpiry.toISOString(),
-        });
-        return;
-      }
-
-      // For users without local subscription data, try Supabase
-      // Get fresh session
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.error('Session error:', sessionError);
-        setSubscriptionData({
-          status: 'inactive',
-          subscribed: false,
-          subscription_tier: null,
-          subscription_end: null
-        });
-        return;
-      }
-
-      if (!sessionData?.session) {
-        console.log('No session found');
-        setSubscriptionData({
-          status: 'inactive',
-          subscribed: false,
-          subscription_tier: null,
-          subscription_end: null
-        });
-        return;
-      }
-
-      console.log('Checking subscription status with valid session...');
-      const { data, error } = await supabase.functions.invoke('check-subscription', {
-        headers: {
-          Authorization: `Bearer ${sessionData.session.access_token}`,
-        },
-      });
-
-      if (error) {
-        console.error('Error checking subscription:', error);
-        // Fallback to local subscription data
-        setSubscriptionData({
-          status: 'inactive',
-          subscribed: false,
-          subscription_tier: null,
-          subscription_end: null
-        });
-        return;
-      }
-
-      console.log('Subscription data received:', data);
-      setSubscriptionData(data);
+      await refreshSubscription();
     } catch (error) {
-      console.error('Error in checkSubscription:', error);
-      setSubscriptionData({
-        status: 'inactive',
-        subscribed: false,
-        subscription_tier: null,
-        subscription_end: null
-      });
+      console.error('Error checking subscription:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubscribe = () => {
+  const handleSubscribe = async () => {
     if (!currentUser) {
       toast({
         title: "Error de autenticación",
@@ -125,13 +45,55 @@ const SubscriptionSettings = () => {
       return;
     }
 
-    // Direct redirect to Stripe payment link
-    window.open('https://buy.stripe.com/8x228t40WeTS7E7dAKcAo01', '_blank');
-    
-    toast({
-      title: "Redirigiendo a Stripe",
-      description: "Serás redirigido a la página de pago segura de Stripe",
-    });
+    try {
+      setCheckoutLoading(true);
+      
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !sessionData?.session) {
+        toast({
+          title: "Error",
+          description: "Tu sesión ha expirado. Por favor, cierra sesión y vuelve a iniciar.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        headers: {
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+      });
+
+      if (error) {
+        console.error('Error creating checkout:', error);
+        toast({
+          title: "Error",
+          description: "No se pudo crear la sesión de pago",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data?.url) {
+        // Open Stripe checkout in a new tab
+        window.open(data.url, '_blank');
+        
+        toast({
+          title: "Redirigiendo a Stripe",
+          description: "Se ha abierto la página de pago en una nueva pestaña",
+        });
+      }
+    } catch (error) {
+      console.error('Error in handleSubscribe:', error);
+      toast({
+        title: "Error",
+        description: "Error al procesar la suscripción",
+        variant: "destructive",
+      });
+    } finally {
+      setCheckoutLoading(false);
+    }
   };
 
   const handleManageSubscription = async () => {
@@ -190,18 +152,20 @@ const SubscriptionSettings = () => {
   };
 
   useEffect(() => {
-    checkSubscription();
-
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(checkSubscription, 30000);
-    return () => clearInterval(interval);
-  }, [currentUser, userData]);
+    if (currentUser) {
+      checkSubscription();
+      
+      // Auto-refresh every 30 seconds
+      const interval = setInterval(checkSubscription, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [currentUser]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'active':
         return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case 'trial':
+      case 'grace':
         return <Clock className="h-5 w-5 text-blue-500" />;
       case 'pending_payment':
         return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
@@ -215,7 +179,7 @@ const SubscriptionSettings = () => {
     switch (status) {
       case 'active':
         return <Badge className="bg-green-100 text-green-800">Activa</Badge>;
-      case 'trial':
+      case 'grace':
         return <Badge className="bg-blue-100 text-blue-800">Período de Gracia</Badge>;
       case 'pending_payment':
         return <Badge className="bg-yellow-100 text-yellow-800">Pendiente de Pago</Badge>;
@@ -224,6 +188,38 @@ const SubscriptionSettings = () => {
         return <Badge className="bg-red-100 text-red-800">Inactiva</Badge>;
     }
   };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'Tu suscripción está activa y tienes acceso completo a todas las funcionalidades.';
+      case 'grace':
+        return 'Tu suscripción ha expirado pero tienes acceso limitado por 2 semanas más.';
+      case 'pending_payment':
+        return 'Hay un problema con tu último pago. Por favor actualiza tu método de pago.';
+      case 'inactive':
+      default:
+        return 'No tienes una suscripción activa. Suscríbete para acceder a todas las funcionalidades.';
+    }
+  };
+
+  if (!currentUser) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <CreditCard className="mr-2 h-5 w-5" />
+            Estado de Suscripción
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <p className="text-gray-600">Debes iniciar sesión para ver tu estado de suscripción.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (loading) {
     return (
@@ -245,125 +241,165 @@ const SubscriptionSettings = () => {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center">
-          <CreditCard className="mr-2 h-5 w-5" />
-          Estado de Suscripción
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {subscriptionData ? (
-          <>
-            {/* Status Overview */}
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div className="flex items-center space-x-3">
-                {getStatusIcon(subscriptionData.status)}
-                <div>
-                  <h3 className="font-semibold">Estado de la Cuenta</h3>
-                  <p className="text-sm text-gray-600">
-                    {subscriptionData.subscription_tier || 'Sin suscripción'}
-                  </p>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <CreditCard className="mr-2 h-5 w-5" />
+            Estado de Suscripción
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {subscriptionData ? (
+            <>
+              {/* Status Overview */}
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  {getStatusIcon(subscriptionData.status)}
+                  <div>
+                    <h3 className="font-semibold">Estado de la Cuenta</h3>
+                    <p className="text-sm text-gray-600">
+                      {subscriptionData.subscription_tier || 'Sin suscripción'}
+                    </p>
+                  </div>
                 </div>
+                {getStatusBadge(subscriptionData.status)}
               </div>
-              {getStatusBadge(subscriptionData.status)}
-            </div>
 
-            {/* Subscription Details */}
-            {subscriptionData.subscribed && subscriptionData.subscription_end && (
-              <div className="space-y-2">
-                <div className="flex items-center text-sm">
-                  <Calendar className="mr-2 h-4 w-4" />
-                  <span>
-                    {subscriptionData.status === 'trial' ? 'Vence: ' : 'Renovación: '}
-                    {format(new Date(subscriptionData.subscription_end), 'dd/MM/yyyy', { locale: es })}
-                  </span>
+              {/* Status Description */}
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  {getStatusText(subscriptionData.status)}
+                </p>
+              </div>
+
+              {/* Subscription Details */}
+              {subscriptionData.subscribed && subscriptionData.subscription_end && (
+                <div className="space-y-2">
+                  <div className="flex items-center text-sm">
+                    <Calendar className="mr-2 h-4 w-4" />
+                    <span>
+                      {subscriptionData.status === 'grace' ? 'Vence: ' : 'Renovación: '}
+                      {format(new Date(subscriptionData.subscription_end), 'dd/MM/yyyy', { locale: es })}
+                    </span>
+                  </div>
                 </div>
-                {subscriptionData.status === 'trial' && (
-                  <p className="text-sm text-orange-600">
-                    Tu suscripción ha expirado. Tienes acceso limitado por 2 semanas más.
-                  </p>
+              )}
+
+              {/* Action Buttons */}
+              <div className="space-y-3">
+                {!subscriptionData.subscribed || subscriptionData.status === 'inactive' ? (
+                  <Button 
+                    onClick={handleSubscribe}
+                    disabled={checkoutLoading}
+                    className="w-full bg-crm-primary hover:bg-crm-primary/90"
+                  >
+                    {checkoutLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Procesando...
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        Suscribirse - $7.99/mes
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={handleManageSubscription}
+                    disabled={portalLoading}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    {portalLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Cargando...
+                      </>
+                    ) : (
+                      <>
+                        <Settings className="mr-2 h-4 w-4" />
+                        Gestionar Suscripción
+                      </>
+                    )}
+                  </Button>
                 )}
-              </div>
-            )}
 
-            {/* Action Buttons */}
-            <div className="space-y-3">
-              {!subscriptionData.subscribed || subscriptionData.status === 'inactive' ? (
+                <Button 
+                  onClick={checkSubscription}
+                  variant="ghost"
+                  className="w-full"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    'Actualizar Estado'
+                  )}
+                </Button>
+              </div>
+
+              {/* Plan Information */}
+              <div className="text-sm text-gray-600 bg-blue-50 p-4 rounded-lg">
+                <h4 className="font-semibold mb-2">Plan Premium - $7.99/mes</h4>
+                <ul className="space-y-1">
+                  <li>• Acceso completo a todas las funcionalidades</li>
+                  <li>• Gestión ilimitada de clientes y eventos</li>
+                  <li>• Reportes y análisis avanzados</li>
+                  <li>• Soporte prioritario</li>
+                </ul>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-8">
+              <div className="space-y-4">
+                <XCircle className="mx-auto h-12 w-12 text-red-500" />
+                <div>
+                  <h3 className="font-semibold">Sin Suscripción Activa</h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Suscríbete para acceder a todas las funcionalidades premium
+                  </p>
+                </div>
                 <Button 
                   onClick={handleSubscribe}
-                  className="w-full bg-crm-primary hover:bg-crm-primary/90"
+                  disabled={checkoutLoading}
+                  className="bg-crm-primary hover:bg-crm-primary/90"
                 >
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  Suscribirse - $7.99/mes
-                </Button>
-              ) : (
-                <Button 
-                  onClick={handleManageSubscription}
-                  disabled={portalLoading}
-                  variant="outline"
-                  className="w-full"
-                >
-                  {portalLoading ? (
+                  {checkoutLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Cargando...
+                      Procesando...
                     </>
                   ) : (
                     <>
                       <CreditCard className="mr-2 h-4 w-4" />
-                      Gestionar Suscripción
+                      Suscribirse - $7.99/mes
                     </>
                   )}
                 </Button>
-              )}
-
-              <Button 
-                onClick={checkSubscription}
-                variant="ghost"
-                className="w-full"
-                disabled={loading}
-              >
-                {loading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  'Actualizar Estado'
-                )}
-              </Button>
-            </div>
-
-            {/* Plan Information */}
-            <div className="text-sm text-gray-600 bg-blue-50 p-4 rounded-lg">
-              <h4 className="font-semibold mb-2">Plan Premium - $7.99/mes</h4>
-              <ul className="space-y-1">
-                <li>• Acceso completo a todas las funcionalidades</li>
-                <li>• Gestión ilimitada de clientes y eventos</li>
-                <li>• Reportes y análisis avanzados</li>
-              </ul>
-            </div>
-          </>
-        ) : (
-          <div className="text-center py-8">
-            <div className="space-y-4">
-              <XCircle className="mx-auto h-12 w-12 text-red-500" />
-              <div>
-                <h3 className="font-semibold">Sin Suscripción Activa</h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  Suscríbete para acceder a todas las funcionalidades premium
-                </p>
               </div>
-              <Button 
-                onClick={handleSubscribe}
-                className="bg-crm-primary hover:bg-crm-primary/90"
-              >
-                <CreditCard className="mr-2 h-4 w-4" />
-                Suscribirse - $7.99/mes
-              </Button>
             </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Admin Panel */}
+      {userRole === 'admin' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Users className="mr-2 h-5 w-5" />
+              Panel de Administración
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AdminSubscriptionManager />
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 };
 

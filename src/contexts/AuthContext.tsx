@@ -4,6 +4,7 @@ import { User, UserRole } from '@/types/models';
 import { sanitizeInput, validateEmail, validatePassword } from '@/utils/securityUtils';
 import dataService from '@/services/DataService';
 import { addDays, isAfter } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
 
 // Demo users - stored in memory for guaranteed functionality
 const DEMO_USERS = [
@@ -28,10 +29,18 @@ interface ExtendedUser extends User {
   subscriptionExpiry?: Date;
 }
 
+interface SubscriptionData {
+  status: string;
+  subscribed: boolean;
+  subscription_tier: string | null;
+  subscription_end: string | null;
+}
+
 interface AuthContextType {
   currentUser: AuthUser | null;
   userRole: UserRole | null;
   userData: ExtendedUser | null;
+  subscriptionData: SubscriptionData | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name: string) => Promise<void>;
@@ -41,6 +50,8 @@ interface AuthContextType {
   updateUserStatus: (userId: string, active: boolean) => Promise<void>;
   syncUserName: () => void;
   checkSubscriptionStatus: (user: ExtendedUser) => 'active' | 'grace' | 'suspended';
+  refreshSubscription: () => Promise<void>;
+  adminUpdateSubscription: (email: string, status: string, endDate?: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -61,6 +72,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [userData, setUserData] = useState<ExtendedUser | null>(null);
+  const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -77,6 +89,77 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return 'grace';
     } else {
       return 'active';
+    }
+  };
+
+  const refreshSubscription = async () => {
+    if (!currentUser) return;
+
+    try {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !sessionData?.session) {
+        console.log('No valid session for subscription check');
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('check-subscription', {
+        headers: {
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+      });
+
+      if (error) {
+        console.error('Error checking subscription:', error);
+        return;
+      }
+
+      console.log('Subscription data refreshed:', data);
+      setSubscriptionData(data);
+    } catch (error) {
+      console.error('Error in refreshSubscription:', error);
+    }
+  };
+
+  const adminUpdateSubscription = async (email: string, status: string, endDate?: string) => {
+    if (userRole !== 'admin') {
+      throw new Error('Solo administradores pueden actualizar suscripciones');
+    }
+
+    try {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !sessionData?.session) {
+        throw new Error('Sesión no válida');
+      }
+
+      const updateData: any = {
+        email,
+        subscription_status: status,
+        subscribed: status === 'active',
+        updated_at: new Date().toISOString(),
+      };
+
+      if (endDate) {
+        updateData.subscription_end = endDate;
+      }
+
+      const { error } = await supabase
+        .from('subscribers')
+        .upsert(updateData, { onConflict: 'email' });
+
+      if (error) {
+        throw new Error(`Error actualizando suscripción: ${error.message}`);
+      }
+
+      toast({
+        title: "Suscripción actualizada",
+        description: `Estado de suscripción actualizado para ${email}`,
+      });
+
+    } catch (error) {
+      console.error('Error in adminUpdateSubscription:', error);
+      throw error;
     }
   };
 
@@ -154,6 +237,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setCurrentUser({ uid: user.uid, email: user.email });
           setUserRole(demoUser.role);
           setUserData(demoUser);
+          
+          // Auto-refresh subscription data for authenticated users
+          if (demoUser.role !== 'admin') {
+            refreshSubscription();
+          }
           
           if (subscriptionStatus === 'grace' && demoUser.role !== 'admin') {
             toast({
@@ -237,6 +325,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setCurrentUser(authUser);
       setUserRole(demoUser.role);
       setUserData(demoUser);
+      
+      // Refresh subscription data for non-admin users
+      if (demoUser.role !== 'admin') {
+        await refreshSubscription();
+      }
       
       console.log('✅ Login successful for:', email);
       
@@ -378,6 +471,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setCurrentUser(null);
       setUserRole(null);
       setUserData(null);
+      setSubscriptionData(null);
       
       console.log('✅ User signed out');
       
@@ -446,6 +540,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     currentUser,
     userRole,
     userData,
+    subscriptionData,
     loading,
     signIn,
     signUp,
@@ -455,6 +550,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     updateUserStatus,
     syncUserName,
     checkSubscriptionStatus,
+    refreshSubscription,
+    adminUpdateSubscription,
   };
 
   return (
