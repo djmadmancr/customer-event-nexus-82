@@ -57,10 +57,10 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
     
     const defaultProfile: UserProfile = {
       id: currentUser.uid,
-      name: 'Usuario',
+      name: '',
       artistName: '',
-      email: currentUser.email || 'usuario@example.com',
-      phone: '+506 0000-0000',
+      email: currentUser.email || '',
+      phone: '',
       logoUrl: '',
       updatedAt: new Date(),
     };
