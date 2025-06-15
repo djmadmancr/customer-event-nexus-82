@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/form';
 import { CalendarIcon, ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { es, enUS, ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import dataService from '@/services/DataService';
 import { Event, Customer, SelectableEventStatus, EventCategory, EventDetail, Payment, PaymentMethod, Currency } from '@/types/models';
@@ -63,7 +63,7 @@ const EventForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { currentUser } = useAuth();
   const { refreshEvents, customers } = useCrm();
-  const { t } = useLanguage();
+  const { t, currentLanguage } = useLanguage();
   const [event, setEvent] = useState<Event | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(!!id);
@@ -73,6 +73,28 @@ const EventForm: React.FC = () => {
   const [payments, setPayments] = useState<PaymentForm[]>([]);
 
   const isEditing = !!id;
+
+  // Get the correct locale for date formatting
+  const getDateLocale = () => {
+    switch (currentLanguage) {
+      case 'es': return es;
+      case 'en': return enUS;
+      case 'pt': return ptBR;
+      default: return es;
+    }
+  };
+
+  // Dynamic schema with translations
+  const eventSchema = z.object({
+    customerId: z.string().min(1, { message: t('select_customer') }),
+    title: z.string().min(2, { message: t('description_min_length') }),
+    date: z.date({ required_error: t('select_date') }),
+    venue: z.string().min(2, { message: t('description_min_length') }),
+    cost: z.coerce.number().min(0, { message: t('quantity_positive') }),
+    status: z.enum(['prospect', 'confirmed', 'show_completed']),
+    category: z.enum(['wedding', 'birthday', 'corporate', 'club', 'other']),
+    comments: z.string().optional(),
+  });
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventSchema),
@@ -166,7 +188,7 @@ const EventForm: React.FC = () => {
 
   const onSubmit = async (data: EventFormValues) => {
     if (!currentUser) {
-      toast.error('Usuario no autenticado');
+      toast.error(t('error'));
       return;
     }
 
@@ -190,7 +212,7 @@ const EventForm: React.FC = () => {
           comments: data.comments || '',
           userId: currentUser.uid,
         });
-        toast.success('Evento creado correctamente');
+        toast.success(t('comments_saved_successfully'));
       }
 
       // Save event details
@@ -263,7 +285,7 @@ const EventForm: React.FC = () => {
       navigate('/events');
     } catch (error) {
       console.error('Error saving event:', error);
-      toast.error('Error al guardar el evento');
+      toast.error(t('comments_save_error'));
     } finally {
       setIsSubmitting(false);
     }
@@ -338,7 +360,7 @@ const EventForm: React.FC = () => {
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecciona un cliente" />
+                          <SelectValue placeholder={t('select_customer')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -359,9 +381,9 @@ const EventForm: React.FC = () => {
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Título del evento</FormLabel>
+                    <FormLabel>{t('event_title')}</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ej. Boda de María y Juan" {...field} />
+                      <Input placeholder={t('event_title_placeholder')} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -385,9 +407,9 @@ const EventForm: React.FC = () => {
                             )}
                           >
                             {field.value ? (
-                              format(field.value, "PPP", { locale: es })
+                              format(field.value, "PPP", { locale: getDateLocale() })
                             ) : (
-                              <span>Selecciona una fecha</span>
+                              <span>{t('select_date_placeholder')}</span>
                             )}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
@@ -415,7 +437,7 @@ const EventForm: React.FC = () => {
                   <FormItem>
                     <FormLabel>{t('venue')}</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ej. Hotel Presidente, San José" {...field} />
+                      <Input placeholder={t('venue_placeholder')} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -431,7 +453,7 @@ const EventForm: React.FC = () => {
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecciona una categoría" />
+                          <SelectValue placeholder={t('select_category')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -458,7 +480,7 @@ const EventForm: React.FC = () => {
                         type="number" 
                         step="0.01" 
                         min="0"
-                        placeholder="0.00" 
+                        placeholder={t('amount_placeholder')} 
                         {...field} 
                       />
                     </FormControl>
@@ -476,7 +498,7 @@ const EventForm: React.FC = () => {
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecciona un estado" />
+                          <SelectValue placeholder={t('select_status')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -497,7 +519,7 @@ const EventForm: React.FC = () => {
                   <FormItem>
                     <FormLabel>{t('comments')}</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Comentarios adicionales..." rows={4} {...field} />
+                      <Textarea placeholder={t('additional_comments')} rows={4} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -507,7 +529,7 @@ const EventForm: React.FC = () => {
               {/* Event Details Section */}
               <div className="space-y-4 border-t pt-6">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-medium">Equipo y Detalles</h3>
+                  <h3 className="text-lg font-medium">{t('equipment_details')}</h3>
                   <Button
                     type="button"
                     variant="outline"
@@ -523,7 +545,7 @@ const EventForm: React.FC = () => {
                   <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-4 p-4 border rounded-lg">
                     <div className="md:col-span-5">
                       <Input
-                        placeholder="Descripción del equipo/detalle"
+                        placeholder={t('equipment_description')}
                         value={detail.description}
                         onChange={(e) => updateEventDetail(index, 'description', e.target.value)}
                       />
@@ -532,14 +554,14 @@ const EventForm: React.FC = () => {
                       <Input
                         type="number"
                         min="1"
-                        placeholder="Cantidad"
+                        placeholder={t('quantity_placeholder')}
                         value={detail.quantity}
                         onChange={(e) => updateEventDetail(index, 'quantity', parseInt(e.target.value) || 1)}
                       />
                     </div>
                     <div className="md:col-span-4">
                       <Input
-                        placeholder="Notas adicionales"
+                        placeholder={t('additional_notes')}
                         value={detail.notes || ''}
                         onChange={(e) => updateEventDetail(index, 'notes', e.target.value)}
                       />
@@ -561,7 +583,7 @@ const EventForm: React.FC = () => {
               {/* Payments Section */}
               <div className="space-y-4 border-t pt-6">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-medium">Pagos y Adelantos</h3>
+                  <h3 className="text-lg font-medium">{t('payments_advances')}</h3>
                   <Button
                     type="button"
                     variant="outline"
@@ -580,7 +602,7 @@ const EventForm: React.FC = () => {
                         type="number"
                         step="0.01"
                         min="0"
-                        placeholder="Monto"
+                        placeholder={t('amount_placeholder')}
                         value={payment.amount}
                         onChange={(e) => updatePayment(index, 'amount', parseFloat(e.target.value) || 0)}
                       />
@@ -625,7 +647,7 @@ const EventForm: React.FC = () => {
                             variant="outline"
                             className="w-full pl-3 text-left font-normal"
                           >
-                            {format(payment.paymentDate, "dd/MM/yyyy")}
+                            {format(payment.paymentDate, "dd/MM/yyyy", { locale: getDateLocale() })}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
                         </PopoverTrigger>
@@ -641,7 +663,7 @@ const EventForm: React.FC = () => {
                     </div>
                     <div className="md:col-span-3">
                       <Input
-                        placeholder="Notas del pago"
+                        placeholder={t('payment_notes')}
                         value={payment.notes || ''}
                         onChange={(e) => updatePayment(index, 'notes', e.target.value)}
                       />
@@ -673,7 +695,7 @@ const EventForm: React.FC = () => {
                   disabled={isSubmitting}
                   className="bg-crm-primary hover:bg-crm-primary/90"
                 >
-                  {isSubmitting ? 'Guardando...' : (isEditing ? t('edit') : 'Crear')}
+                  {isSubmitting ? t('creating') : (isEditing ? t('edit') : t('create'))}
                 </Button>
               </div>
             </form>

@@ -157,5 +157,22 @@
   "no_events_scheduled": "No events scheduled for this date",
   "view_detail": "View Detail",
   "no_events_found": "No events found with applied filters",
-  "no_events_registered": "No events registered"
+  "no_events_registered": "No events registered",
+  "event_title": "Event Title",
+  "event_title_placeholder": "e.g. Maria and John's Wedding",
+  "select_customer": "Select a customer",
+  "select_date_placeholder": "Select a date",
+  "venue_placeholder": "e.g. Presidente Hotel, San José",
+  "select_category": "Select a category",
+  "select_status": "Select a status",
+  "additional_comments": "Additional comments...",
+  "equipment_details": "Equipment and Details",
+  "payments_advances": "Payments and Advances",
+  "equipment_description": "Equipment/detail description",
+  "quantity_placeholder": "Quantity",
+  "additional_notes": "Additional notes",
+  "amount_placeholder": "Amount",
+  "payment_notes": "Payment notes",
+  "creating": "Creating...",
+  "create": "Create"
 }

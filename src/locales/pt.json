@@ -157,5 +157,22 @@
   "no_events_scheduled": "Não há eventos programados para esta data",
   "view_detail": "Ver Detalhes",
   "no_events_found": "Nenhum evento encontrado com os filtros aplicados",
-  "no_events_registered": "Nenhum evento registrado"
+  "no_events_registered": "Nenhum evento registrado",
+  "event_title": "Título do evento",
+  "event_title_placeholder": "ex. Casamento de Maria e João",
+  "select_customer": "Selecionar um cliente",
+  "select_date_placeholder": "Selecionar uma data",
+  "venue_placeholder": "ex. Hotel Presidente, São José",
+  "select_category": "Selecionar uma categoria",
+  "select_status": "Selecionar um status",
+  "additional_comments": "Comentários adicionais...",
+  "equipment_details": "Equipamento e Detalhes",
+  "payments_advances": "Pagamentos e Adiantamentos",
+  "equipment_description": "Descrição do equipamento/detalhe",
+  "quantity_placeholder": "Quantidade",
+  "additional_notes": "Notas adicionais",
+  "amount_placeholder": "Valor",
+  "payment_notes": "Notas do pagamento",
+  "creating": "Criando...",
+  "create": "Criar"
 }
