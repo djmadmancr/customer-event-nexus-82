@@ -1,116 +1,122 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Loader2, Mail } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { cn } from '@/lib/utils';
-import { Shield } from 'lucide-react';
-import Login from './Login';
-import Register from './Register';
 
-const AuthPage: React.FC = () => {
-  const { currentUser } = useAuth();
+const AuthPage = () => {
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const { user, signIn } = useAuth();
   const navigate = useNavigate();
-  const [isLogin, setIsLogin] = useState(true);
-  const isMobile = useIsMobile();
 
-  React.useEffect(() => {
-    if (currentUser) {
+  useEffect(() => {
+    if (user) {
       navigate('/');
     }
-  }, [currentUser, navigate]);
+  }, [user, navigate]);
 
-  if (currentUser) {
-    return null;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+
+    setLoading(true);
+    try {
+      const { error } = await signIn(email.trim());
+      if (!error) {
+        setEmailSent(true);
+      }
+    } catch (error) {
+      console.error('Auth error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (emailSent) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Mail className="w-8 h-8 text-green-600" />
+            </div>
+            <CardTitle className="text-2xl font-bold">¡Enlace enviado!</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center space-y-4">
+            <p className="text-gray-600">
+              Hemos enviado un enlace mágico a <strong>{email}</strong>
+            </p>
+            <p className="text-sm text-gray-500">
+              Revisa tu correo electrónico y haz clic en el enlace para iniciar sesión.
+            </p>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setEmailSent(false);
+                setEmail('');
+              }}
+              className="w-full"
+            >
+              Enviar a otro correo
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
-    <div 
-      className="min-h-screen w-full flex flex-col justify-center py-6 sm:py-12 px-4 sm:px-6 lg:px-8 fixed inset-0 bg-cover bg-center bg-no-repeat"
-      style={{
-        backgroundImage: `url('/lovable-uploads/79641509-31a9-449b-98f4-db340a7b2b8c.png')`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-      }}
-    >
-      {/* Dark overlay */}
-      <div className="absolute inset-0 bg-black/50"></div>
-      
-      <div className="relative z-10 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="mt-6 sm:mt-8">
-          <div className="bg-white/95 backdrop-blur-sm py-6 sm:py-8 px-4 sm:px-10 shadow-2xl rounded-lg sm:rounded-lg">
-            {/* Logo inside the box */}
-            <div className="text-center mb-6">
-              <img 
-                src="./logo.png" 
-                alt="Bassline Logo" 
-                className={cn(
-                  "mx-auto mb-4",
-                  isMobile ? "h-8 w-auto max-w-[150px]" : "h-12 w-auto max-w-[200px]"
-                )}
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).style.display = 'none';
-                }}
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold">Customer-Event Nexus 82</CardTitle>
+          <p className="text-gray-600">Inicia sesión con tu correo electrónico</p>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Correo electrónico</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="tu@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={loading}
               />
-              <p className={cn(
-                "text-gray-600",
-                isMobile ? "text-xs" : "text-sm"
-              )}>
-                Sistema de Gestión de Eventos
-              </p>
             </div>
-
-            <div className="mb-6">
-              <div className="flex border-b border-gray-200">
-                <button
-                  type="button"
-                  className={cn(
-                    "w-1/2 py-2 px-1 text-center font-medium",
-                    isMobile ? "text-xs" : "text-sm",
-                    isLogin
-                      ? 'border-b-2 border-crm-primary text-crm-primary'
-                      : 'text-gray-500 hover:text-gray-700'
-                  )}
-                  onClick={() => setIsLogin(true)}
-                >
-                  Iniciar Sesión
-                </button>
-                <button
-                  type="button"
-                  className={cn(
-                    "w-1/2 py-2 px-1 text-center font-medium",
-                    isMobile ? "text-xs" : "text-sm",
-                    !isLogin
-                      ? 'border-b-2 border-crm-primary text-crm-primary'
-                      : 'text-gray-500 hover:text-gray-700'
-                  )}
-                  onClick={() => setIsLogin(false)}
-                >
-                  Registrarse
-                </button>
-              </div>
-            </div>
-
-            {isLogin ? (
-              <Login onSwitchToRegister={() => setIsLogin(false)} />
-            ) : (
-              <Register onSwitchToLogin={() => setIsLogin(true)} />
-            )}
-
-            {/* Admin Dashboard Link */}
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <button
-                onClick={() => navigate('/admin-dashboard')}
-                className="w-full flex items-center justify-center gap-2 text-sm text-gray-600 hover:text-blue-600 transition-colors"
-              >
-                <Shield className="h-4 w-4" />
-                Acceso Panel de Administración
-              </button>
-            </div>
+            <Button 
+              type="submit" 
+              className="w-full"
+              disabled={loading || !email.trim()}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Enviando enlace...
+                </>
+              ) : (
+                <>
+                  <Mail className="w-4 h-4 mr-2" />
+                  Enviar enlace mágico
+                </>
+              )}
+            </Button>
+          </form>
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-500">
+              Te enviaremos un enlace seguro para iniciar sesión sin contraseña.
+            </p>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

@@ -14,44 +14,43 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
   DialogDescription
 } from '@/components/ui/dialog';
-import { useCrm } from '@/contexts/CrmContext';
-import { useLanguage } from '@/contexts/LanguageContext';
 import { Search, Plus, MoreVertical, Pencil, Trash2, Eye } from 'lucide-react';
-import dataService from '@/services/DataService';
+import { useCustomers, useDeleteCustomer } from '@/hooks/useSupabaseQueries';
+import { toast } from 'sonner';
 
 const CustomerList = () => {
   const navigate = useNavigate();
-  const { customers, refreshCustomers, setSelectedCustomer } = useCrm();
-  const { t } = useLanguage();
+  const { data: customers = [], isLoading } = useCustomers();
+  const deleteCustomer = useDeleteCustomer();
   const [searchQuery, setSearchQuery] = useState('');
   const [customerToDelete, setCustomerToDelete] = useState<string | null>(null);
   
   // Filter customers based on search query
   const filteredCustomers = customers.filter(customer => 
     customer.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    customer.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    customer.phone.includes(searchQuery)
+    (customer.email && customer.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (customer.phone && customer.phone.includes(searchQuery))
   );
   
-  const handleViewCustomer = (customerId: string) => {
-    const customer = customers.find(c => c.id === customerId);
-    if (customer) {
-      setSelectedCustomer(customer);
-      navigate(`/customers/${customerId}`);
-    }
-  };
-  
-  const handleEditCustomer = (customerId: string) => {
-    navigate(`/customers/${customerId}/edit`);
-  };
-  
-  const handleDeleteCustomer = () => {
+  const handleDeleteCustomer = async () => {
     if (customerToDelete) {
-      dataService.deleteCustomer(customerToDelete);
-      refreshCustomers();
-      setCustomerToDelete(null);
+      try {
+        await deleteCustomer.mutateAsync(customerToDelete);
+        toast.success('Cliente eliminado correctamente');
+        setCustomerToDelete(null);
+      } catch (error) {
+        toast.error('Error al eliminar el cliente');
+      }
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600"></div>
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-4">
@@ -60,18 +59,18 @@ const CustomerList = () => {
         <div className="relative w-full sm:w-64">
           <Search className="absolute top-2.5 left-3 h-4 w-4 text-gray-400" />
           <Input
-            placeholder={t('search_customers')}
+            placeholder="Buscar clientes..."
             className="pl-9"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
         <Button 
-          className="bg-crm-primary hover:bg-crm-primary/90"
+          className="bg-purple-600 hover:bg-purple-700"
           onClick={() => navigate('/customers/new')}
         >
           <Plus className="h-4 w-4 mr-2" />
-          {t('new_customer')}
+          Nuevo Cliente
         </Button>
       </div>
       
@@ -82,9 +81,9 @@ const CustomerList = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t('name')}</TableHead>
-                  <TableHead>{t('email')}</TableHead>
-                  <TableHead className="hidden md:table-cell">{t('phone')}</TableHead>
+                  <TableHead>Nombre</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead className="hidden md:table-cell">Teléfono</TableHead>
                   <TableHead className="w-[80px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -92,8 +91,8 @@ const CustomerList = () => {
                 {filteredCustomers.map((customer) => (
                   <TableRow key={customer.id}>
                     <TableCell className="font-medium">{customer.name}</TableCell>
-                    <TableCell>{customer.email}</TableCell>
-                    <TableCell className="hidden md:table-cell">{customer.phone}</TableCell>
+                    <TableCell>{customer.email || 'N/A'}</TableCell>
+                    <TableCell className="hidden md:table-cell">{customer.phone || 'N/A'}</TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -102,20 +101,20 @@ const CustomerList = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleViewCustomer(customer.id)}>
+                          <DropdownMenuItem onClick={() => navigate(`/customers/${customer.id}`)}>
                             <Eye className="h-4 w-4 mr-2" />
                             Ver detalle
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEditCustomer(customer.id)}>
+                          <DropdownMenuItem onClick={() => navigate(`/customers/${customer.id}/edit`)}>
                             <Pencil className="h-4 w-4 mr-2" />
-                            {t('edit')}
+                            Editar
                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             className="text-red-600"
                             onClick={() => setCustomerToDelete(customer.id)}
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
-                            {t('delete')}
+                            Eliminar
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -127,13 +126,13 @@ const CustomerList = () => {
           </div>
         ) : (
           <div className="p-8 text-center">
-            <p className="text-gray-500 mb-4">{t('no_customers_found')}</p>
+            <p className="text-gray-500 mb-4">No se encontraron clientes</p>
             <Button 
               variant="outline"
               onClick={() => navigate('/customers/new')}
             >
               <Plus className="h-4 w-4 mr-2" />
-              {t('create_new_customer')}
+              Crear primer cliente
             </Button>
           </div>
         )}
@@ -150,13 +149,14 @@ const CustomerList = () => {
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCustomerToDelete(null)}>
-              {t('cancel')}
+              Cancelar
             </Button>
             <Button 
               variant="destructive" 
               onClick={handleDeleteCustomer}
+              disabled={deleteCustomer.isPending}
             >
-              {t('delete')}
+              {deleteCustomer.isPending ? 'Eliminando...' : 'Eliminar'}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -16,17 +17,13 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { ArrowLeft } from 'lucide-react';
-import dataService from '@/services/DataService';
-import { Customer } from '@/types/models';
+import { useCustomer, useUpsertCustomer } from '@/hooks/useSupabaseQueries';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
-import { useCrm } from '@/contexts/CrmContext';
 
 const customerSchema = z.object({
   name: z.string().min(2, { message: 'El nombre debe tener al menos 2 caracteres' }),
-  email: z.string().email({ message: 'Email inválido' }),
-  phone: z.string().min(8, { message: 'El teléfono debe tener al menos 8 dígitos' }),
-  identificationNumber: z.string().optional(),
+  email: z.string().email({ message: 'Email inválido' }).optional().or(z.literal('')),
+  phone: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -35,13 +32,10 @@ type CustomerFormValues = z.infer<typeof customerSchema>;
 const CustomerForm: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { currentUser } = useAuth();
-  const { refreshCustomers } = useCrm();
-  const [customer, setCustomer] = useState<Customer | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [loading, setLoading] = useState(!!id);
-
   const isEditing = !!id;
+  
+  const { data: customer, isLoading: loadingCustomer } = useCustomer(id || '');
+  const upsertCustomer = useUpsertCustomer();
 
   const form = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema),
@@ -49,69 +43,45 @@ const CustomerForm: React.FC = () => {
       name: '',
       email: '',
       phone: '',
-      identificationNumber: '',
       notes: '',
     },
   });
 
   useEffect(() => {
-    if (isEditing && id) {
-      const customerData = dataService.getCustomerById(id);
-      if (customerData) {
-        setCustomer(customerData);
-        form.reset({
-          name: customerData.name,
-          email: customerData.email,
-          phone: customerData.phone,
-          identificationNumber: customerData.identificationNumber || '',
-          notes: customerData.notes,
-        });
-      }
-      setLoading(false);
+    if (isEditing && customer) {
+      form.reset({
+        name: customer.name,
+        email: customer.email || '',
+        phone: customer.phone || '',
+        notes: customer.notes || '',
+      });
     }
-  }, [id, isEditing, form]);
+  }, [customer, isEditing, form]);
 
   const onSubmit = async (data: CustomerFormValues) => {
-    if (!currentUser) {
-      toast.error('Usuario no autenticado');
-      return;
-    }
-
-    setIsSubmitting(true);
-
     try {
-      if (isEditing && customer) {
-        dataService.updateCustomer(customer.id, data);
-        toast.success('Cliente actualizado correctamente');
-      } else {
-        // Ensure all required fields are present
-        dataService.addCustomer({
-          name: data.name,
-          email: data.email,
-          phone: data.phone,
-          identificationNumber: data.identificationNumber || '',
-          notes: data.notes || '',
-          userId: currentUser.uid,
-        });
-        toast.success('Cliente creado correctamente');
-      }
+      const customerData = {
+        ...data,
+        email: data.email || null,
+        phone: data.phone || null,
+        notes: data.notes || null,
+        ...(isEditing && { id: id! }),
+      };
+
+      await upsertCustomer.mutateAsync(customerData);
       
-      // Refresh customers data immediately
-      refreshCustomers();
-      
+      toast.success(isEditing ? 'Cliente actualizado correctamente' : 'Cliente creado correctamente');
       navigate('/customers');
     } catch (error) {
       console.error('Error saving customer:', error);
       toast.error('Error al guardar el cliente');
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
-  if (loading) {
+  if (loadingCustomer) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-crm-primary"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600"></div>
       </div>
     );
   }
@@ -143,7 +113,7 @@ const CustomerForm: React.FC = () => {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nombre</FormLabel>
+                    <FormLabel>Nombre *</FormLabel>
                     <FormControl>
                       <Input placeholder="Nombre del cliente" {...field} />
                     </FormControl>
@@ -182,20 +152,6 @@ const CustomerForm: React.FC = () => {
 
               <FormField
                 control={form.control}
-                name="identificationNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Identificación (Cédula/ID)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Número de identificación" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
@@ -218,10 +174,10 @@ const CustomerForm: React.FC = () => {
                 </Button>
                 <Button 
                   type="submit" 
-                  disabled={isSubmitting}
-                  className="bg-crm-primary hover:bg-crm-primary/90"
+                  disabled={upsertCustomer.isPending}
+                  className="bg-purple-600 hover:bg-purple-700"
                 >
-                  {isSubmitting ? 'Guardando...' : (isEditing ? 'Actualizar' : 'Crear')}
+                  {upsertCustomer.isPending ? 'Guardando...' : (isEditing ? 'Actualizar' : 'Crear')}
                 </Button>
               </div>
             </form>

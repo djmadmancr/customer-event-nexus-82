@@ -1,136 +1,150 @@
 
-import React, { useState, useEffect } from 'react';
-import { useCrm } from '@/contexts/CrmContext';
-import DashboardStats from '@/components/Dashboard/DashboardStats';
-import DashboardDateFilters from '@/components/Dashboard/DashboardDateFilters';
-import MonthlyRevenueChart from '@/components/Dashboard/MonthlyRevenueChart';
-import EventCategoryChart from '@/components/Dashboard/EventCategoryChart';
-import TopCustomersList from '@/components/Dashboard/TopCustomersList';
-import { useLanguage } from '@/contexts/LanguageContext';
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Download, Users, Calendar, DollarSign, AlertTriangle } from 'lucide-react';
+import { useDashboardStats } from '@/hooks/useSupabaseQueries';
+import { exportToCSV } from '@/utils/csvExport';
 
 const Dashboard = () => {
-  const { customers, events } = useCrm();
-  const { t } = useLanguage();
-  const [filteredEvents, setFilteredEvents] = useState(events);
-  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
-  const [monthlyData, setMonthlyData] = useState<any[]>([]);
+  const { data: stats, isLoading, error } = useDashboardStats();
 
-  // Debug log to verify single Dashboard render
-  console.log('Dashboard rendered ONCE - customers:', customers.length, 'events:', events.length);
-
-  // Apply date filter to events
-  useEffect(() => {
-    let filtered = [...events];
-
-    if (dateRange.from || dateRange.to) {
-      filtered = filtered.filter(event => {
-        const eventDate = new Date(event.date);
-        if (dateRange.from && eventDate < dateRange.from) return false;
-        if (dateRange.to && eventDate > dateRange.to) return false;
-        return true;
-      });
+  const handleExportCSV = () => {
+    if (stats?.events) {
+      exportToCSV(stats.events, 'events');
     }
+  };
 
-    setFilteredEvents(filtered);
-  }, [events, dateRange]);
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600"></div>
+      </div>
+    );
+  }
 
-  // Calculate stats based on filtered events
-  const totalCustomers = customers.length;
-  const totalEvents = filteredEvents.length;
-  const upcomingEvents = filteredEvents.filter(event => 
-    event.date >= new Date() && 
-    event.date <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-  ).length;
-  
-  const totalRevenue = filteredEvents
-    .filter(event => event.status === 'paid')
-    .reduce((sum, event) => sum + (event.totalWithTax || event.cost), 0);
-
-  // Top 5 customers by revenue
-  const topCustomers = customers
-    .map(customer => {
-      const customerEvents = filteredEvents.filter(e => e.customerId === customer.id && e.status === 'paid');
-      const revenue = customerEvents.reduce((sum, event) => sum + (event.totalWithTax || event.cost), 0);
-      return { name: customer.name, revenue, eventCount: customerEvents.length };
-    })
-    .filter(customer => customer.revenue > 0)
-    .sort((a, b) => b.revenue - a.revenue)
-    .slice(0, 5);
-
-  // Event category distribution
-  const categoryData = [
-    { name: t('wedding'), value: filteredEvents.filter(e => e.category === 'wedding').length, color: '#7C3AED' },
-    { name: t('birthday'), value: filteredEvents.filter(e => e.category === 'birthday').length, color: '#A855F7' },
-    { name: t('corporate'), value: filteredEvents.filter(e => e.category === 'corporate').length, color: '#6366F1' },
-    { name: t('club'), value: filteredEvents.filter(e => e.category === 'club').length, color: '#8B5CF6' },
-    { name: t('other'), value: filteredEvents.filter(e => e.category === 'other' || !e.category).length, color: '#9333EA' },
-  ].filter(category => category.value > 0);
-
-  // Calculate monthly data for revenue comparison
-  useEffect(() => {
-    const monthlyRevenue: { [key: string]: { scheduled: number; collected: number } } = {};
-    
-    // Determine date range for complete months
-    const startDate = dateRange.from || new Date(new Date().getFullYear() - 1, 0, 1);
-    const endDate = dateRange.to || new Date();
-    
-    // Generate all complete months in the range
-    const current = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
-    while (current <= endDate) {
-      const monthKey = current.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
-      monthlyRevenue[monthKey] = { scheduled: 0, collected: 0 };
-      current.setMonth(current.getMonth() + 1);
-    }
-
-    filteredEvents.forEach(event => {
-      const eventDate = new Date(event.date);
-      const monthKey = eventDate.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
-      
-      if (monthlyRevenue.hasOwnProperty(monthKey)) {
-        const eventTotal = event.totalWithTax || event.cost;
-        // All events are considered scheduled
-        monthlyRevenue[monthKey].scheduled += eventTotal;
-        
-        // Only paid events are considered collected
-        if (event.status === 'paid') {
-          monthlyRevenue[monthKey].collected += eventTotal;
-        }
-      }
-    });
-
-    const chartData = Object.entries(monthlyRevenue).map(([month, data]) => ({
-      month,
-      programados: data.scheduled,
-      cobrados: data.collected,
-    }));
-
-    setMonthlyData(chartData);
-  }, [filteredEvents, dateRange]);
+  if (error) {
+    return (
+      <div className="p-4">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Error al cargar los datos del dashboard. Por favor, recarga la página.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      {/* Date Range Filter */}
-      <DashboardDateFilters 
-        dateRange={dateRange}
-        onDateRangeChange={setDateRange}
-      />
-
-      {/* Stats Cards */}
-      <DashboardStats
-        totalCustomers={totalCustomers}
-        totalEvents={totalEvents}
-        upcomingEvents={upcomingEvents}
-        totalRevenue={totalRevenue}
-      />
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-        <MonthlyRevenueChart monthlyData={monthlyData} />
-        <EventCategoryChart categoryData={categoryData} />
+    <div className="space-y-6">
+      {/* Header with Export */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <Button onClick={handleExportCSV} variant="outline">
+          <Download className="w-4 h-4 mr-2" />
+          Exportar CSV
+        </Button>
       </div>
 
-      {/* ÚNICA Lista de Clientes Principales */}
-      <TopCustomersList topCustomers={topCustomers} />
+      {/* Multi-currency warning */}
+      {stats?.hasMultipleCurrencies && (
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Tienes eventos en múltiples monedas. Los montos no se convierten automáticamente. 
+            Revisa cada moneda por separado para obtener totales precisos.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Clientes</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.totalCustomers || 0}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Eventos</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.totalEvents || 0}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Ingresos Programados</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-1">
+              {stats?.totalsByCurrency && Object.entries(stats.totalsByCurrency).map(([currency, total]) => (
+                <div key={currency} className="text-lg font-semibold">
+                  {total.toLocaleString()} {currency}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Ingresos Cobrados</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-1">
+              {stats?.paidByCurrency && Object.entries(stats.paidByCurrency).map(([currency, total]) => (
+                <div key={currency} className="text-lg font-semibold text-green-600">
+                  {total.toLocaleString()} {currency}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Events */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Eventos Recientes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {stats?.events && stats.events.length > 0 ? (
+            <div className="space-y-2">
+              {stats.events.slice(0, 5).map((event) => (
+                <div key={event.id} className="flex justify-between items-center p-3 border rounded-lg">
+                  <div>
+                    <h4 className="font-medium">{event.title}</h4>
+                    <p className="text-sm text-gray-500">
+                      {new Date(event.date).toLocaleDateString()} • {event.status}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-semibold">
+                      {parseFloat(event.total.toString()).toLocaleString()} {event.currency}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-center py-8">
+              No hay eventos registrados aún.
+            </p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
