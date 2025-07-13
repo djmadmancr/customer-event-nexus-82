@@ -27,10 +27,19 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
           >
             <Menu className="w-5 h-5" />
           </Button>
-          <div>
-            <h1 className="text-xl font-semibold text-gray-900">
-              Bassline CRM
-            </h1>
+          <div className="flex items-center">
+            <img 
+              src="/lovable-uploads/916ae91c-50aa-4c6e-93dc-221f0254c3dd.png" 
+              alt="Bassline Logo" 
+              className="h-8 w-auto max-w-[150px]"
+              onError={(e) => {
+                // Fallback to text if image fails to load
+                const textElement = document.createElement('div');
+                textElement.className = 'text-xl font-bold text-crm-primary';
+                textElement.textContent = 'Bassline CRM';
+                (e.currentTarget as HTMLImageElement).parentNode?.replaceChild(textElement, e.currentTarget);
+              }}
+            />
           </div>
         </div>
         

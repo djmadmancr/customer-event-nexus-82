@@ -45,6 +45,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Handle auth token from URL hash (magic link)
+    const handleAuthToken = () => {
+      const hash = window.location.hash;
+      if (hash && hash.includes('access_token')) {
+        // Clear the hash from URL to clean it up
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    };
+
+    handleAuthToken();
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {

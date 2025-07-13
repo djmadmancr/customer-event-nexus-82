@@ -1,7 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 
 interface AppConfig {
   companyName: string;
@@ -17,6 +16,8 @@ interface AppConfigContextType {
   config: AppConfig;
   updateConfig: (newConfig: Partial<AppConfig>) => Promise<void>;
   loading: boolean;
+  logoUrl: string;
+  defaultCurrency: string;
 }
 
 const defaultConfig: AppConfig = {
@@ -49,65 +50,15 @@ export const AppConfigProvider: React.FC<AppConfigProviderProps> = ({ children }
   const { user } = useAuth();
 
   useEffect(() => {
-    if (user?.id) {
-      loadConfig();
-    } else {
-      setLoading(false);
-    }
+    // Simulate loading for now since we don't have the app_config table yet
+    setLoading(false);
   }, [user?.id]);
-
-  const loadConfig = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('app_config')
-        .select('*')
-        .eq('user_id', user?.id)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error loading config:', error);
-        return;
-      }
-
-      if (data) {
-        setConfig({
-          companyName: data.company_name || defaultConfig.companyName,
-          companyLogo: data.company_logo || defaultConfig.companyLogo,
-          primaryColor: data.primary_color || defaultConfig.primaryColor,
-          secondaryColor: data.secondary_color || defaultConfig.secondaryColor,
-          currency: data.currency || defaultConfig.currency,
-          dateFormat: data.date_format || defaultConfig.dateFormat,
-          timeFormat: data.time_format || defaultConfig.timeFormat,
-        });
-      }
-    } catch (error) {
-      console.error('Error loading config:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const updateConfig = async (newConfig: Partial<AppConfig>) => {
     if (!user?.id) return;
-
+    
     try {
       const updatedConfig = { ...config, ...newConfig };
-      
-      const { error } = await supabase
-        .from('app_config')
-        .upsert({
-          user_id: user.id,
-          company_name: updatedConfig.companyName,
-          company_logo: updatedConfig.companyLogo,
-          primary_color: updatedConfig.primaryColor,
-          secondary_color: updatedConfig.secondaryColor,
-          currency: updatedConfig.currency,
-          date_format: updatedConfig.dateFormat,
-          time_format: updatedConfig.timeFormat,
-        });
-
-      if (error) throw error;
-
       setConfig(updatedConfig);
     } catch (error) {
       console.error('Error updating config:', error);
@@ -115,8 +66,16 @@ export const AppConfigProvider: React.FC<AppConfigProviderProps> = ({ children }
     }
   };
 
+  const value = {
+    config,
+    updateConfig,
+    loading,
+    logoUrl: config.companyLogo,
+    defaultCurrency: config.currency,
+  };
+
   return (
-    <AppConfigContext.Provider value={{ config, updateConfig, loading }}>
+    <AppConfigContext.Provider value={value}>
       {children}
     </AppConfigContext.Provider>
   );

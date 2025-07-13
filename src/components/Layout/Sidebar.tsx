@@ -44,16 +44,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           {/* Header */}
           <div className="flex items-center px-6 py-4 border-b border-gray-200">
             <img 
-              src="./logo.png" 
+              src="/lovable-uploads/916ae91c-50aa-4c6e-93dc-221f0254c3dd.png" 
               alt="Bassline Logo" 
               className="h-8 w-auto max-w-[150px]"
               onError={(e) => {
-                // If the main logo fails, hide the image and show text
-                (e.currentTarget as HTMLImageElement).style.display = 'none';
+                // Fallback to text if image fails to load
                 const textElement = document.createElement('div');
                 textElement.className = 'text-xl font-bold text-crm-primary';
                 textElement.textContent = 'BASSLINECRM';
-                (e.currentTarget as HTMLImageElement).parentNode?.appendChild(textElement);
+                (e.currentTarget as HTMLImageElement).parentNode?.replaceChild(textElement, e.currentTarget);
               }}
             />
           </div>
