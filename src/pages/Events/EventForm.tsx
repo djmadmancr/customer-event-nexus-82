@@ -1,15 +1,13 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { z } from 'zod';
 import { useForm } from 'react-hook-form';
+import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Form,
   FormControl,
@@ -18,355 +16,175 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { CalendarIcon, ArrowLeft, Plus, Trash2 } from 'lucide-react';
-import { format } from 'date-fns';
-import { es, enUS, ptBR } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
-import dataService from '@/services/DataService';
-import { Event, Customer, SelectableEventStatus, EventCategory, EventDetail, Payment, PaymentMethod, Currency } from '@/types/models';
-import { toast } from 'sonner';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ArrowLeft, Save, Calendar as CalendarIcon } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCrm } from '@/contexts/CrmContext';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useCustomers, useEvents, useUpsertEvent } from '@/hooks/useSupabaseQueries';
+import { cn } from '@/lib/utils';
 
 const eventSchema = z.object({
-  customerId: z.string().min(1, { message: 'Debe seleccionar un cliente' }),
-  title: z.string().min(2, { message: 'El título debe tener al menos 2 caracteres' }),
-  date: z.date({ required_error: 'La fecha es requerida' }),
-  venue: z.string().min(2, { message: 'El lugar debe tener al menos 2 caracteres' }),
-  cost: z.coerce.number().min(0, { message: 'El costo debe ser mayor o igual a 0' }),
-  status: z.enum(['prospect', 'confirmed', 'show_completed']),
-  category: z.enum(['wedding', 'birthday', 'corporate', 'club', 'other']),
-  comments: z.string().optional(),
+  title: z.string().min(1, 'El título es requerido'),
+  customerId: z.string().min(1, 'Debes seleccionar un cliente'),
+  date: z.date({
+    required_error: "La fecha es requerida",
+  }),
+  startTime: z.string().optional(),
+  endTime: z.string().optional(),
+  total: z.number().min(0, 'El total debe ser mayor o igual a 0'),
+  currency: z.string().min(1, 'La moneda es requerida'),
+  status: z.enum(['prospect', 'confirmed', 'finished', 'cancelled']),
 });
 
-type EventFormValues = z.infer<typeof eventSchema>;
+type EventFormData = z.infer<typeof eventSchema>;
 
-interface EventDetailForm {
-  id?: string;
-  description: string;
-  quantity: number;
-  notes?: string;
-}
-
-interface PaymentForm {
-  id?: string;
-  amount: number;
-  currency: Currency;
-  paymentDate: Date;
-  method: PaymentMethod;
-  notes?: string;
-}
-
-const EventForm: React.FC = () => {
+const EventForm = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
-  const { currentUser } = useAuth();
-  const { refreshEvents, customers } = useCrm();
-  const { t, currentLanguage } = useLanguage();
-  const [event, setEvent] = useState<Event | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [loading, setLoading] = useState(!!id);
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const { data: customers } = useCustomers();
+  const { data: events } = useEvents();
+  const upsertEvent = useUpsertEvent();
 
-  // Form state for details and payments
-  const [eventDetails, setEventDetails] = useState<EventDetailForm[]>([]);
-  const [payments, setPayments] = useState<PaymentForm[]>([]);
+  const isEditing = Boolean(id);
+  const event = events?.find(e => e.id === id);
 
-  const isEditing = !!id;
-
-  // Get the correct locale for date formatting
-  const getDateLocale = () => {
-    switch (currentLanguage) {
-      case 'es': return es;
-      case 'en': return enUS;
-      case 'pt': return ptBR;
-      default: return es;
-    }
-  };
-
-  // Dynamic schema with translations
-  const eventSchema = z.object({
-    customerId: z.string().min(1, { message: t('select_customer') }),
-    title: z.string().min(2, { message: t('description_min_length') }),
-    date: z.date({ required_error: t('select_date') }),
-    venue: z.string().min(2, { message: t('description_min_length') }),
-    cost: z.coerce.number().min(0, { message: t('quantity_positive') }),
-    status: z.enum(['prospect', 'confirmed', 'show_completed']),
-    category: z.enum(['wedding', 'birthday', 'corporate', 'club', 'other']),
-    comments: z.string().optional(),
-  });
-
-  const form = useForm<EventFormValues>({
+  const form = useForm<EventFormData>({
     resolver: zodResolver(eventSchema),
     defaultValues: {
-      customerId: '',
       title: '',
-      venue: '',
-      cost: 0,
+      customerId: '',
+      date: new Date(),
+      startTime: '',
+      endTime: '',
+      total: 0,
+      currency: 'USD',
       status: 'prospect',
-      category: 'other',
-      comments: '',
     },
   });
 
   useEffect(() => {
-    if (isEditing && id) {
-      const eventData = dataService.getEventById(id);
-      if (eventData) {
-        setEvent(eventData);
-        form.reset({
-          customerId: eventData.customerId,
-          title: eventData.title,
-          date: eventData.date,
-          venue: eventData.venue,
-          cost: eventData.cost,
-          status: eventData.status as SelectableEventStatus,
-          category: eventData.category || 'other',
-          comments: eventData.comments || '',
-        });
-
-        // Load existing details and payments
-        const existingDetails = dataService.getEventDetailsByEventId(id);
-        setEventDetails(existingDetails.map(detail => ({
-          id: detail.id,
-          description: detail.description,
-          quantity: detail.quantity,
-          notes: detail.notes
-        })));
-
-        const existingPayments = dataService.getPaymentsByEventId(id);
-        setPayments(existingPayments.map(payment => ({
-          id: payment.id,
-          amount: payment.amount,
-          currency: payment.currency,
-          paymentDate: payment.paymentDate,
-          method: payment.method,
-          notes: payment.notes
-        })));
-      }
-      setLoading(false);
+    if (isEditing && event) {
+      form.reset({
+        title: event.title,
+        customerId: event.customer_id,
+        date: new Date(event.date),
+        startTime: event.start_time || '',
+        endTime: event.end_time || '',
+        total: Number(event.total),
+        currency: event.currency,
+        status: event.status,
+      });
     }
-  }, [id, isEditing, form]);
+  }, [event, form, isEditing]);
 
-  const addEventDetail = () => {
-    setEventDetails([...eventDetails, {
-      description: '',
-      quantity: 1,
-      notes: ''
-    }]);
-  };
-
-  const removeEventDetail = (index: number) => {
-    setEventDetails(eventDetails.filter((_, i) => i !== index));
-  };
-
-  const updateEventDetail = (index: number, field: keyof EventDetailForm, value: any) => {
-    const updatedDetails = [...eventDetails];
-    updatedDetails[index] = { ...updatedDetails[index], [field]: value };
-    setEventDetails(updatedDetails);
-  };
-
-  const addPayment = () => {
-    setPayments([...payments, {
-      amount: 0,
-      currency: 'USD',
-      paymentDate: new Date(),
-      method: 'cash',
-      notes: ''
-    }]);
-  };
-
-  const removePayment = (index: number) => {
-    setPayments(payments.filter((_, i) => i !== index));
-  };
-
-  const updatePayment = (index: number, field: keyof PaymentForm, value: any) => {
-    const updatedPayments = [...payments];
-    updatedPayments[index] = { ...updatedPayments[index], [field]: value };
-    setPayments(updatedPayments);
-  };
-
-  const onSubmit = async (data: EventFormValues) => {
-    if (!currentUser) {
-      toast.error(t('error'));
+  const onSubmit = async (data: EventFormData) => {
+    if (!user?.id) {
+      toast({
+        title: "Error",
+        description: "Debes estar autenticado para realizar esta acción",
+        variant: "destructive",
+      });
       return;
     }
 
-    setIsSubmitting(true);
-
     try {
-      let savedEvent: Event;
+      const eventData = {
+        id: isEditing ? id! : undefined,
+        user_id: user.id, // Usar user.id en lugar de user.uid
+        customer_id: data.customerId,
+        title: data.title,
+        date: format(data.date, 'yyyy-MM-dd'),
+        start_time: data.startTime || null,
+        end_time: data.endTime || null,
+        total: data.total,
+        currency: data.currency,
+        status: data.status,
+      };
 
-      if (isEditing && event) {
-        savedEvent = dataService.updateEvent(event.id, data)!;
-        toast.success(t('profile_updated'));
-      } else {
-        savedEvent = dataService.addEvent({
-          customerId: data.customerId,
-          title: data.title,
-          date: data.date,
-          venue: data.venue,
-          cost: data.cost,
-          status: data.status,
-          category: data.category,
-          comments: data.comments || '',
-          userId: currentUser.uid,
-        });
-        toast.success(t('comments_saved_successfully'));
-      }
+      await upsertEvent.mutateAsync(eventData);
 
-      // Save event details
-      if (isEditing) {
-        // Remove existing details that are not in the current form
-        const existingDetails = dataService.getEventDetailsByEventId(savedEvent.id);
-        const currentDetailIds = eventDetails.filter(d => d.id).map(d => d.id);
-        existingDetails.forEach(detail => {
-          if (!currentDetailIds.includes(detail.id)) {
-            dataService.deleteEventDetail(detail.id);
-          }
-        });
-      }
-
-      eventDetails.forEach(detail => {
-        if (detail.description.trim()) {
-          if (detail.id) {
-            dataService.updateEventDetail(detail.id, {
-              description: detail.description,
-              quantity: detail.quantity,
-              notes: detail.notes
-            });
-          } else {
-            dataService.addEventDetail({
-              eventId: savedEvent.id,
-              description: detail.description,
-              quantity: detail.quantity,
-              notes: detail.notes
-            });
-          }
-        }
+      toast({
+        title: isEditing ? "Evento actualizado" : "Evento creado",
+        description: `${data.title} ha sido ${isEditing ? 'actualizado' : 'creado'} exitosamente.`,
       });
 
-      // Save payments
-      if (isEditing) {
-        // Remove existing payments that are not in the current form
-        const existingPayments = dataService.getPaymentsByEventId(savedEvent.id);
-        const currentPaymentIds = payments.filter(p => p.id).map(p => p.id);
-        existingPayments.forEach(payment => {
-          if (!currentPaymentIds.includes(payment.id)) {
-            dataService.deletePayment(payment.id);
-          }
-        });
-      }
-
-      payments.forEach(payment => {
-        if (payment.amount > 0) {
-          if (payment.id) {
-            dataService.updatePayment(payment.id, {
-              amount: payment.amount,
-              currency: payment.currency,
-              paymentDate: payment.paymentDate,
-              method: payment.method,
-              notes: payment.notes
-            });
-          } else {
-            dataService.addPayment({
-              eventId: savedEvent.id,
-              amount: payment.amount,
-              currency: payment.currency,
-              paymentDate: payment.paymentDate,
-              method: payment.method,
-              notes: payment.notes
-            });
-          }
-        }
-      });
-      
-      refreshEvents();
       navigate('/events');
     } catch (error) {
       console.error('Error saving event:', error);
-      toast.error(t('comments_save_error'));
-    } finally {
-      setIsSubmitting(false);
+      toast({
+        title: "Error",
+        description: "Hubo un problema al guardar el evento",
+        variant: "destructive",
+      });
     }
   };
-
-  const getStatusText = (status: SelectableEventStatus) => {
-    switch(status) {
-      case 'prospect': return t('prospect');
-      case 'confirmed': return t('confirmed');
-      case 'show_completed': return t('show_completed');
-      default: return status;
-    }
-  };
-
-  const getCategoryText = (category: EventCategory) => {
-    switch(category) {
-      case 'wedding': return t('wedding');
-      case 'birthday': return t('birthday');
-      case 'corporate': return t('corporate');
-      case 'club': return t('club');
-      case 'other': return t('other');
-      default: return category;
-    }
-  };
-
-  const getMethodText = (method: PaymentMethod) => {
-    switch(method) {
-      case 'cash': return t('cash');
-      case 'credit': return t('credit');
-      case 'transfer': return t('transfer');
-      case 'check': return t('check');
-      default: return method;
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-crm-primary"></div>
-      </div>
-    );
-  }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="mb-6">
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
         <Button
           variant="ghost"
+          size="sm"
           onClick={() => navigate('/events')}
-          className="mb-4"
         >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          {t('events')}
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Volver
         </Button>
+        <h1 className="text-2xl font-bold">
+          {isEditing ? 'Editar Evento' : 'Nuevo Evento'}
+        </h1>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle>
-            {isEditing ? t('edit_event') : t('new_event')}
+            {isEditing ? 'Editar información del evento' : 'Información del evento'}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Título *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nombre del evento" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="customerId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('customers')}</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <FormLabel>Cliente *</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder={t('select_customer')} />
+                          <SelectValue placeholder="Seleccionar cliente" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {customers.map((customer) => (
+                        {customers?.map((customer) => (
                           <SelectItem key={customer.id} value={customer.id}>
-                            {customer.name} ({customer.email})
+                            {customer.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -378,38 +196,24 @@ const EventForm: React.FC = () => {
 
               <FormField
                 control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('event_title')}</FormLabel>
-                    <FormControl>
-                      <Input placeholder={t('event_title_placeholder')} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
                 name="date"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel>{t('date')}</FormLabel>
+                    <FormLabel>Fecha *</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
                           <Button
-                            variant="outline"
+                            variant={"outline"}
                             className={cn(
-                              "w-full pl-3 text-left font-normal",
+                              "w-[240px] pl-3 text-left font-normal",
                               !field.value && "text-muted-foreground"
                             )}
                           >
                             {field.value ? (
-                              format(field.value, "PPP", { locale: getDateLocale() })
+                              format(field.value, "PPP")
                             ) : (
-                              <span>{t('select_date_placeholder')}</span>
+                              <span>Seleccionar fecha</span>
                             )}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
@@ -420,7 +224,9 @@ const EventForm: React.FC = () => {
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          disabled={(date) => date < new Date()}
+                          disabled={(date) =>
+                            date < new Date() || date < new Date("1900-01-01")
+                          }
                           initialFocus
                         />
                       </PopoverContent>
@@ -430,81 +236,100 @@ const EventForm: React.FC = () => {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="venue"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('venue')}</FormLabel>
-                    <FormControl>
-                      <Input placeholder={t('venue_placeholder')} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('category')}</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="startTime"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Hora de inicio</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t('select_category')} />
-                        </SelectTrigger>
+                        <Input type="time" {...field} />
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="wedding">{getCategoryText('wedding')}</SelectItem>
-                        <SelectItem value="birthday">{getCategoryText('birthday')}</SelectItem>
-                        <SelectItem value="corporate">{getCategoryText('corporate')}</SelectItem>
-                        <SelectItem value="club">{getCategoryText('club')}</SelectItem>
-                        <SelectItem value="other">{getCategoryText('other')}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="cost"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('cost')}</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        step="0.01" 
-                        min="0"
-                        placeholder={t('amount_placeholder')} 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name="endTime"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Hora de fin</FormLabel>
+                      <FormControl>
+                        <Input type="time" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="total"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Total *</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="0.00"
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="currency"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Moneda *</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar moneda" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="USD">USD - Dólar</SelectItem>
+                          <SelectItem value="EUR">EUR - Euro</SelectItem>
+                          <SelectItem value="CRC">CRC - Colón</SelectItem>
+                          <SelectItem value="GBP">GBP - Libra</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <FormField
                 control={form.control}
                 name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('status')}</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <FormLabel>Estado *</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder={t('select_status')} />
+                          <SelectValue placeholder="Seleccionar estado" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="prospect">{getStatusText('prospect')}</SelectItem>
-                        <SelectItem value="confirmed">{getStatusText('confirmed')}</SelectItem>
-                        <SelectItem value="show_completed">{getStatusText('show_completed')}</SelectItem>
+                        <SelectItem value="prospect">Prospecto</SelectItem>
+                        <SelectItem value="confirmed">Confirmado</SelectItem>
+                        <SelectItem value="finished">Finalizado</SelectItem>
+                        <SelectItem value="cancelled">Cancelado</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -512,190 +337,26 @@ const EventForm: React.FC = () => {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="comments"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('comments')}</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder={t('additional_comments')} rows={4} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Event Details Section */}
-              <div className="space-y-4 border-t pt-6">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-medium">{t('equipment_details')}</h3>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={addEventDetail}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    {t('add')}
-                  </Button>
-                </div>
-
-                {eventDetails.map((detail, index) => (
-                  <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-4 p-4 border rounded-lg">
-                    <div className="md:col-span-5">
-                      <Input
-                        placeholder={t('equipment_description')}
-                        value={detail.description}
-                        onChange={(e) => updateEventDetail(index, 'description', e.target.value)}
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <Input
-                        type="number"
-                        min="1"
-                        placeholder={t('quantity_placeholder')}
-                        value={detail.quantity}
-                        onChange={(e) => updateEventDetail(index, 'quantity', parseInt(e.target.value) || 1)}
-                      />
-                    </div>
-                    <div className="md:col-span-4">
-                      <Input
-                        placeholder={t('additional_notes')}
-                        value={detail.notes || ''}
-                        onChange={(e) => updateEventDetail(index, 'notes', e.target.value)}
-                      />
-                    </div>
-                    <div className="md:col-span-1 flex justify-end">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeEventDetail(index)}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Payments Section */}
-              <div className="space-y-4 border-t pt-6">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-medium">{t('payments_advances')}</h3>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={addPayment}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    {t('add')}
-                  </Button>
-                </div>
-
-                {payments.map((payment, index) => (
-                  <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-4 p-4 border rounded-lg">
-                    <div className="md:col-span-2">
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder={t('amount_placeholder')}
-                        value={payment.amount}
-                        onChange={(e) => updatePayment(index, 'amount', parseFloat(e.target.value) || 0)}
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <Select 
-                        value={payment.currency} 
-                        onValueChange={(value) => updatePayment(index, 'currency', value as Currency)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="USD">USD</SelectItem>
-                          <SelectItem value="CRC">CRC</SelectItem>
-                          <SelectItem value="EUR">EUR</SelectItem>
-                          <SelectItem value="MXN">MXN</SelectItem>
-                          <SelectItem value="COP">COP</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="md:col-span-2">
-                      <Select 
-                        value={payment.method} 
-                        onValueChange={(value) => updatePayment(index, 'method', value as PaymentMethod)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="cash">{getMethodText('cash')}</SelectItem>
-                          <SelectItem value="credit">{getMethodText('credit')}</SelectItem>
-                          <SelectItem value="transfer">{getMethodText('transfer')}</SelectItem>
-                          <SelectItem value="check">{getMethodText('check')}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="md:col-span-2">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="w-full pl-3 text-left font-normal"
-                          >
-                            {format(payment.paymentDate, "dd/MM/yyyy", { locale: getDateLocale() })}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={payment.paymentDate}
-                            onSelect={(date) => updatePayment(index, 'paymentDate', date || new Date())}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    <div className="md:col-span-3">
-                      <Input
-                        placeholder={t('payment_notes')}
-                        value={payment.notes || ''}
-                        onChange={(e) => updatePayment(index, 'notes', e.target.value)}
-                      />
-                    </div>
-                    <div className="md:col-span-1 flex justify-end">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removePayment(index)}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex justify-end space-x-2 pt-4">
+              <div className="flex gap-4">
+                <Button
+                  type="submit"
+                  disabled={upsertEvent.isPending}
+                  className="bg-crm-primary hover:bg-crm-primary/90"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {upsertEvent.isPending 
+                    ? 'Guardando...' 
+                    : isEditing 
+                      ? 'Actualizar Evento' 
+                      : 'Crear Evento'
+                  }
+                </Button>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => navigate('/events')}
                 >
-                  {t('cancel')}
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={isSubmitting}
-                  className="bg-crm-primary hover:bg-crm-primary/90"
-                >
-                  {isSubmitting ? t('creating') : (isEditing ? t('edit') : t('create'))}
+                  Cancelar
                 </Button>
               </div>
             </form>

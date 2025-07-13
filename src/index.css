@@ -43,6 +43,12 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Custom CRM colors */
+    --crm-primary: 255 70% 50%;
+    --crm-secondary: 260 60% 85%;
+    --crm-background: 248 250 252;
+    --crm-text: 15 23 42;
   }
 
   .dark {
@@ -82,6 +88,12 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Custom CRM colors for dark mode */
+    --crm-primary: 255 70% 60%;
+    --crm-secondary: 260 60% 30%;
+    --crm-background: 15 23 42;
+    --crm-text: 248 250 252;
   }
 }
 
@@ -92,5 +104,20 @@
 
   body {
     @apply bg-crm-background text-crm-text;
+    background-image: linear-gradient(135deg, hsl(var(--crm-background)) 0%, hsl(var(--crm-primary) / 0.05) 100%);
+    min-height: 100vh;
   }
+}
+
+/* Estilos adicionales para mejorar la apariencia */
+.crm-card {
+  @apply bg-white/80 backdrop-blur-sm border border-white/20 shadow-lg;
+}
+
+.crm-button-primary {
+  @apply bg-crm-primary hover:bg-crm-primary/90 text-white;
+}
+
+.crm-button-secondary {
+  @apply bg-crm-secondary hover:bg-crm-secondary/90 text-white;
 }

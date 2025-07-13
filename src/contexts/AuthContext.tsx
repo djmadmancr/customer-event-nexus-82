@@ -12,6 +12,16 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   // Mantener compatibilidad con código existente
   currentUser: User | null;
+  // Propiedades adicionales para compatibilidad
+  userData: any;
+  userRole: string;
+  subscriptionData: any;
+  refreshSubscription: () => Promise<void>;
+  getAllUsers: () => Promise<any[]>;
+  updateUserRole: (userId: string, role: string) => Promise<void>;
+  updateUserStatus: (userId: string, status: string) => Promise<void>;
+  adminUpdateSubscription: (userId: string, subscription: any) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -93,6 +103,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const signUp = async (email: string, password: string) => {
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Cuenta creada",
+        description: "Revisa tu correo electrónico para confirmar tu cuenta",
+      });
+
+      return { error: null };
+    } catch (error) {
+      console.error('Sign up error:', error);
+      toast({
+        title: "Error de registro",
+        description: error instanceof Error ? error.message : "Error desconocido",
+        variant: "destructive",
+      });
+      return { error };
+    }
+  };
+
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
@@ -112,13 +153,48 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Funciones placeholder para compatibilidad
+  const refreshSubscription = async () => {
+    // Placeholder para compatibilidad
+  };
+
+  const getAllUsers = async () => {
+    // Placeholder para compatibilidad
+    return [];
+  };
+
+  const updateUserRole = async (userId: string, role: string) => {
+    // Placeholder para compatibilidad
+  };
+
+  const updateUserStatus = async (userId: string, status: string) => {
+    // Placeholder para compatibilidad
+  };
+
+  const adminUpdateSubscription = async (userId: string, subscription: any) => {
+    // Placeholder para compatibilidad
+  };
+
   const value = {
     user,
     session,
     loading,
     signIn,
     signOut,
+    signUp,
     currentUser: user, // Compatibilidad con código existente
+    userData: user ? { 
+      id: user.id, 
+      uid: user.id, // Agregar uid como alias de id para compatibilidad
+      email: user.email 
+    } : null,
+    userRole: 'user',
+    subscriptionData: null,
+    refreshSubscription,
+    getAllUsers,
+    updateUserRole,
+    updateUserStatus,
+    adminUpdateSubscription,
   };
 
   return (

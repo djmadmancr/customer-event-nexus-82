@@ -1,23 +1,40 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Currency } from '@/types/models';
 import { useAuth } from './AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+
+interface AppConfig {
+  companyName: string;
+  companyLogo: string;
+  primaryColor: string;
+  secondaryColor: string;
+  currency: string;
+  dateFormat: string;
+  timeFormat: string;
+}
 
 interface AppConfigContextType {
-  logoUrl: string | null;
-  defaultCurrency: Currency;
-  defaultTaxPercentage: number;
-  updateAppLogo: (logoUrl: string | null) => Promise<void>;
-  updateLogoUrl: (logoUrl: string | null) => Promise<void>; // Add explicit type for alias
-  updateDefaultCurrency: (currency: Currency) => void;
-  updateDefaultTaxPercentage: (taxPercentage: number) => void;
+  config: AppConfig;
+  updateConfig: (newConfig: Partial<AppConfig>) => Promise<void>;
+  loading: boolean;
 }
+
+const defaultConfig: AppConfig = {
+  companyName: 'Bassline CRM',
+  companyLogo: '',
+  primaryColor: '#3B82F6',
+  secondaryColor: '#10B981',
+  currency: 'USD',
+  dateFormat: 'MM/dd/yyyy',
+  timeFormat: '12h',
+};
 
 const AppConfigContext = createContext<AppConfigContextType | undefined>(undefined);
 
-export const useAppConfig = (): AppConfigContextType => {
+export const useAppConfig = () => {
   const context = useContext(AppConfigContext);
   if (!context) {
-    throw new Error('useAppConfig debe ser utilizado dentro de un AppConfigProvider');
+    throw new Error('useAppConfig must be used within an AppConfigProvider');
   }
   return context;
 };
@@ -27,96 +44,79 @@ interface AppConfigProviderProps {
 }
 
 export const AppConfigProvider: React.FC<AppConfigProviderProps> = ({ children }) => {
-  const { currentUser } = useAuth();
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [defaultCurrency, setDefaultCurrency] = useState<Currency>('CRC');
-  const [defaultTaxPercentage, setDefaultTaxPercentage] = useState<number>(13);
+  const [config, setConfig] = useState<AppConfig>(defaultConfig);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   useEffect(() => {
-    console.log('Loading app config for user:', currentUser?.uid);
-    if (currentUser) {
-      // Load from localStorage with user-specific keys
-      const logoKey = `appLogoUrl_${currentUser.uid}`;
-      const currencyKey = `defaultCurrency_${currentUser.uid}`;
-      const taxKey = `defaultTaxPercentage_${currentUser.uid}`;
-      
-      const savedLogoUrl = localStorage.getItem(logoKey);
-      const savedCurrency = localStorage.getItem(currencyKey) as Currency;
-      const savedTaxPercentage = localStorage.getItem(taxKey);
-      
-      if (savedLogoUrl) {
-        setLogoUrl(savedLogoUrl);
-      } else {
-        setLogoUrl(null);
-      }
-      
-      if (savedCurrency) {
-        setDefaultCurrency(savedCurrency);
-      } else {
-        setDefaultCurrency('CRC');
-      }
-      
-      if (savedTaxPercentage) {
-        setDefaultTaxPercentage(parseFloat(savedTaxPercentage));
-      } else {
-        setDefaultTaxPercentage(13);
-      }
+    if (user?.id) {
+      loadConfig();
     } else {
-      // No user logged in, reset to defaults
-      setLogoUrl(null);
-      setDefaultCurrency('CRC');
-      setDefaultTaxPercentage(13);
+      setLoading(false);
     }
-  }, [currentUser?.uid]);
+  }, [user?.id]);
 
-  const updateAppLogo = async (newLogoUrl: string | null) => {
-    if (!currentUser) return;
-    
-    console.log('Updating logo for user:', currentUser.uid, 'Logo:', newLogoUrl ? 'Set' : 'Removed');
-    setLogoUrl(newLogoUrl);
-    
-    // Save to localStorage with user-specific key
-    const logoKey = `appLogoUrl_${currentUser.uid}`;
-    if (newLogoUrl) {
-      localStorage.setItem(logoKey, newLogoUrl);
-    } else {
-      localStorage.removeItem(logoKey);
+  const loadConfig = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('app_config')
+        .select('*')
+        .eq('user_id', user?.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error loading config:', error);
+        return;
+      }
+
+      if (data) {
+        setConfig({
+          companyName: data.company_name || defaultConfig.companyName,
+          companyLogo: data.company_logo || defaultConfig.companyLogo,
+          primaryColor: data.primary_color || defaultConfig.primaryColor,
+          secondaryColor: data.secondary_color || defaultConfig.secondaryColor,
+          currency: data.currency || defaultConfig.currency,
+          dateFormat: data.date_format || defaultConfig.dateFormat,
+          timeFormat: data.time_format || defaultConfig.timeFormat,
+        });
+      }
+    } catch (error) {
+      console.error('Error loading config:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Add updateLogoUrl as an alias for compatibility
-  const updateLogoUrl = updateAppLogo;
+  const updateConfig = async (newConfig: Partial<AppConfig>) => {
+    if (!user?.id) return;
 
-  const updateDefaultCurrency = (currency: Currency) => {
-    if (!currentUser) return;
-    
-    console.log('Updating currency for user:', currentUser.uid, 'Currency:', currency);
-    setDefaultCurrency(currency);
-    const currencyKey = `defaultCurrency_${currentUser.uid}`;
-    localStorage.setItem(currencyKey, currency);
-  };
+    try {
+      const updatedConfig = { ...config, ...newConfig };
+      
+      const { error } = await supabase
+        .from('app_config')
+        .upsert({
+          user_id: user.id,
+          company_name: updatedConfig.companyName,
+          company_logo: updatedConfig.companyLogo,
+          primary_color: updatedConfig.primaryColor,
+          secondary_color: updatedConfig.secondaryColor,
+          currency: updatedConfig.currency,
+          date_format: updatedConfig.dateFormat,
+          time_format: updatedConfig.timeFormat,
+        });
 
-  const updateDefaultTaxPercentage = (taxPercentage: number) => {
-    if (!currentUser) return;
-    
-    console.log('Updating tax percentage for user:', currentUser.uid, 'Tax:', taxPercentage);
-    setDefaultTaxPercentage(taxPercentage);
-    const taxKey = `defaultTaxPercentage_${currentUser.uid}`;
-    localStorage.setItem(taxKey, taxPercentage.toString());
-  };
+      if (error) throw error;
 
-  const value = {
-    logoUrl,
-    defaultCurrency,
-    defaultTaxPercentage,
-    updateAppLogo,
-    updateLogoUrl, // Add alias for backward compatibility
-    updateDefaultCurrency,
-    updateDefaultTaxPercentage,
+      setConfig(updatedConfig);
+    } catch (error) {
+      console.error('Error updating config:', error);
+      throw error;
+    }
   };
 
   return (
-    <AppConfigContext.Provider value={value}>
+    <AppConfigContext.Provider value={{ config, updateConfig, loading }}>
       {children}
     </AppConfigContext.Provider>
   );
