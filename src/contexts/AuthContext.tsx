@@ -10,6 +10,8 @@ interface AuthContextType {
   loading: boolean;
   signIn: (email: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  // Mantener compatibilidad con código existente
+  currentUser: User | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -62,6 +64,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signIn = async (email: string) => {
     try {
+      // Usar la URL correcta del proyecto
       const redirectUrl = `${window.location.origin}/`;
       
       const { error } = await supabase.auth.signInWithOtp({
@@ -115,6 +118,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     loading,
     signIn,
     signOut,
+    currentUser: user, // Compatibilidad con código existente
   };
 
   return (

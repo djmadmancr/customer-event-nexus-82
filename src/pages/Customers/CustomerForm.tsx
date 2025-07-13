@@ -1,8 +1,8 @@
 
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { z } from 'zod';
 import { useForm } from 'react-hook-form';
+import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,26 +16,29 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { ArrowLeft } from 'lucide-react';
-import { useCustomer, useUpsertCustomer } from '@/hooks/useSupabaseQueries';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { useCustomers, useUpsertCustomer } from '@/hooks/useSupabaseQueries';
 
 const customerSchema = z.object({
-  name: z.string().min(2, { message: 'El nombre debe tener al menos 2 caracteres' }),
-  email: z.string().email({ message: 'Email inválido' }).optional().or(z.literal('')),
+  name: z.string().min(1, 'El nombre es requerido'),
+  email: z.string().email('Email inválido').optional().or(z.literal('')),
   phone: z.string().optional(),
   notes: z.string().optional(),
 });
 
 type CustomerFormValues = z.infer<typeof customerSchema>;
 
-const CustomerForm: React.FC = () => {
+const CustomerForm = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
-  const isEditing = !!id;
-  
-  const { data: customer, isLoading: loadingCustomer } = useCustomer(id || '');
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const { data: customers = [] } = useCustomers();
   const upsertCustomer = useUpsertCustomer();
+
+  const isEditing = Boolean(id);
+  const customer = isEditing ? customers.find(c => c.id === id) : null;
 
   const form = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema),
@@ -48,57 +51,53 @@ const CustomerForm: React.FC = () => {
   });
 
   useEffect(() => {
-    if (isEditing && customer) {
+    if (customer) {
       form.reset({
-        name: customer.name,
+        name: customer.name || '',
         email: customer.email || '',
         phone: customer.phone || '',
         notes: customer.notes || '',
       });
     }
-  }, [customer, isEditing, form]);
+  }, [customer, form]);
 
-  const onSubmit = async (data: CustomerFormValues) => {
+  const onSubmit = async (values: CustomerFormValues) => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "Debes estar autenticado para crear clientes",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const customerData = {
-        ...data,
-        email: data.email || null,
-        phone: data.phone || null,
-        notes: data.notes || null,
+        ...values,
+        user_id: user.id,
         ...(isEditing && { id: id! }),
       };
 
       await upsertCustomer.mutateAsync(customerData);
       
-      toast.success(isEditing ? 'Cliente actualizado correctamente' : 'Cliente creado correctamente');
+      toast({
+        title: isEditing ? "Cliente actualizado" : "Cliente creado",
+        description: `${values.name} ha sido ${isEditing ? 'actualizado' : 'creado'} exitosamente.`,
+      });
+
       navigate('/customers');
     } catch (error) {
       console.error('Error saving customer:', error);
-      toast.error('Error al guardar el cliente');
+      toast({
+        title: "Error",
+        description: `Error al ${isEditing ? 'actualizar' : 'crear'} el cliente`,
+        variant: "destructive",
+      });
     }
   };
 
-  if (loadingCustomer) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600"></div>
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="mb-6">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/customers')}
-          className="mb-4"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Volver a clientes
-        </Button>
-      </div>
-
       <Card>
         <CardHeader>
           <CardTitle>
@@ -107,7 +106,7 @@ const CustomerForm: React.FC = () => {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
                 control={form.control}
                 name="name"
@@ -129,7 +128,7 @@ const CustomerForm: React.FC = () => {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="email@ejemplo.com" {...field} />
+                      <Input type="email" placeholder="cliente@email.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -143,7 +142,7 @@ const CustomerForm: React.FC = () => {
                   <FormItem>
                     <FormLabel>Teléfono</FormLabel>
                     <FormControl>
-                      <Input placeholder="+506 0000-0000" {...field} />
+                      <Input placeholder="+506 8888-8888" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -157,27 +156,26 @@ const CustomerForm: React.FC = () => {
                   <FormItem>
                     <FormLabel>Notas</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Notas adicionales..." rows={4} {...field} />
+                      <Textarea 
+                        placeholder="Notas adicionales sobre el cliente..."
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              <div className="flex justify-end space-x-2 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
+              <div className="flex gap-4">
+                <Button type="submit" disabled={upsertCustomer.isPending}>
+                  {upsertCustomer.isPending ? 'Guardando...' : (isEditing ? 'Actualizar' : 'Crear Cliente')}
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
                   onClick={() => navigate('/customers')}
                 >
                   Cancelar
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={upsertCustomer.isPending}
-                  className="bg-purple-600 hover:bg-purple-700"
-                >
-                  {upsertCustomer.isPending ? 'Guardando...' : (isEditing ? 'Actualizar' : 'Crear')}
                 </Button>
               </div>
             </form>

@@ -22,8 +22,6 @@ const loginSchema = z.object({
   email: z.string()
     .email({ message: 'Email inválido.' })
     .min(1, { message: 'El email es requerido.' }),
-  password: z.string()
-    .min(1, { message: 'La contraseña es requerida.' }),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -38,7 +36,6 @@ const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
   const location = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
 
   // Check for any redirect param in the URL
   useEffect(() => {
@@ -53,7 +50,6 @@ const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: '',
-      password: '',
     },
     mode: 'onBlur',
   });
@@ -65,7 +61,7 @@ const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
       
       console.log('🔄 Login attempt for:', data.email);
       
-      await signIn(data.email, data.password);
+      await signIn(data.email);
       
       // Small delay to show success message
       setTimeout(() => {
@@ -75,7 +71,7 @@ const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
     } catch (error: any) {
       console.error('❌ Login failed:', error);
       
-      let errorMessage = 'Credenciales incorrectas';
+      let errorMessage = 'Error de inicio de sesión';
       if (error?.message) {
         errorMessage = error.message;
       }
@@ -116,46 +112,12 @@ const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
             )}
           />
           
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Contraseña</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Input 
-                      placeholder="Tu contraseña" 
-                      type={showPassword ? "text" : "password"}
-                      autoComplete="current-password"
-                      {...field} 
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4 text-gray-500" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-gray-500" />
-                      )}
-                    </Button>
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
           <Button 
             type="submit" 
             className="w-full bg-crm-primary hover:bg-crm-primary/90"
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+            {isSubmitting ? 'Enviando enlace mágico...' : 'Enviar enlace mágico'}
           </Button>
 
           {onSwitchToRegister && (

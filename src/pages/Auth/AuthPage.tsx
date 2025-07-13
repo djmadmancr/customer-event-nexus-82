@@ -21,6 +21,19 @@ const AuthPage = () => {
     }
   }, [user, navigate]);
 
+  // Verificar si hay error en la URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const error = urlParams.get('error');
+    const errorDescription = urlParams.get('error_description');
+    
+    if (error) {
+      console.error('Auth error:', error, errorDescription);
+      // Limpiar la URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
@@ -40,7 +53,7 @@ const AuthPage = () => {
 
   if (emailSent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-crm-background px-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -72,10 +85,10 @@ const AuthPage = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-crm-background px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Customer-Event Nexus 82</CardTitle>
+          <CardTitle className="text-2xl font-bold text-crm-primary">Bassline CRM</CardTitle>
           <p className="text-gray-600">Inicia sesión con tu correo electrónico</p>
         </CardHeader>
         <CardContent>
@@ -94,7 +107,7 @@ const AuthPage = () => {
             </div>
             <Button 
               type="submit" 
-              className="w-full"
+              className="w-full bg-crm-primary hover:bg-crm-primary/90"
               disabled={loading || !email.trim()}
             >
               {loading ? (
